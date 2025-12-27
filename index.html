@@ -33,14 +33,46 @@
 
 
 
-<div style="width:100%; display:flex; justify-content:center;">
+<style>
+  .sheets-container {
+    display: flex;
+    gap: 0px;
+    width: 100%;
+  }
 
-<iframe 
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=0&single=true&widget=false&chrome=false&headers=false"
-  style="width:100%; height:350px; border:none;"
-></iframe>
+  .sheet-frame {
+    flex: 1;
+  }
 
+  .sheet-frame iframe {
+    width: 100%;
+    height: 350px;
+    border: none;
+  }
+
+  /* Stack vertically on small screens */
+  @media (max-width: 900px) {
+    .sheets-container {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<div class="sheets-container">
+  <div class="sheet-frame">
+    <iframe
+      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=0&single=true&widget=false&chrome=false&headers=false">
+    </iframe>
+  </div>
+
+  <div class="sheet-frame">
+    <iframe
+      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQo1cf7bcrli1WiAsGjQeEdgoqwSNVqGE_rKAqJaLmPXB0MErSBo34ylNWhIcXzR8CBkM-gI_iybtGP/pubhtml?gid=186665004&single=true&widget=false&chrome=false&headers=false">
+    </iframe>
+  </div>
 </div>
+
+
 <hr>
 
 <div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
@@ -125,6 +157,3 @@
   style=" max-width:1000px; width:100%; height:auto; border:2px solid #000;"
 >
 </div>
-
-
-
