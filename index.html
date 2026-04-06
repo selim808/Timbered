@@ -1,191 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>Dashboard </title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timbered Dashboard</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand: #F0AE66;
+      --brand-light: #F4CFA5;
+      --brand-dark: #B86E1A;
+      --brand-deeper: #7A4610;
+      --ink: #1C1A17;
+      --ink-muted: #7A6F65;
+      --surface: #FFFDF9;
+      --surface-2: #FBF5EC;
+      --border: #E8D9C4;
+      --border-strong: #C8AA88;
+      --radius: 12px;
+      --radius-lg: 18px;
+      --header-h: 60px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface-2);
+      color: var(--ink);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      background: var(--brand);
+      border-bottom: 2.5px solid var(--ink);
+      height: var(--header-h);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-left img { height: 28px; }
+    .header-left h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .today-badge {
+      font-size: 12px;
+      color: var(--brand-deeper);
+      background: rgba(255,255,255,0.45);
+      border: 1px solid var(--brand-dark);
+      border-radius: 20px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      .today-badge { display: none; }
+      .header-left h1 { font-size: 15px; }
+    }
+
+    /* ── BURGER ── */
+    .burger-btn {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      background: var(--brand-dark);
+      border: none; cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 5px; flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .burger-btn:hover { background: var(--brand-deeper); }
+    .burger-btn span {
+      display: block; width: 18px; height: 2px;
+      background: #fff; border-radius: 2px;
+      transition: transform 0.25s, opacity 0.2s;
+      transform-origin: center;
+    }
+    .burger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .burger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .burger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ── NAV DRAWER ── */
+    .nav-drawer {
+      position: fixed;
+      top: var(--header-h); right: 0;
+      width: 268px; max-width: 88vw;
+      background: #fff;
+      border-left: 2px solid var(--border-strong);
+      border-bottom: 2px solid var(--border-strong);
+      border-bottom-left-radius: var(--radius-lg);
+      z-index: 190;
+      padding: 6px 0 14px;
+      transform: translateX(110%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: -4px 8px 24px rgba(0,0,0,0.10);
+    }
+    .nav-drawer.open { transform: translateX(0); }
+    .nav-drawer-title {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--ink-muted);
+      padding: 10px 18px 8px;
+    }
+    .nav-drawer a {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 18px;
+      text-decoration: none; color: var(--ink);
+      font-size: 14px; font-weight: 500;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nav-drawer a:hover { background: var(--brand-light); border-left-color: var(--brand-dark); }
+    .nav-drawer a .nav-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--brand-light); color: var(--brand-deeper);
+      font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .nav-sheets-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px;
+      text-decoration: none; color: var(--brand-deeper);
+      font-size: 13px; font-weight: 500;
+      transition: background 0.15s;
+    }
+    .nav-sheets-link:hover { background: var(--surface-2); }
+    .nav-overlay {
+      display: none; position: fixed; inset: 0;
+      z-index: 180; background: rgba(0,0,0,0.08);
+    }
+    .nav-overlay.open { display: block; }
+
+    /* ── BODY ── */
+    .dash-body {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px 12px 64px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* ── PARENT SHEET BANNER ── */
+    .parent-banner {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 12px;
+      background: #fff;
+      border: 1.5px solid var(--border-strong);
+      border-left: 4px solid var(--brand-dark);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      animation: fadeUp 0.3s ease both;
+    }
+    .parent-banner-left { display: flex; align-items: center; gap: 10px; }
+    .parent-banner-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+    .parent-banner-text span { font-size: 11px; color: var(--ink-muted); }
+    .open-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--brand-dark); color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      padding: 7px 14px; border-radius: 8px;
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.18s; flex-shrink: 0;
+    }
+    .open-btn:hover { background: var(--brand-deeper); }
+
+    /* ── SECTION CARD ── */
+    .section {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      animation: fadeUp 0.4s ease both;
+    }
+    .section:nth-child(2) { animation-delay: 0.05s; }
+    .section:nth-child(3) { animation-delay: 0.10s; }
+    .section:nth-child(4) { animation-delay: 0.15s; }
+    .section:nth-child(5) { animation-delay: 0.20s; }
+    .section:nth-child(6) { animation-delay: 0.25s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION HEADER — centered title ── */
+    .section-header {
+      background: var(--brand-light);
+      border-bottom: 1.5px solid var(--border-strong);
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+    }
+    .section-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--brand-dark); color: #fff;
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px; font-weight: 400;
+      color: var(--ink);
+    }
+
+    /* ── SECTION BODY ── */
+    .section-body {
+      padding: 16px;
+      display: flex; flex-direction: column;
+      gap: 14px; align-items: center;
+    }
+
+    /* ── IFRAME WRAPPER ── */
+    .frame-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .frame-scroll iframe { display: block; border: none; }
+
+    /* ── FINANCE TABLE TOGGLE ── */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1.5px solid var(--border-strong);
+      border-radius: 8px;
+      overflow: hidden;
+      align-self: flex-end;
+    }
+    .toggle-btn {
+      padding: 6px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 500;
+      background: #fff; color: var(--ink-muted);
+      border: none; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .toggle-btn:first-child { border-right: 1px solid var(--border-strong); }
+    .toggle-btn.active {
+      background: var(--brand-dark);
+      color: #fff;
+    }
+    .toggle-btn:hover:not(.active) { background: var(--brand-light); color: var(--ink); }
+
+    /* finance iframe container */
+    #fin-frame-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      transition: max-width 0.3s ease;
+    }
+    #fin-frame-wrap iframe { display: block; border: none; }
+
+    /* full-width chart images */
+    .chart-img {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .chart-img img { display: block; width: 100%; height: auto; }
+
+    .full-width { width: 100%; }
+
+    .sect-divider {
+      width: 100%; border: none;
+      border-top: 1.5px dashed var(--border-strong);
+    }
+    .scroll-hint {
+      font-size: 11px; color: var(--ink-muted);
+      text-align: center; font-style: italic; width: 100%;
+    }
+  </style>
 </head>
+<body>
 
+  <header class="site-header">
+    <div class="header-left">
+      <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+      <h1>TIMBERED DASHBOARD</h1>
+    </div>
+    <div class="header-right">
+      <span class="today-badge" id="today-date"></span>
+      <button class="burger-btn" id="burgerBtn" aria-label="Open navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
 
+  <div class="nav-overlay" id="navOverlay"></div>
 
-<div style="
-  width:100%;
-  background:#F0AE66;
-  padding:18px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:22px;
-  border:3px solid #000;
-">
-  TIMBERED DASHBOARD
-</div>
+  <nav class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer-title">Jump to section</div>
+    <a href="#section-goals"       onclick="closeNav()"><span class="nav-num">1</span> Goals</a>
+    <a href="#section-finance"     onclick="closeNav()"><span class="nav-num">2</span> Finance</a>
+    <a href="#section-production"  onclick="closeNav()"><span class="nav-num">3</span> Production</a>
+    <a href="#section-performance" onclick="closeNav()"><span class="nav-num">4</span> Weekly &amp; Monthly Performance</a>
+    <a href="#section-inventory"   onclick="closeNav()"><span class="nav-num">5</span> Inventory</a>
+    <hr class="nav-divider">
+    <a class="nav-sheets-link" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit?gid=1549167831#gid=1549167831" target="_blank" onclick="closeNav()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+      </svg>
+      Open All Sheets
+    </a>
+  </nav>
 
+  <div class="dash-body">
 
+    <!-- MASTER SHEET BANNER -->
+    <div class="parent-banner">
+      <div class="parent-banner-left">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+        <div class="parent-banner-text">
+          <strong>Master Spreadsheet</strong>
+          <span>All sheets &amp; data sources in one place</span>
+        </div>
+      </div>
+      <a class="open-btn" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit?gid=1549167831#gid=1549167831" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        Open
+      </a>
+    </div>
 
-<div style="
-  width:100%;
-  background:#F4CFA5; 
-  padding:8px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  border-top:2px dashed #000;
-  border-bottom:2px dashed #000;
-">
-  1- GOALS
-</div>
+    <!-- 1. GOALS -->
+    <div class="section" id="section-goals">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <span class="section-title">Goals</span>
+      </div>
+      <div class="section-body">
+        <div class="frame-scroll">
+          <iframe style="height:325px; width:368px;"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQo1cf7bcrli1WiAsGjQeEdgoqwSNVqGE_rKAqJaLmPXB0MErSBo34ylNWhIcXzR8CBkM-gI_iybtGP/pubhtml?gid=186665004&single=true&widget=false&chrome=false&headers=false">
+          </iframe>
+        </div>
+      </div>
+    </div>
 
+    <!-- 2. FINANCE -->
+    <div class="section" id="section-finance">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <span class="section-title">Finance</span>
+      </div>
+      <div class="section-body">
 
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-    <iframe style="
-    height: 325px;
-    border: 2px solid #000;
-    width: 368px;"
-      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQo1cf7bcrli1WiAsGjQeEdgoqwSNVqGE_rKAqJaLmPXB0MErSBo34ylNWhIcXzR8CBkM-gI_iybtGP/pubhtml?gid=186665004&single=true&widget=false&chrome=false&headers=false">
-    </iframe>
+        <!-- width toggle -->
+        <div class="view-toggle">
+          <button class="toggle-btn active" id="btn-full" onclick="setFinView('full')">Full width</button>
+          <button class="toggle-btn"        id="btn-half" onclick="setFinView('half')">Compact</button>
+        </div>
+
+        <div id="fin-frame-wrap">
+          <iframe id="fin-iframe" style="height:350px; width:885px;"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=0&single=true&widget=false&chrome=false&headers=false">
+          </iframe>
+        </div>
+        <p class="scroll-hint" id="fin-hint" style="display:none;">Scroll right to see full table &rarr;</p>
+
+        <hr class="sect-divider">
+        <div class="chart-img full-width">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=2075051094&format=image" alt="Finance Chart 1">
+        </div>
+        <div class="chart-img full-width">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=495163831&format=image" alt="Finance Chart 2">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. PRODUCTION -->
+    <div class="section" id="section-production">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <span class="section-title">Production</span>
+      </div>
+      <div class="section-body">
+        <div class="frame-scroll">
+          <iframe style="width:460px; height:169px;"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=441179122&single=true&widget=false&chrome=false&headers=false">
+          </iframe>
+        </div>
+        <div class="chart-img full-width">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. WEEKLY / MONTHLY PERFORMANCE -->
+    <div class="section" id="section-performance">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <span class="section-title">Weekly &amp; Monthly Performance</span>
+      </div>
+      <div class="section-body">
+        <div class="chart-img full-width">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=1217066388&format=image" alt="Weekly Performance">
+        </div>
+        <div class="chart-img full-width">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=2141522054&format=image" alt="Monthly Performance">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. INVENTORY -->
+    <div class="section" id="section-inventory">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <span class="section-title">Inventory</span>
+      </div>
+      <div class="section-body">
+        <div class="frame-scroll">
+          <iframe style="width:221px; height:78px;"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=1288259104&single=true&widget=false&chrome=false&headers=false">
+          </iframe>
+        </div>
+      </div>
+    </div>
+
   </div>
 
+  <script>
+    // Date
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+    });
 
+    // Burger
+    const burgerBtn  = document.getElementById('burgerBtn');
+    const navDrawer  = document.getElementById('navDrawer');
+    const navOverlay = document.getElementById('navOverlay');
+    function openNav()  { burgerBtn.classList.add('open'); navDrawer.classList.add('open'); navOverlay.classList.add('open'); }
+    function closeNav() { burgerBtn.classList.remove('open'); navDrawer.classList.remove('open'); navOverlay.classList.remove('open'); }
+    burgerBtn.addEventListener('click', () => navDrawer.classList.contains('open') ? closeNav() : openNav());
+    navOverlay.addEventListener('click', closeNav);
 
-<div style="
-  width:100%;
-  background:#F4CFA5; 
-  padding:8px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  border-top:2px dashed #000;
-  border-bottom:2px dashed #000;
-">
-  2- FINANCE
-</div>
+    // Finance table view toggle
+    function setFinView(mode) {
+      const wrap   = document.getElementById('fin-frame-wrap');
+      const iframe = document.getElementById('fin-iframe');
+      const hint   = document.getElementById('fin-hint');
+      const btnFull = document.getElementById('btn-full');
+      const btnHalf = document.getElementById('btn-half');
 
-
-
-
-
-  <div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-    <iframe
-	style="
-    height: 350px;
-    border: none;
-    width: 885px;"
-      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=0&single=true&widget=false&chrome=false&headers=false">
-    </iframe>
-  </div>
-
-
-
-<hr>
-
-
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-<img 
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=2075051094&amp;format=image" 
-  alt="Dashboard Chart"
-  style=" max-width:1000px; width:100%; height:auto; border:2px solid #000;"
->
-</div>
-
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-<img 
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=495163831&amp;format=image" 
-  alt="Dashboard Chart"
-  style=" max-width:1000px; width:100%; height:auto; border:2px solid #000;"
->
-</div>
-
-
-<div style="
-  width:100%;
-  background:#F4CFA5; 
-  padding:8px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  border-top:2px dashed #000;
-  border-bottom:2px dashed #000;
-">
-  3- PRODUCTION
-</div>
-
-
-
-
-<div style="width:100%; display:flex; justify-content:center;">
-  <iframe 
-    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=441179122&single=true&widget=false&chrome=false&headers=false"
-    style="width:460px; height:169px; border:2px solid #000;"
-  ></iframe>
-</div>
-
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-  <img 
-    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&amp;format=image" 
-    alt="Dashboard Chart"
-    style="max-width:1000px; width:100%; height:auto; border:2px solid #000;"
-  >
-</div>
-
-
-
-
-
-<div style="
-  width:100%;
-  background:#F4CFA5; 
-  padding:8px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  border-top:2px dashed #000;
-  border-bottom:2px dashed #000;
-">
-
-  4- WEEKLY - Monthly PERFORMANCE
-</div>
-
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-<img 
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=1217066388&amp;format=image" 
-  alt="Dashboard Chart"
-  style=" max-width:1000px; width:100%; height:auto; border:2px solid #000;"
->
-</div>
-
-</div>
-
-<div style="width:100%; display:flex; justify-content:center; margin:0px 0;">
-<img 
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=2141522054&amp;format=image" 
-  alt="Dashboard Chart"
-  style=" max-width:1000px; width:100%; height:auto; border:2px solid #000;"
->
-</div>
-
-
-
-<div style="
-  width:100%;
-  background:#F4CFA5; 
-  padding:8px 0;
-  text-align:center;
-  font-weight:bold;
-  font-size:18px;
-  border-top:2px dashed #000;
-  border-bottom:2px dashed #000;
-">
-
-
-  5- INVENTORY
-</div>
-
-
-<div style="width:100%; display:flex; justify-content:center;">
-  <iframe 
-    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=1288259104&single=true&widget=false&chrome=false&headers=false"
-    style="width:221px; height:78px; border:2px solid #000;"
-  ></iframe>
-</div>
-
-
-
-
-
+      if (mode === 'full') {
+        // Full original width — scrollable horizontally
+        iframe.style.width = '885px';
+        wrap.style.maxWidth = '100%';
+        hint.style.display = 'block';
+        btnFull.classList.add('active');
+        btnHalf.classList.remove('active');
+      } else {
+        // Compact: half width, table anchored to left side
+        iframe.style.width = '442px';
+        wrap.style.maxWidth = '442px';
+        hint.style.display = 'block';
+        btnFull.classList.remove('active');
+        btnHalf.classList.add('active');
+        // Scroll to left
+        wrap.scrollLeft = 0;
+      }
+    }
+  </script>
+</body>
+</html>
