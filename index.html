@@ -34,9 +34,9 @@
       align-items: center; position: sticky; top: 0; z-index: 200;
     }
     .header-left { display: flex; align-items: center; gap: 10px; justify-content: flex-start; }
-    .header-left img { height: 30px; }
+.header-left img { height: 44px; background: white; border-radius: 8px; padding: 4px 8px; }
     .header-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
-    .header-center .title-main { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 900; font-style: normal; color: var(--ink); letter-spacing: 3px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; }
+    .header-center .title-main { font-family: 'DM Sans', sans-serif; font-size: 19px; font-weight: 900; font-style: normal; color: var(--ink); letter-spacing: 3px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; }
     .header-center .title-sub  { font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--brand-deeper); white-space: nowrap; }
     .header-right { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
     .today-badge  { font-size: 12px; color: var(--brand-deeper); background: rgba(255,255,255,0.45); border: 1px solid var(--brand-dark); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
@@ -47,26 +47,6 @@
       .header-left img { height: 24px; }
     }
 
-    /* ----- BURGER BUTTON ----- */
-    .burger-btn { width: 38px; height: 38px; border-radius: 8px; background: var(--brand-dark); border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; transition: background 0.2s; }
-    .burger-btn:hover { background: var(--brand-deeper); }
-    .burger-btn span { display: block; width: 18px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.25s, opacity 0.2s; transform-origin: center; }
-    .burger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .burger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-    .burger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-    /* ----- NAV DRAWER ----- */
-    .nav-drawer { position: fixed; top: var(--header-h); right: 0; width: 268px; max-width: 88vw; background: #fff; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-bottom-left-radius: var(--radius-lg); z-index: 190; padding: 6px 0 14px; transform: translateX(110%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); box-shadow: -4px 8px 24px rgba(0,0,0,0.10); }
-    .nav-drawer.open { transform: translateX(0); }
-    .nav-drawer-title { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-muted); padding: 10px 18px 8px; }
-    .nav-drawer a { display: flex; align-items: center; gap: 12px; padding: 10px 18px; text-decoration: none; color: var(--ink); font-size: 14px; font-weight: 500; border-left: 3px solid transparent; transition: background 0.15s, border-color 0.15s; }
-    .nav-drawer a:hover { background: var(--brand-light); border-left-color: var(--brand-dark); }
-    .nav-drawer a .nav-num { width: 22px; height: 22px; border-radius: 50%; background: var(--brand-light); color: var(--brand-deeper); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .nav-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-    .nav-sheets-link { display: flex; align-items: center; gap: 10px; padding: 10px 18px; text-decoration: none; color: var(--brand-deeper); font-size: 13px; font-weight: 500; transition: background 0.15s; }
-    .nav-sheets-link:hover { background: var(--surface-2); }
-    .nav-overlay { display: none; position: fixed; inset: 0; z-index: 180; background: rgba(0,0,0,0.08); }
-    .nav-overlay.open { display: block; }
 
     /* ----- DASH BODY ----- */
     .dash-body { max-width: 1000px; margin: 0 auto; padding: 20px 12px 64px; display: flex; flex-direction: column; gap: 20px; }
@@ -163,8 +143,10 @@
     .bi-negative { color: #c0392b; border: 1px solid #c0392b; }
 
     /* ----- BI cards ----- */
-    .bi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-
+    .bi-card {
+        background: #fff; border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    }
     /* ----- BI header (round selector row) ----- */
     .bi-header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .bi-header-item { display: flex; flex-direction: column; }
@@ -262,26 +244,8 @@
   </div>
   <div class="header-right">
     <span class="today-badge" id="today-date"></span>
-    <button class="burger-btn" id="burgerBtn" aria-label="Open navigation">
-      <span></span><span></span><span></span>
-    </button>
   </div>
 </header>
-
-<div class="nav-overlay" id="navOverlay"></div>
-<nav class="nav-drawer" id="navDrawer">
-  <div class="nav-drawer-title">Jump to section</div>
-  <a href="#section-goals"       onclick="navJump('section-goals')"><span class="nav-num">1</span> Goals</a>
-  <a href="#section-finance"     onclick="navJump('section-finance')"><span class="nav-num">2</span> Finance</a>
-  <a href="#section-production"  onclick="navJump('section-production')"><span class="nav-num">3</span> Production</a>
-  <a href="#section-performance" onclick="navJump('section-performance')"><span class="nav-num">4</span> Weekly &amp; Monthly Performance</a>
-  <a href="#section-inventory"   onclick="navJump('section-inventory')"><span class="nav-num">5</span> Inventory</a>
-  <hr class="nav-divider">
-  <a class="nav-sheets-link" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit" target="_blank" onclick="closeNav()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-    Open All Sheets
-  </a>
-</nav>
 
 <div class="dash-body">
 
@@ -320,7 +284,7 @@
       </a>
       <a class="open-btn" href="https://www.appsheet.com/start/25809a9d-557f-43a0-8fac-14a212f85519?platform=mobile#appName=Accounting-Entry-548387873-25-08-20&vss=H4sIAAAAAAAAA62POw7CMBBEr4Km9glc8ikQggZEgxEy8UaySOwodoDI8t3Z8BEFHVDujN7TbMLZ0mUddXGC3KX3taAeEklh0zekIBUm3sXWVwpCYaXrRzi7NqNxV5wohsOUorbcZ-S9eJkiBcj0rUj-a5GANeSiLS21g3VwsO1p4HrgOfikkQXqLupjRfd3mM6Zs9IXXSCz5Xk_zQpzx512ZukNy0tdBco3QCWyOpcBAAA=&view=Exp%20Buckets_Detail" target="_blank">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Finance Entry
+        Finance
       </a>
     </div>
   </div>
@@ -486,7 +450,7 @@
               <tbody>
                 <tr class="row-total">
                   <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#34495e"></div>Total</div></td>
-                  <td id="fTotalVal">--</td><td id="fTotalNo">--</td><td>—</td>
+                  <td id="fTotalVal">--</td><td id="fTotalNo">--</td><td><span class="bi-pct-badge" style="background:#f0f0f0; color:#555;">100%</span></td>
                 </tr>
                 <tr>
                   <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2ecc71"></div>Completed</div></td>
@@ -625,13 +589,7 @@
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
   });
 
-  const burgerBtn  = document.getElementById('burgerBtn');
-  const navDrawer  = document.getElementById('navDrawer');
-  const navOverlay = document.getElementById('navOverlay');
-  function openNav()  { burgerBtn.classList.add('open'); navDrawer.classList.add('open'); navOverlay.classList.add('open'); }
-  function closeNav() { burgerBtn.classList.remove('open'); navDrawer.classList.remove('open'); navOverlay.classList.remove('open'); }
-  burgerBtn.addEventListener('click', () => navDrawer.classList.contains('open') ? closeNav() : openNav());
-  navOverlay.addEventListener('click', closeNav);
+  function closeNav() {}
 
   // ================================================================
   // COLLAPSIBLE SECTIONS
