@@ -218,6 +218,10 @@
     .bi-dist-labels-wrap { position: relative; height: 20px; margin-top: 8px; }
     .bi-dist-label-text  { position: absolute; font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase; white-space: nowrap; transform: translateX(-50%); transition: left 0.8s ease-in-out; }
 
+    /* ----- Year toggle buttons ----- */
+    .yr-btn { font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; border:1.5px solid var(--border-strong); background:#fff; color:var(--ink-muted); cursor:pointer; white-space:nowrap; }
+    .yr-btn.active { background:var(--brand-dark); color:#fff; border-color:var(--brand-dark); }
+
     /* ----- BI responsive ----- */
     @media (min-width: 600px) {
       .bi-header-grid   { grid-template-columns: repeat(4, 1fr); }
@@ -574,7 +578,7 @@
     <div class="section-header" onclick="toggleSection('section-performance')">
       <div class="section-header-left">
         <div class="section-num">4</div>
-        <span class="section-title">Weekly &amp; Monthly Performance</span>
+        <span class="section-title">Weekly Performance</span>
       </div>
       <div class="chevron">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
@@ -582,12 +586,27 @@
     </div>
     <div class="section-body-wrap">
       <div class="section-body-inner">
-        <div class="section-body">
-          <div class="chart-img full-width">
-            <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=1217066388&format=image" alt="Weekly Performance">
+        <div class="section-body" style="padding:12px;">
+          <div id="perf-state" class="gviz-state">Loading…</div>
+          <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:4px;"></div>
+          <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
+            <div>
+              <div class="bi-label">Year</div>
+              <div id="weekYearBtns" style="display:flex; flex-wrap:wrap; gap:4px; max-width:160px;"></div>
+            </div>
+            <div>
+              <label class="bi-label">Start</label>
+              <select id="weekStart" class="bi-select"></select>
+            </div>
+            <div>
+              <label class="bi-label">End</label>
+              <select id="weekEnd" class="bi-select"></select>
+            </div>
           </div>
-          <div class="chart-img full-width">
-            <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=2141522054&format=image" alt="Monthly Performance">
+          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <div id="weeklyChartWrap" style="height:320px;">
+              <canvas id="weeklyChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1014,8 +1033,8 @@
           const dlvPct   = totalWip > 0 ? Math.round(dlvVal / totalWip * 100) : 0;
           document.getElementById("prodSegFab").style.width   = fabPct + "%";
           document.getElementById("prodSegDlv").style.width   = dlvPct + "%";
-          document.getElementById("prodSegFab").innerText     = fabPct > 8 ? fabPct + "%" : "";
-          document.getElementById("prodSegDlv").innerText     = dlvPct > 8 ? dlvPct + "%" : "";
+          document.getElementById("prodSegFab").innerText     = fabPct > 8 ? fabPct + "% (" + Math.round(fabVal / 1000) + "K)" : "";
+          document.getElementById("prodSegDlv").innerText     = dlvPct > 8 ? dlvPct + "% (" + Math.round(dlvVal / 1000) + "K)" : "";
           document.getElementById("prodLblFab").style.left    = (fabPct / 2) + "%";
           document.getElementById("prodLblDlv").style.left    = (fabPct + dlvPct / 2) + "%";
           document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
@@ -1064,11 +1083,220 @@
   }
 
   // ================================================================
+  // WEEKLY PERFORMANCE CHART
+  // ================================================================
+  const WEEKLY_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMViIJC1a3JS2Qk3aDibjv7x3ix128PL7TTODuXCVho1i5TQtTAkR9LliRzCUg8XdbcL0JZgEptbgw0frVY7wKq-ui350ur4Bxk32oaivi_B6CvO-z52WSd-IpICvpmr7-tdZVDhEDTyYPQnGPNRuLAP_RKfWAeJEuoWtI57Gd4blO3qNu3B-V4u9VLsMhouasi6ASHb9f1mQzq5noYsa497QsxZ4Q1_yEWeAHLxySGmlq3abVb94S5ajxbvPozs-xgjxC9KmizmFFkJbLvI2BxY98Ksdw&lib=MGPUElNlImMEK8HlrkK70tDpT4f47GaH-";
+
+  async function loadWeeklyChart() {
+      // -- Current week banner --
+      (function() {
+          const today    = new Date();
+          const day      = today.getDay(); // 0=Sun
+          const sunStart = new Date(today); sunStart.setDate(today.getDate() - day);
+          const satEnd   = new Date(sunStart); satEnd.setDate(sunStart.getDate() + 6);
+          const jan1     = new Date(today.getFullYear(), 0, 1);
+          const weekNo   = Math.ceil(((sunStart - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+          const fmt      = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+          const banner   = document.getElementById('currentWeekBanner');
+          banner.innerHTML = `
+            <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
+            <div><span class="bi-label">Start</span><div class="bi-header-val">${fmt(sunStart)}</div></div>
+            <div><span class="bi-label">End</span><div class="bi-header-val">${fmt(satEnd)}</div></div>
+            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmt(today)}</div></div>`;
+      })();
+
+      try {
+          const res  = await fetch(WEEKLY_API_URL);
+          const data = await res.json();
+          document.getElementById('perf-state').style.display = 'none';
+
+          function getWeekLabel(dateStr) {
+              if (!dateStr) return null;
+              const d = new Date(dateStr);
+              if (isNaN(d)) return null;
+              const sun = new Date(d);
+              sun.setDate(d.getDate() - d.getDay()); // back to Sunday
+              const year   = sun.getFullYear();
+              const jan1   = new Date(year, 0, 1);
+              const diff   = (sun - jan1) / 86400000;
+              const weekNo = Math.floor((diff + jan1.getDay()) / 7) + 1;
+              return String(year).slice(-2) + 'W' + String(weekNo).padStart(2, '0');
+          }
+
+          const weekMap = {};
+          const years   = new Set();
+
+          function ensure(lbl) {
+              if (!weekMap[lbl]) weekMap[lbl] = { created: 0, completed: 0, cancelled: 0 };
+          }
+
+          data.forEach(o => {
+              // Created — group by Created_Date
+              const cLbl = getWeekLabel(o.Created_Date);
+              if (cLbl) {
+                  years.add(parseInt('20' + cLbl.slice(0, 2)));
+                  ensure(cLbl);
+                  weekMap[cLbl].created += o.Order_Value || 0;
+              }
+              // Completed — group by Completed_Date, completed only
+              if (o.Status === 'completed' && o.Completed_Date) {
+                  const pLbl = getWeekLabel(o.Completed_Date);
+                  if (pLbl) {
+                      years.add(parseInt('20' + pLbl.slice(0, 2)));
+                      ensure(pLbl);
+                      weekMap[pLbl].completed += o.Order_Value || 0;
+                  }
+              }
+              // Cancelled — group by Last_Modified_Date, cancelled only
+              if (o.Status === 'cancelled' && o.Last_Modified_Date) {
+                  const mLbl = getWeekLabel(o.Last_Modified_Date);
+                  if (mLbl) {
+                      years.add(parseInt('20' + mLbl.slice(0, 2)));
+                      ensure(mLbl);
+                      weekMap[mLbl].cancelled += o.Order_Value || 0;
+                  }
+              }
+          });
+
+          // Only include weeks that have at least one non-zero value
+          const allLabels = Object.keys(weekMap)
+              .filter(l => weekMap[l].created > 0 || weekMap[l].completed > 0 || weekMap[l].cancelled > 0)
+              .sort();
+
+          // Populate year toggle buttons
+          const btnWrap  = document.getElementById('weekYearBtns');
+          const curYear  = String(new Date().getFullYear()).slice(-2);
+          const allYears = [...new Set(allLabels.map(l => l.slice(0, 2)))].sort().reverse();
+          let selectedYears = new Set([curYear]);
+
+          function buildYearBtns() {
+              btnWrap.innerHTML = '';
+              // All button
+              const allBtn = document.createElement('button');
+              allBtn.textContent = 'All';
+              allBtn.className   = 'yr-btn' + (selectedYears.size === allYears.length ? ' active' : '');
+              allBtn.onclick = () => {
+                  if (selectedYears.size === allYears.length) {
+                      selectedYears = new Set([curYear]);
+                  } else {
+                      selectedYears = new Set(allYears);
+                  }
+                  buildYearBtns();
+                  refreshStartEnd();
+              };
+              btnWrap.appendChild(allBtn);
+              allYears.forEach(yr => {
+                  const btn = document.createElement('button');
+                  btn.textContent = '20' + yr;
+                  btn.className   = 'yr-btn' + (selectedYears.has(yr) ? ' active' : '');
+                  btn.onclick = () => {
+                      if (selectedYears.has(yr)) {
+                          if (selectedYears.size > 1) selectedYears.delete(yr);
+                      } else {
+                          selectedYears.add(yr);
+                      }
+                      buildYearBtns();
+                      refreshStartEnd();
+                  };
+                  btnWrap.appendChild(btn);
+              });
+          }
+
+          // Populate start/end filtered by selected years
+          const startSel = document.getElementById('weekStart');
+          const endSel   = document.getElementById('weekEnd');
+
+          function refreshStartEnd() {
+              const filtered = allLabels.filter(l => selectedYears.has(l.slice(0, 2)));
+              startSel.innerHTML = '';
+              endSel.innerHTML   = '';
+              filtered.forEach(l => {
+                  startSel.appendChild(new Option(l, l));
+                  endSel.appendChild(new Option(l, l));
+              });
+              if (filtered.length) {
+                  startSel.value = filtered[0];
+                  endSel.value   = filtered[filtered.length - 1];
+              }
+              renderWeekly();
+          }
+
+          const ctx = document.getElementById('weeklyChart').getContext('2d');
+          let weeklyChart = null;
+
+          function renderWeekly() {
+              const s = startSel.value;
+              const e = endSel.value;
+              const filtered  = allLabels.filter(l => l >= s && l <= e);
+              const dCreated   = filtered.map(l => weekMap[l]?.created   || 0);
+              const dCompleted = filtered.map(l => weekMap[l]?.completed || 0);
+              const dCancelled = filtered.map(l => weekMap[l]?.cancelled || 0);
+              const yMax = Math.ceil((Math.max(...dCreated, ...dCompleted, ...dCancelled) + 20000) / 10000) * 10000;
+
+              const wrap = document.getElementById('weeklyChartWrap');
+              wrap.style.minWidth = Math.max(filtered.length * 22, 300) + 'px';
+
+              if (weeklyChart) {
+                  weeklyChart.data.labels = filtered;
+                  weeklyChart.data.datasets[0].data = dCreated;
+                  weeklyChart.data.datasets[1].data = dCompleted;
+                  weeklyChart.data.datasets[2].data = dCancelled;
+                  weeklyChart.options.scales.y.max  = yMax;
+                  weeklyChart.update();
+                  return;
+              }
+
+              weeklyChart = new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                      labels: filtered,
+                      datasets: [
+                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db' },
+                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60' },
+                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c' }
+                      ]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                          legend: { display: true, position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 20 } },
+                          title : { display: true, text: 'Weekly', font: { size: 14, weight: 'bold' } },
+                          datalabels: {
+                              anchor   : 'end',
+                              align    : 'top',
+                              rotation : -90,
+                              font     : { size: 8, weight: 'bold' },
+                              color    : (c) => ['#3498db','#27ae60','#e74c3c'][c.datasetIndex],
+                              formatter: (v) => v > 0 ? Math.round(v / 1000) : ''
+                          }
+                      },
+                      scales: {
+                          x: { ticks: { maxRotation: 90, minRotation: 90, font: { size: 8 } }, grid: { display: false } },
+                          y: { max: yMax, ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
+                      }
+                  }
+              });
+          }
+
+          startSel.addEventListener('change', renderWeekly);
+          endSel.addEventListener('change', renderWeekly);
+          buildYearBtns();
+          refreshStartEnd();
+      } catch(e) {
+          const s = document.getElementById('perf-state');
+          s.textContent = 'Could not load Weekly Performance — ' + e.message;
+          s.classList.add('error');
+      }
+  }
+
+  // ================================================================
   // INIT
   // ================================================================
   loadGoals();
   fetchBiData();
   loadProductionChart();
+  loadWeeklyChart();
 
 </script>
 </body>
