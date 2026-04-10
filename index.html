@@ -346,8 +346,8 @@
 
           <!-- ---- Round selector + meta ---- -->
           <div class="bi-card">
-            <div class="bi-header-grid">
-              <div class="bi-select-wrap bi-header-item">
+            <div class="bi-header-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+              <div class="bi-select-wrap bi-header-item" style="grid-column: 1 / -1;">
                 <label class="bi-label">Round</label>
                 <select id="roundSelect" class="bi-select"><option>Loading...</option></select>
               </div>
@@ -360,7 +360,7 @@
                 <div id="roundDuration" class="bi-header-val">--</div>
               </div>
               <div class="bi-header-item">
-                <label class="bi-label">Avg orders / month</label>
+                <label class="bi-label">Orders/Mon</label>
                 <div class="bi-header-val">
                   <span id="ordersPerMonthNo">--</span>
                   <span id="ordersPerMonthVal" class="bi-header-val-sub">--</span>
@@ -371,7 +371,7 @@
 
           <!-- ---- KPI cards ---- -->
           <div class="bi-kpi-grid">
-            <div class="bi-kpi-card full">
+            <div class="bi-kpi-card full" style="text-align:center; font-size:13px;">
               <div class="bi-label">Net cash flow</div>
               <div id="kpiNet" class="bi-kpi large">--</div>
             </div>
@@ -386,9 +386,9 @@
           </div>
 
           <!-- ---- Performance vs ceiling ---- -->
-          <div class="bi-section-title">Performance vs ceiling</div>
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">CashIn - Expenses - Orders</div>
           <div class="bi-card">
-            <div class="bi-row"><span>Cash inflow</span></div>
+            <div class="bi-row"><span>Cash in</span></div>
             <div class="bi-bar-wrap">
               <div class="bi-bar-bg"><div id="cashBar" class="bi-bar bi-cash" style="width:0%"></div></div>
               <div id="cashVal" class="bi-value top"></div>
@@ -409,7 +409,7 @@
           </div>
 
           <!-- ---- Expense breakdown ---- -->
-          <div class="bi-section-title">Expense breakdown</div>
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Expense breakdown</div>
           <div class="bi-card">
             <ul class="bi-exp-list">
               <li class="bi-exp-item">
@@ -438,8 +438,37 @@
             </div>
           </div>
 
+          <!-- ---- Cash In vs Completed ---- -->
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Cash In vs Completed</div>
+          <div class="bi-card">
+            <table class="bi-funnel-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th style="text-align:right;">Cash In</th>
+                  <th style="text-align:right;">Completed</th>
+                  <th style="text-align:right;">Difference</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Value</td>
+                  <td id="ciCashVal" style="text-align:right;">--</td>
+                  <td id="ciCompVal" style="text-align:right;">--</td>
+                  <td id="ciDiffVal" style="text-align:right;font-weight:700;">--</td>
+                </tr>
+                <tr>
+                  <td>No.</td>
+                  <td id="ciCashNo" style="text-align:right;">--</td>
+                  <td id="ciCompNo" style="text-align:right;">--</td>
+                  <td id="ciDiffNo" style="text-align:right;font-weight:700;">--</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <!-- ---- Orders funnel ---- -->
-          <div class="bi-section-title">Orders funnel</div>
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Orders funnel</div>
           <div class="bi-card">
             <table class="bi-funnel-table">
               <thead>
@@ -472,12 +501,7 @@
                 </tr>
               </tbody>
             </table>
-          </div>
-
-          <!-- ---- Value distribution bar ---- -->
-          <div class="bi-card" style="padding:14px;">
-            <div class="bi-label">Value distribution</div>
-            <div class="bi-multi-bar">
+            <div class="bi-multi-bar" style="margin-top:14px;">
               <div id="segComp" class="bi-seg bi-seg-comp" style="width:0%"></div>
               <div id="segProc" class="bi-seg bi-seg-proc" style="width:0%"></div>
               <div id="segCan"  class="bi-seg bi-seg-can"  style="width:0%"></div>
@@ -800,6 +824,21 @@
       const gapEl       = document.getElementById("gapVal");
       gapEl.innerText   = fmt(gap);
       gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
+
+      // -- Cash In vs Completed --
+      document.getElementById("ciCashVal").innerText = fmt(d.CashIn_Value   || 0);
+      document.getElementById("ciCompVal").innerText = fmt(d.Completed_Value || 0);
+      const diffVal   = d.Cash_Minus_Com_Value || 0;
+      const diffValEl = document.getElementById("ciDiffVal");
+      diffValEl.innerText        = (diffVal >= 0 ? "+" : "") + fmt(diffVal);
+      diffValEl.style.color      = diffVal >= 0 ? COLORS.neutral : COLORS.negative;
+
+      const diffNo   = d.Cash_Minus_Com_No || 0;
+      document.getElementById("ciCashNo").innerText = Math.round(d.CashIn_No    || 0);
+      document.getElementById("ciCompNo").innerText = Math.round(d.Completed_No || 0);
+      const diffNoEl = document.getElementById("ciDiffNo");
+      diffNoEl.innerText        = (diffNo >= 0 ? "+" : "") + Math.round(diffNo);
+      diffNoEl.style.color      = diffNo >= 0 ? COLORS.neutral : COLORS.negative;
 
       // -- Funnel table --
       const totalV = (d.Completed_Value  || 0)
