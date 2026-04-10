@@ -536,16 +536,12 @@
     </div>
     <div class="section-body-wrap">
       <div class="section-body-inner">
-        <div class="section-body" style="padding:0; gap:0;">
-          <div class="frame-scroll" style="margin:16px; margin-bottom:0;">
-            <iframe style="width:460px; height:169px;"
-              src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=441179122&single=true&widget=false&chrome=false&headers=false">
-            </iframe>
-          </div>
-          <div class="chart-img full-width" style="border-radius:0; border:none; margin:0;">
-            <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image">
-              <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
-            </a>
+        <div class="section-body">
+          <div id="prod-state" class="gviz-state">Loading…</div>
+          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <div style="min-width:700px; height:360px; padding:8px;">
+              <canvas id="productionChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -955,10 +951,65 @@
   }
 
   // ================================================================
+  // PRODUCTION — WIP Breakdown chart
+  // ================================================================
+  const PROD_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMX42x3UF750oImkO1L4VzlPR7IdfBDchfunY_l7lSAct2YUF3vdALKQMktqwT6W9--oNMyqTUZLOltI4iJaVWHfW-4G5NQNfLnk3lC4EvIAZxHgM-ED5q2ms4-CCpwBONJYGLkrUtsJhvyCLjmEoJK-EptanA0jaYJ7udgV3TVWaeKqvqdl-DEdlW4p2o4gTBCf-t__dl6N_wJJRVAOFisC3-blsjEUKosfPewTMS5dCgy4Lzjgw6l8cQX0I7pDQdhfmQeovA1q1C2XemPcg4Je5b_mjg&lib=MGmF2JFxrWed-6EV_EKU_rUeDcafZ4rz6";
+
+  const PROD_GREEN = ["WH-Ready", "DLV-Bosta", "DLV-Private", "Partial - Delivered"];
+  const PROD_RED   = ["WH-Defected", "WH-No_Response", "WH-Postponed", "WH-Returned",
+                      "Not Received in WH", "Not available in WH",
+                      "DLV-Bareed-Cairo", "DLV-Bareed-Tanta"];
+
+  async function loadProductionChart() {
+      try {
+          const res  = await fetch(PROD_API_URL);
+          const data = await res.json();
+          document.getElementById("prod-state").style.display = "none";
+          const labels = data.map(d => d.Phases);
+          const values = data.map(d => d["WIP Value"] || 0);
+          const colors = data.map(d =>
+              PROD_GREEN.includes(d.Phases) ? "#27ae60" :
+              PROD_RED.includes(d.Phases)   ? "#e74c3c" : "#3498db"
+          );
+          const ctx = document.getElementById("productionChart").getContext("2d");
+          new Chart(ctx, {
+              type: "bar",
+              data: {
+                  labels,
+                  datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                      legend: { display: false },
+                      title: { display: true, text: "WIP Breakdown", font: { size: 14, weight: "bold" } },
+                      datalabels: {
+                          anchor: "end", align: "top",
+                          color: (c) => colors[c.dataIndex],
+                          font: { weight: "bold", size: 10 },
+                          formatter: v => v > 0 ? Math.round(v / 1000) + "K" : ""
+                      }
+                  },
+                  scales: {
+                      x: { ticks: { maxRotation: 90, font: { size: 9 } }, grid: { display: false } },
+                      y: { ticks: { callback: v => v / 1000 + "K" }, grid: { color: "#f0f0f0" } }
+                  }
+              }
+          });
+      } catch(e) {
+          const s = document.getElementById("prod-state");
+          s.textContent = "Could not load Production — " + e.message;
+          s.classList.add("error");
+      }
+  }
+
+  // ================================================================
   // INIT
   // ================================================================
   loadGoals();
   fetchBiData();
+  loadProductionChart();
 
 </script>
 </body>
