@@ -28,16 +28,10 @@
 
     /* ----- SITE HEADER ----- */
     .site-header {
-      background: var(--brand);
-      border-bottom: 2.5px solid var(--ink);
-      height: var(--header-h);
-      padding: 0 16px;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 200;
+      background: var(--brand); border-bottom: 2.5px solid var(--ink);
+      height: var(--header-h); padding: 0 16px;
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; position: sticky; top: 0; z-index: 200;
     }
     .header-left { display: flex; align-items: center; gap: 10px; justify-content: flex-start; }
     .header-left img { height: 30px; }
@@ -77,7 +71,7 @@
     /* ----- DASH BODY ----- */
     .dash-body { max-width: 1000px; margin: 0 auto; padding: 20px 12px 64px; display: flex; flex-direction: column; gap: 20px; }
 
-    /* ----- MASTER SPREADSHEET BANNER ----- */
+    /* ----- BANNERS ----- */
     .parent-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 1.5px solid var(--border-strong); border-left: 4px solid var(--brand-dark); border-radius: var(--radius); padding: 12px 16px; animation: fadeUp 0.3s ease both; }
     .parent-banner-left { display: flex; align-items: center; gap: 10px; }
     .parent-banner-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
@@ -94,9 +88,32 @@
     .section:nth-child(6) { animation-delay: 0.25s; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
-    .section-header { background: var(--brand-light); border-bottom: 1.5px solid var(--border-strong); padding: 11px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    /* ----- COLLAPSIBLE SECTION HEADER ----- */
+    .section-header {
+      background: var(--brand-light); border-bottom: 1.5px solid var(--border-strong);
+      padding: 11px 16px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .section-header:hover { background: #f0c488; }
+    .section-header-left { display: flex; align-items: center; gap: 10px; }
     .section-num   { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-dark); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .section-title { font-family: 'DM Serif Display', serif; font-size: 16px; font-weight: 400; color: var(--ink); }
+
+    /* ----- CHEVRON ----- */
+    .chevron {
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.3s ease;
+    }
+    .chevron svg { display: block; }
+    .section.collapsed .chevron { transform: rotate(-90deg); }
+
+    /* ----- COLLAPSIBLE BODY ----- */
+    .section-body-wrap {
+      display: grid; grid-template-rows: 1fr;
+      transition: grid-template-rows 0.35s ease;
+    }
+    .section.collapsed .section-body-wrap { grid-template-rows: 0fr; }
+    .section-body-inner { overflow: hidden; }
     .section-body  { padding: 16px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
 
     /* ----- GOALS TABLE ----- */
@@ -132,18 +149,11 @@
 
     /* ================================================================
        FINANCE / BI DASHBOARD STYLES
-       All prefixed with .bi- to avoid conflicts with outer page
     ================================================================ */
 
     /* ----- BI labels & typography ----- */
-    .bi-label {
-        font-size: 10px; color: #888; text-transform: uppercase;
-        letter-spacing: 0.8px; margin-bottom: 4px; font-weight: 700;
-    }
-    .bi-section-title {
-        font-size: 10px; color: #999; text-transform: uppercase;
-        letter-spacing: 1.2px; margin: 16px 0 8px; font-weight: 800;
-    }
+    .bi-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; font-weight: 700; }
+    .bi-section-title { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1.2px; margin: 16px 0 8px; font-weight: 800; }
 
     /* ----- BI colors ----- */
     .bi-good     { color: #27ae60; }
@@ -153,10 +163,7 @@
     .bi-negative { color: #c0392b; border: 1px solid #c0392b; }
 
     /* ----- BI cards ----- */
-    .bi-card {
-        background: var(--surface-2); border: 1px solid var(--border);
-        border-radius: 12px; padding: 16px; margin-bottom: 12px;
-    }
+    .bi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 
     /* ----- BI header (round selector row) ----- */
     .bi-header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -167,12 +174,12 @@
 
     /* ----- BI select ----- */
     .bi-select {
-        width: 100%; padding: 10px 32px 10px 12px; border-radius: 8px;
-        border: 1.5px solid var(--border-strong); font-size: 15px;
-        background: #fff; cursor: pointer; outline: none; font-family: 'DM Sans', sans-serif;
-        -webkit-appearance: none; appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat; background-position: right 12px center;
+      width: 100%; padding: 10px 32px 10px 12px; border-radius: 8px;
+      border: 1.5px solid var(--border-strong); font-size: 15px;
+      background: #fff; cursor: pointer; outline: none; font-family: 'DM Sans', sans-serif;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
     }
 
     /* ----- BI KPI grid ----- */
@@ -231,11 +238,11 @@
 
     /* ----- BI responsive ----- */
     @media (min-width: 600px) {
-        .bi-header-grid  { grid-template-columns: repeat(4, 1fr); }
-        .bi-select-wrap  { grid-column: auto; }
-        .bi-kpi-grid     { grid-template-columns: repeat(3, 1fr); }
-        .bi-kpi-card.full { grid-column: auto; }
-        .bi-kpi.large    { font-size: 22px; }
+      .bi-header-grid   { grid-template-columns: repeat(4, 1fr); }
+      .bi-select-wrap   { grid-column: auto; }
+      .bi-kpi-grid      { grid-template-columns: repeat(3, 1fr); }
+      .bi-kpi-card.full { grid-column: auto; }
+      .bi-kpi.large     { font-size: 22px; }
     }
 
   </style>
@@ -264,11 +271,11 @@
 <div class="nav-overlay" id="navOverlay"></div>
 <nav class="nav-drawer" id="navDrawer">
   <div class="nav-drawer-title">Jump to section</div>
-  <a href="#section-goals"       onclick="closeNav()"><span class="nav-num">1</span> Goals</a>
-  <a href="#section-finance"     onclick="closeNav()"><span class="nav-num">2</span> Finance</a>
-  <a href="#section-production"  onclick="closeNav()"><span class="nav-num">3</span> Production</a>
-  <a href="#section-performance" onclick="closeNav()"><span class="nav-num">4</span> Weekly &amp; Monthly Performance</a>
-  <a href="#section-inventory"   onclick="closeNav()"><span class="nav-num">5</span> Inventory</a>
+  <a href="#section-goals"       onclick="navJump('section-goals')"><span class="nav-num">1</span> Goals</a>
+  <a href="#section-finance"     onclick="navJump('section-finance')"><span class="nav-num">2</span> Finance</a>
+  <a href="#section-production"  onclick="navJump('section-production')"><span class="nav-num">3</span> Production</a>
+  <a href="#section-performance" onclick="navJump('section-performance')"><span class="nav-num">4</span> Weekly &amp; Monthly Performance</a>
+  <a href="#section-inventory"   onclick="navJump('section-inventory')"><span class="nav-num">5</span> Inventory</a>
   <hr class="nav-divider">
   <a class="nav-sheets-link" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit" target="_blank" onclick="closeNav()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
@@ -278,7 +285,9 @@
 
 <div class="dash-body">
 
-  <!-- MASTER SPREADSHEET BANNER -->
+  <!-- ============================================================
+       GOOGLE SHEETS BANNER
+  ============================================================ -->
   <div class="parent-banner">
     <div class="parent-banner-left">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
@@ -293,7 +302,9 @@
     </a>
   </div>
 
-<!-- APPSHEET BANNER -->
+  <!-- ============================================================
+       APPSHEET BANNER
+  ============================================================ -->
   <div class="parent-banner">
     <div class="parent-banner-left">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h6M7 16h4"/></svg>
@@ -303,7 +314,7 @@
       </div>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-      <a class="open-btn" href="https://www.appsheet.com/start/831bfa0c-8b33-419d-9c73-8d17bd1c42f1?platform=desktop#appName=Timbered-230806548&vss=H4sIAAAAAAAAA63Puw4CIRQE0F8xU_MFtMbCGB-JxkYsEO4a4i5sgFU3hH-X9RELO7VkbuZkSDgbuqyjVCfwXXq_ZtSDIwls-pYEuMDY2ehdLcAEFrJ5hCvvFIVg7HG09Jp8EMjIe_aCIgXw9KXD_7SHwWiy0VSG_IAORMGeQDkP9RJ8lJEZmi7KQ033v5RyziWrnOoC6W0Z98uoMLWTayutnjtd7ErWgfIN8k8vtJIBAAA=&view=Processing%20Orders" target="_blank">
+      <a class="open-btn" href="https://www.appsheet.com/start/831bfa0c-8b33-419d-9c73-8d17bd1c42f1?platform=mobile#appName=Timbered-230806548&vss=H4sIAAAAAAAAA63Puw4CIRQE0F8xU_MFtMbCGB-JxkYsEO4a4i5sgFU3hH-X9RELO7VkbuZkSDgbuqyjVCfwXXq_ZtSDIwls-pYEuMDY2ehdLcAEFrJ5hCvvFIVg7HG09Jp8EMjIe_aCIgXw9KXD_7SHwWiy0VSG_IAORMGeQDkP9RJ8lJEZmi7KQ033v5RyziWrnOoC6W0Z98uoMLWTayutnjtd7ErWgfIN8k8vtJIBAAA=&view=Processing%20Orders" target="_blank">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         Timbered
       </a>
@@ -314,32 +325,40 @@
     </div>
   </div>
 
-
   <!-- ============================================================
        1. GOALS
   ============================================================ -->
-  <div class="section" id="section-goals">
-    <div class="section-header">
-      <div class="section-num">1</div>
-      <span class="section-title">Goals</span>
+  <div class="section collapsed" id="section-goals">
+    <div class="section-header" onclick="toggleSection('section-goals')">
+      <div class="section-header-left">
+        <div class="section-num">1</div>
+        <span class="section-title">Goals</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
     </div>
-    <div class="section-body">
-      <div id="goals-state" class="gviz-state">Loading goals…</div>
-      <div class="goals-wrap" id="goals-wrap" style="display:none;">
-        <table class="goals-tbl">
-          <thead>
-            <tr class="group-row">
-              <th class="month-col" rowspan="2">Month</th>
-              <th colspan="2">2026 Sales</th>
-              <th colspan="2">2026 Marketing</th>
-            </tr>
-            <tr class="sub-row">
-              <th>Target</th><th>Actual</th>
-              <th>Target</th><th>Actual</th>
-            </tr>
-          </thead>
-          <tbody id="goals-tbody"></tbody>
-        </table>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body">
+          <div id="goals-state" class="gviz-state">Loading goals…</div>
+          <div class="goals-wrap" id="goals-wrap" style="display:none;">
+            <table class="goals-tbl">
+              <thead>
+                <tr class="group-row">
+                  <th class="month-col" rowspan="2">Month</th>
+                  <th colspan="2">2026 Sales</th>
+                  <th colspan="2">2026 Marketing</th>
+                </tr>
+                <tr class="sub-row">
+                  <th>Target</th><th>Actual</th>
+                  <th>Target</th><th>Actual</th>
+                </tr>
+              </thead>
+              <tbody id="goals-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -347,184 +366,197 @@
   <!-- ============================================================
        2. FINANCE — BI Dashboard
   ============================================================ -->
-  <div class="section" id="section-finance">
-    <div class="section-header">
-      <div class="section-num">2</div>
-      <span class="section-title">Finance</span>
+  <div class="section collapsed" id="section-finance">
+    <div class="section-header" onclick="toggleSection('section-finance')">
+      <div class="section-header-left">
+        <div class="section-num">2</div>
+        <span class="section-title">Finance</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
     </div>
-    <div class="section-body" style="align-items: stretch;">
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="align-items: stretch;">
 
-      <!-- ---- Round selector + meta ---- -->
-      <div class="bi-card">
-        <div class="bi-header-grid">
-          <div class="bi-select-wrap bi-header-item">
-            <label class="bi-label">Round</label>
-            <select id="roundSelect" class="bi-select"><option>Loading...</option></select>
-          </div>
-          <div class="bi-header-item">
-            <label class="bi-label">Start date</label>
-            <div id="roundStart" class="bi-header-val">--</div>
-          </div>
-          <div class="bi-header-item">
-            <label class="bi-label">Duration</label>
-            <div id="roundDuration" class="bi-header-val">--</div>
-          </div>
-          <div class="bi-header-item">
-            <label class="bi-label">Avg orders / month</label>
-            <div class="bi-header-val">
-              <span id="ordersPerMonthNo">--</span>
-              <span id="ordersPerMonthVal" class="bi-header-val-sub">--</span>
+          <!-- ---- Round selector + meta ---- -->
+          <div class="bi-card">
+            <div class="bi-header-grid">
+              <div class="bi-select-wrap bi-header-item">
+                <label class="bi-label">Round</label>
+                <select id="roundSelect" class="bi-select"><option>Loading...</option></select>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Start date</label>
+                <div id="roundStart" class="bi-header-val">--</div>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Duration</label>
+                <div id="roundDuration" class="bi-header-val">--</div>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Avg orders / month</label>
+                <div class="bi-header-val">
+                  <span id="ordersPerMonthNo">--</span>
+                  <span id="ordersPerMonthVal" class="bi-header-val-sub">--</span>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- ---- KPI cards ---- -->
+          <div class="bi-kpi-grid">
+            <div class="bi-kpi-card full">
+              <div class="bi-label">Net cash flow</div>
+              <div id="kpiNet" class="bi-kpi large">--</div>
+            </div>
+            <div class="bi-kpi-card">
+              <div class="bi-label">Total cash in</div>
+              <div id="kpiCash" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card">
+              <div class="bi-label">Total expenses</div>
+              <div id="kpiExp" class="bi-kpi">--</div>
+            </div>
+          </div>
+
+          <!-- ---- Performance vs ceiling ---- -->
+          <div class="bi-section-title">Performance vs ceiling</div>
+          <div class="bi-card">
+            <div class="bi-row"><span>Cash inflow</span></div>
+            <div class="bi-bar-wrap">
+              <div class="bi-bar-bg"><div id="cashBar" class="bi-bar bi-cash" style="width:0%"></div></div>
+              <div id="cashVal" class="bi-value top"></div>
+            </div>
+            <div class="bi-net-row" style="margin-top:20px;">
+              <span style="font-size:13px;font-weight:700;">Expenses</span>
+              <span id="netVal" class="bi-net">--</span>
+            </div>
+            <div class="bi-bar-wrap">
+              <div class="bi-bar-bg"><div id="expBar" class="bi-bar bi-exp" style="width:0%"></div></div>
+              <div id="expVal" class="bi-value bottom"></div>
+            </div>
+            <div class="bi-row" style="margin-top:10px;">
+              <span>Orders ceiling</span>
+              <span id="ceilingVal" class="bi-neutral">--</span>
+            </div>
+            <div class="bi-gap-label">Gap to ceiling: <b id="gapVal">--</b></div>
+          </div>
+
+          <!-- ---- Expense breakdown ---- -->
+          <div class="bi-section-title">Expense breakdown</div>
+          <div class="bi-card">
+            <ul class="bi-exp-list">
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#e67e22"></div><span class="bi-exp-name">COGS</span></div>
+                <div id="vCogsRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#3498db"></div><span class="bi-exp-name">Marketing</span></div>
+                <div id="vMrkRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#9b59b6"></div><span class="bi-exp-name">Fixed</span></div>
+                <div id="vFixRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#f1c40f"></div><span class="bi-exp-name">Logistics</span></div>
+                <div id="vLogRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#95a5a6"></div><span class="bi-exp-name">Others</span></div>
+                <div id="vOthRow" class="bi-exp-vals">--</div>
+              </li>
+            </ul>
+            <div class="bi-chart-container">
+              <canvas id="expenseChart" role="img" aria-label="Doughnut chart of expense breakdown by category"></canvas>
+            </div>
+          </div>
+
+          <!-- ---- Orders funnel ---- -->
+          <div class="bi-section-title">Orders funnel</div>
+          <div class="bi-card">
+            <table class="bi-funnel-table">
+              <thead>
+                <tr>
+                  <th>Stage</th><th>Value</th><th>No.</th><th>% value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-total">
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#34495e"></div>Total</div></td>
+                  <td id="fTotalVal">--</td><td id="fTotalNo">--</td><td>—</td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2ecc71"></div>Completed</div></td>
+                  <td id="fCompVal" class="bi-good">--</td>
+                  <td id="fCompNo"  class="bi-good">--</td>
+                  <td><span id="fCompPct" class="bi-pct-badge pct-comp">--</span></td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2980b9"></div>Processing</div></td>
+                  <td id="fProcVal" class="bi-neutral">--</td>
+                  <td id="fProcNo"  class="bi-neutral">--</td>
+                  <td><span id="fProcPct" class="bi-pct-badge pct-proc">--</span></td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#e74c3c"></div>Cancelled</div></td>
+                  <td id="fCanVal" class="bi-bad">--</td>
+                  <td id="fCanNo"  class="bi-bad">--</td>
+                  <td><span id="fCanPct" class="bi-pct-badge pct-can">--</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ---- Value distribution bar ---- -->
+          <div class="bi-card" style="padding:14px;">
+            <div class="bi-label">Value distribution</div>
+            <div class="bi-multi-bar">
+              <div id="segComp" class="bi-seg bi-seg-comp" style="width:0%"></div>
+              <div id="segProc" class="bi-seg bi-seg-proc" style="width:0%"></div>
+              <div id="segCan"  class="bi-seg bi-seg-can"  style="width:0%"></div>
+            </div>
+            <div class="bi-dist-labels-wrap">
+              <span id="lblComp" class="bi-dist-label-text">Completed</span>
+              <span id="lblProc" class="bi-dist-label-text">Processing</span>
+              <span id="lblCan"  class="bi-dist-label-text">Cancelled</span>
+            </div>
+          </div>
+
         </div>
       </div>
-
-      <!-- ---- KPI cards ---- -->
-      <div class="bi-kpi-grid">
-        <div class="bi-kpi-card full">
-          <div class="bi-label">Net cash flow</div>
-          <div id="kpiNet" class="bi-kpi large">--</div>
-        </div>
-        <div class="bi-kpi-card">
-          <div class="bi-label">Total cash in</div>
-          <div id="kpiCash" class="bi-kpi">--</div>
-        </div>
-        <div class="bi-kpi-card">
-          <div class="bi-label">Total expenses</div>
-          <div id="kpiExp" class="bi-kpi">--</div>
-        </div>
-      </div>
-
-      <!-- ---- Performance vs ceiling ---- -->
-      <div class="bi-section-title">Performance vs ceiling</div>
-      <div class="bi-card">
-        <div class="bi-row"><span>Cash inflow</span></div>
-        <div class="bi-bar-wrap">
-          <div class="bi-bar-bg"><div id="cashBar" class="bi-bar bi-cash" style="width:0%"></div></div>
-          <div id="cashVal" class="bi-value top"></div>
-        </div>
-        <div class="bi-net-row" style="margin-top:20px;">
-          <span style="font-size:13px;font-weight:700;">Expenses</span>
-          <span id="netVal" class="bi-net">--</span>
-        </div>
-        <div class="bi-bar-wrap">
-          <div class="bi-bar-bg"><div id="expBar" class="bi-bar bi-exp" style="width:0%"></div></div>
-          <div id="expVal" class="bi-value bottom"></div>
-        </div>
-        <div class="bi-row" style="margin-top:10px;">
-          <span>Orders ceiling</span>
-          <span id="ceilingVal" class="bi-neutral">--</span>
-        </div>
-        <div class="bi-gap-label">Gap to ceiling: <b id="gapVal">--</b></div>
-      </div>
-
-      <!-- ---- Expense breakdown ---- -->
-      <div class="bi-section-title">Expense breakdown</div>
-      <div class="bi-card">
-        <ul class="bi-exp-list">
-          <li class="bi-exp-item">
-            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#e67e22"></div><span class="bi-exp-name">COGS</span></div>
-            <div id="vCogsRow" class="bi-exp-vals">--</div>
-          </li>
-          <li class="bi-exp-item">
-            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#3498db"></div><span class="bi-exp-name">Marketing</span></div>
-            <div id="vMrkRow" class="bi-exp-vals">--</div>
-          </li>
-          <li class="bi-exp-item">
-            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#9b59b6"></div><span class="bi-exp-name">Fixed</span></div>
-            <div id="vFixRow" class="bi-exp-vals">--</div>
-          </li>
-          <li class="bi-exp-item">
-            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#f1c40f"></div><span class="bi-exp-name">Logistics</span></div>
-            <div id="vLogRow" class="bi-exp-vals">--</div>
-          </li>
-          <li class="bi-exp-item">
-            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#95a5a6"></div><span class="bi-exp-name">Others</span></div>
-            <div id="vOthRow" class="bi-exp-vals">--</div>
-          </li>
-        </ul>
-        <div class="bi-chart-container">
-          <canvas id="expenseChart" role="img" aria-label="Doughnut chart of expense breakdown by category"></canvas>
-        </div>
-      </div>
-
-      <!-- ---- Orders funnel ---- -->
-      <div class="bi-section-title">Orders funnel</div>
-      <div class="bi-card">
-        <table class="bi-funnel-table">
-          <thead>
-            <tr>
-              <th>Stage</th>
-              <th>Value</th>
-              <th>No.</th>
-              <th>% value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="row-total">
-              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#34495e"></div>Total</div></td>
-              <td id="fTotalVal">--</td>
-              <td id="fTotalNo">--</td>
-              <td>—</td>
-            </tr>
-            <tr>
-              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2ecc71"></div>Completed</div></td>
-              <td id="fCompVal" class="bi-good">--</td>
-              <td id="fCompNo"  class="bi-good">--</td>
-              <td><span id="fCompPct" class="bi-pct-badge pct-comp">--</span></td>
-            </tr>
-            <tr>
-              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2980b9"></div>Processing</div></td>
-              <td id="fProcVal" class="bi-neutral">--</td>
-              <td id="fProcNo"  class="bi-neutral">--</td>
-              <td><span id="fProcPct" class="bi-pct-badge pct-proc">--</span></td>
-            </tr>
-            <tr>
-              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#e74c3c"></div>Cancelled</div></td>
-              <td id="fCanVal" class="bi-bad">--</td>
-              <td id="fCanNo"  class="bi-bad">--</td>
-              <td><span id="fCanPct" class="bi-pct-badge pct-can">--</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ---- Value distribution bar ---- -->
-      <div class="bi-card" style="padding:14px;">
-        <div class="bi-label">Value distribution</div>
-        <div class="bi-multi-bar">
-          <div id="segComp" class="bi-seg bi-seg-comp" style="width:0%"></div>
-          <div id="segProc" class="bi-seg bi-seg-proc" style="width:0%"></div>
-          <div id="segCan"  class="bi-seg bi-seg-can"  style="width:0%"></div>
-        </div>
-        <div class="bi-dist-labels-wrap">
-          <span id="lblComp" class="bi-dist-label-text">Completed</span>
-          <span id="lblProc" class="bi-dist-label-text">Processing</span>
-          <span id="lblCan"  class="bi-dist-label-text">Cancelled</span>
-        </div>
-      </div>
-
     </div>
   </div>
 
   <!-- ============================================================
        3. PRODUCTION
   ============================================================ -->
-  <div class="section" id="section-production">
-    <div class="section-header">
-      <div class="section-num">3</div>
-      <span class="section-title">Production</span>
-    </div>
-    <div class="section-body">
-      <div class="frame-scroll">
-        <iframe style="width:460px; height:169px;"
-          src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=441179122&single=true&widget=false&chrome=false&headers=false">
-        </iframe>
+  <div class="section collapsed" id="section-production">
+    <div class="section-header" onclick="toggleSection('section-production')">
+      <div class="section-header-left">
+        <div class="section-num">3</div>
+        <span class="section-title">Production</span>
       </div>
-      <div class="chart-img full-width">
-        <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image">
-          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
-        </a>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="padding:0; gap:0;">
+          <div class="frame-scroll" style="margin:16px; margin-bottom:0;">
+            <iframe style="width:460px; height:169px;"
+              src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=441179122&single=true&widget=false&chrome=false&headers=false">
+            </iframe>
+          </div>
+          <div class="chart-img full-width" style="border-radius:0; border:none; margin:0;">
+            <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image">
+              <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -532,17 +564,26 @@
   <!-- ============================================================
        4. WEEKLY / MONTHLY PERFORMANCE
   ============================================================ -->
-  <div class="section" id="section-performance">
-    <div class="section-header">
-      <div class="section-num">4</div>
-      <span class="section-title">Weekly &amp; Monthly Performance</span>
-    </div>
-    <div class="section-body">
-      <div class="chart-img full-width">
-        <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=1217066388&format=image" alt="Weekly Performance">
+  <div class="section collapsed" id="section-performance">
+    <div class="section-header" onclick="toggleSection('section-performance')">
+      <div class="section-header-left">
+        <div class="section-num">4</div>
+        <span class="section-title">Weekly &amp; Monthly Performance</span>
       </div>
-      <div class="chart-img full-width">
-        <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=2141522054&format=image" alt="Monthly Performance">
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body">
+          <div class="chart-img full-width">
+            <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=1217066388&format=image" alt="Weekly Performance">
+          </div>
+          <div class="chart-img full-width">
+            <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQQTGDnS2N9mmL8pXc-Timtc-kvY1V_ylW-rVLV5T8dE4nihMmUTd2YhnUrdB6GrcDN37t5tEG8Hpu7/pubchart?oid=2141522054&format=image" alt="Monthly Performance">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -550,16 +591,25 @@
   <!-- ============================================================
        5. INVENTORY
   ============================================================ -->
-  <div class="section" id="section-inventory">
-    <div class="section-header">
-      <div class="section-num">5</div>
-      <span class="section-title">Inventory</span>
+  <div class="section collapsed" id="section-inventory">
+    <div class="section-header" onclick="toggleSection('section-inventory')">
+      <div class="section-header-left">
+        <div class="section-num">5</div>
+        <span class="section-title">Inventory</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
     </div>
-    <div class="section-body">
-      <div class="frame-scroll">
-        <iframe style="width:221px; height:78px;"
-          src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=1288259104&single=true&widget=false&chrome=false&headers=false">
-        </iframe>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body">
+          <div class="frame-scroll">
+            <iframe style="width:221px; height:78px;"
+              src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=1288259104&single=true&widget=false&chrome=false&headers=false">
+            </iframe>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -582,6 +632,26 @@
   function closeNav() { burgerBtn.classList.remove('open'); navDrawer.classList.remove('open'); navOverlay.classList.remove('open'); }
   burgerBtn.addEventListener('click', () => navDrawer.classList.contains('open') ? closeNav() : openNav());
   navOverlay.addEventListener('click', closeNav);
+
+  // ================================================================
+  // COLLAPSIBLE SECTIONS
+  // ================================================================
+  function toggleSection(id) {
+    const sec = document.getElementById(id);
+    const wasCollapsed = sec.classList.contains('collapsed');
+    sec.classList.toggle('collapsed');
+    // if Finance was collapsed and is now opening, resize chart
+    if (id === 'section-finance' && wasCollapsed && expenseChart) {
+      setTimeout(() => expenseChart.resize(), 350);
+    }
+  }
+
+  function navJump(id) {
+    closeNav();
+    const sec = document.getElementById(id);
+    if (sec.classList.contains('collapsed')) toggleSection(id);
+    setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
 
   // ================================================================
   // GOALS — fetch + render
@@ -612,9 +682,7 @@
     return a > t ? 'bad' : 'good';
   }
   function normaliseRow(row) {
-    if (Array.isArray(row)) {
-      return { month: row[0], salesTgt: row[1], salesAct: row[2], mktTgt: row[3], mktAct: row[4] };
-    }
+    if (Array.isArray(row)) return { month: row[0], salesTgt: row[1], salesAct: row[2], mktTgt: row[3], mktAct: row[4] };
     const keys = Object.keys(row);
     return { month: row[keys[0]], salesTgt: row[keys[1]], salesAct: row[keys[2]], mktTgt: row[keys[3]], mktAct: row[keys[4]] };
   }
@@ -636,11 +704,11 @@
         const isTotal = String(r.month).toLowerCase() === 'total';
         const tr = document.createElement('tr');
         if (isTotal) tr.classList.add('total-row');
-        const tdMonth = document.createElement('td'); tdMonth.textContent = r.month; tr.appendChild(tdMonth);
-        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt); tr.appendChild(tdSalesTgt);
-        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct); if (!isTotal) tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
-        const tdMktTgt = document.createElement('td'); tdMktTgt.textContent = fmtNum(r.mktTgt); tr.appendChild(tdMktTgt);
-        const tdMktAct = document.createElement('td'); tdMktAct.textContent = fmtNum(r.mktAct); if (!isTotal) tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
+        const tdMonth    = document.createElement('td'); tdMonth.textContent    = r.month;             tr.appendChild(tdMonth);
+        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt);  tr.appendChild(tdSalesTgt);
+        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct);  if (!isTotal) tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
+        const tdMktTgt   = document.createElement('td'); tdMktTgt.textContent   = fmtNum(r.mktTgt);    tr.appendChild(tdMktTgt);
+        const tdMktAct   = document.createElement('td'); tdMktAct.textContent   = fmtNum(r.mktAct);    if (!isTotal) tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
         tbody.appendChild(tr);
       });
       stateEl.style.display = 'none';
@@ -714,8 +782,8 @@
   function fmt(n) { return Math.round(n).toLocaleString(); }
 
   function setBarLabel(id, val, pct) {
-      const el     = document.getElementById(id);
-      el.innerText = fmt(val) + " (" + Math.round(pct) + "%)";
+      const el      = document.getElementById(id);
+      el.innerText  = fmt(val) + " (" + Math.round(pct) + "%)";
       el.style.left = Math.min(pct, 80) + "%";
   }
 
@@ -770,9 +838,9 @@
       // -- Ceiling & gap --
       document.getElementById("ceilingVal").innerText = fmt(ceil);
 
-      const gap        = d.Ceiling_Gap || 0;
-      const gapEl      = document.getElementById("gapVal");
-      gapEl.innerText  = fmt(gap);
+      const gap         = d.Ceiling_Gap || 0;
+      const gapEl       = document.getElementById("gapVal");
+      gapEl.innerText   = fmt(gap);
       gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
 
       // -- Funnel table --
