@@ -6,8 +6,14 @@
   <title>Timbered Dashboard</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <style>
+
+    /* ----- RESET ----- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ----- BRAND TOKENS ----- */
     :root {
       --brand: #F0AE66; --brand-light: #F4CFA5; --brand-dark: #B86E1A;
       --brand-deeper: #7A4610; --ink: #1C1A17; --ink-muted: #7A6F65;
@@ -15,9 +21,12 @@
       --border: #E8D9C4; --border-strong: #C8AA88;
       --radius: 12px; --radius-lg: 18px; --header-h: 64px;
     }
+
+    /* ----- BASE ----- */
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', sans-serif; background: var(--surface-2); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
+    /* ----- SITE HEADER ----- */
     .site-header {
       background: var(--brand);
       border-bottom: 2.5px solid var(--ink);
@@ -32,41 +41,19 @@
     }
     .header-left { display: flex; align-items: center; gap: 10px; justify-content: flex-start; }
     .header-left img { height: 30px; }
-    .header-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
-    }
-    .header-center .title-main {
-      font-family: 'DM Serif Display', serif;
-      font-size: 22px;
-      font-weight: 400;
-      font-style: italic;
-      color: var(--ink);
-      letter-spacing: 0.5px;
-      line-height: 1.1;
-      white-space: nowrap;
-    }
-    .header-center .title-sub {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--brand-deeper);
-      white-space: nowrap;
-    }
+    .header-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+    .header-center .title-main { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 900; font-style: normal; color: var(--ink); letter-spacing: 3px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; }
+    .header-center .title-sub  { font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--brand-deeper); white-space: nowrap; }
     .header-right { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
-    .today-badge { font-size: 12px; color: var(--brand-deeper); background: rgba(255,255,255,0.45); border: 1px solid var(--brand-dark); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
+    .today-badge  { font-size: 12px; color: var(--brand-deeper); background: rgba(255,255,255,0.45); border: 1px solid var(--brand-dark); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
     @media (max-width: 480px) {
-      .today-badge { display: none; }
+      .today-badge { font-size: 10px; padding: 2px 7px; }
       .header-center .title-main { font-size: 17px; }
-      .header-center .title-sub { font-size: 8px; letter-spacing: 2px; }
+      .header-center .title-sub  { font-size: 8px; letter-spacing: 2px; }
       .header-left img { height: 24px; }
     }
 
+    /* ----- BURGER BUTTON ----- */
     .burger-btn { width: 38px; height: 38px; border-radius: 8px; background: var(--brand-dark); border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; transition: background 0.2s; }
     .burger-btn:hover { background: var(--brand-deeper); }
     .burger-btn span { display: block; width: 18px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.25s, opacity 0.2s; transform-origin: center; }
@@ -74,6 +61,7 @@
     .burger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
     .burger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
+    /* ----- NAV DRAWER ----- */
     .nav-drawer { position: fixed; top: var(--header-h); right: 0; width: 268px; max-width: 88vw; background: #fff; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-bottom-left-radius: var(--radius-lg); z-index: 190; padding: 6px 0 14px; transform: translateX(110%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); box-shadow: -4px 8px 24px rgba(0,0,0,0.10); }
     .nav-drawer.open { transform: translateX(0); }
     .nav-drawer-title { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-muted); padding: 10px 18px 8px; }
@@ -86,15 +74,18 @@
     .nav-overlay { display: none; position: fixed; inset: 0; z-index: 180; background: rgba(0,0,0,0.08); }
     .nav-overlay.open { display: block; }
 
+    /* ----- DASH BODY ----- */
     .dash-body { max-width: 1000px; margin: 0 auto; padding: 20px 12px 64px; display: flex; flex-direction: column; gap: 20px; }
 
+    /* ----- MASTER SPREADSHEET BANNER ----- */
     .parent-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 1.5px solid var(--border-strong); border-left: 4px solid var(--brand-dark); border-radius: var(--radius); padding: 12px 16px; animation: fadeUp 0.3s ease both; }
     .parent-banner-left { display: flex; align-items: center; gap: 10px; }
     .parent-banner-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
-    .parent-banner-text span { font-size: 11px; color: var(--ink-muted); }
+    .parent-banner-text span   { font-size: 11px; color: var(--ink-muted); }
     .open-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-dark); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background 0.18s; flex-shrink: 0; }
     .open-btn:hover { background: var(--brand-deeper); }
 
+    /* ----- SECTION SHELL ----- */
     .section { background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp 0.4s ease both; }
     .section:nth-child(2) { animation-delay: 0.05s; }
     .section:nth-child(3) { animation-delay: 0.10s; }
@@ -104,12 +95,13 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
     .section-header { background: var(--brand-light); border-bottom: 1.5px solid var(--border-strong); padding: 11px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .section-num { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-dark); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section-num   { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-dark); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .section-title { font-family: 'DM Serif Display', serif; font-size: 16px; font-weight: 400; color: var(--ink); }
-    .section-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    .section-body  { padding: 16px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
 
+    /* ----- GOALS TABLE ----- */
     .goals-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .goals-tbl { width: 100%; border-collapse: collapse; table-layout: auto; }
+    .goals-tbl  { width: 100%; border-collapse: collapse; table-layout: auto; }
     .goals-tbl th, .goals-tbl td { text-align: center; padding: 8px 14px; border: 1px solid var(--border-strong); white-space: nowrap; font-size: 13px; }
     @media (max-width: 600px) {
       .goals-tbl th, .goals-tbl td { padding: 6px 7px; font-size: 11px; }
@@ -126,28 +118,133 @@
     .goals-tbl tbody td.empty { color: var(--ink-muted); }
     .goals-tbl tbody tr.total-row td { background: var(--brand-deeper); color: #fff; font-weight: 600; border-color: var(--brand-deeper); }
     .goals-tbl tbody tr.total-row:hover td { background: var(--brand-deeper); }
-
     .gviz-state { text-align: center; padding: 32px 16px; font-size: 13px; color: var(--ink-muted); }
     .gviz-state.error { color: #b0341e; }
 
-    .view-toggle { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 8px; overflow: hidden; align-self: flex-end; }
-    .toggle-btn { padding: 6px 14px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; background: #fff; color: var(--ink-muted); border: none; cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
-    .toggle-btn:first-child { border-right: 1px solid var(--border-strong); }
-    .toggle-btn.active { background: var(--brand-dark); color: #fff; }
-    .toggle-btn:hover:not(.active) { background: var(--brand-light); color: var(--ink); }
-    #fin-frame-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1.5px solid var(--border); border-radius: var(--radius); }
-    #fin-frame-wrap iframe { display: block; border: none; }
-    .chart-img { width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .chart-img img { display: block; width: 100%; height: auto; }
-    .full-width { width: 100%; }
+    /* ----- SHARED HELPERS ----- */
+    .full-width   { width: 100%; }
     .sect-divider { width: 100%; border: none; border-top: 1.5px dashed var(--border-strong); }
-    .scroll-hint { font-size: 11px; color: var(--ink-muted); text-align: center; font-style: italic; width: 100%; }
+    .scroll-hint  { font-size: 11px; color: var(--ink-muted); text-align: center; font-style: italic; width: 100%; }
     .frame-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1.5px solid var(--border); border-radius: var(--radius); }
     .frame-scroll iframe { display: block; border: none; }
+    .chart-img    { width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chart-img img { display: block; width: 100%; height: auto; }
+
+    /* ================================================================
+       FINANCE / BI DASHBOARD STYLES
+       All prefixed with .bi- to avoid conflicts with outer page
+    ================================================================ */
+
+    /* ----- BI labels & typography ----- */
+    .bi-label {
+        font-size: 10px; color: #888; text-transform: uppercase;
+        letter-spacing: 0.8px; margin-bottom: 4px; font-weight: 700;
+    }
+    .bi-section-title {
+        font-size: 10px; color: #999; text-transform: uppercase;
+        letter-spacing: 1.2px; margin: 16px 0 8px; font-weight: 800;
+    }
+
+    /* ----- BI colors ----- */
+    .bi-good     { color: #27ae60; }
+    .bi-bad      { color: #e74c3c; }
+    .bi-neutral  { color: #2980b9; }
+    .bi-positive { color: #27ae60; border: 1px solid #27ae60; }
+    .bi-negative { color: #c0392b; border: 1px solid #c0392b; }
+
+    /* ----- BI cards ----- */
+    .bi-card {
+        background: var(--surface-2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    }
+
+    /* ----- BI header (round selector row) ----- */
+    .bi-header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .bi-header-item { display: flex; flex-direction: column; }
+    .bi-header-val  { font-size: 16px; font-weight: 700; color: #2c3e50; }
+    .bi-header-val-sub { font-size: 12px; color: #888; font-weight: 600; margin-left: 5px; }
+    .bi-select-wrap { grid-column: 1 / -1; }
+
+    /* ----- BI select ----- */
+    .bi-select {
+        width: 100%; padding: 10px 32px 10px 12px; border-radius: 8px;
+        border: 1.5px solid var(--border-strong); font-size: 15px;
+        background: #fff; cursor: pointer; outline: none; font-family: 'DM Sans', sans-serif;
+        -webkit-appearance: none; appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 12px center;
+    }
+
+    /* ----- BI KPI grid ----- */
+    .bi-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .bi-kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+    .bi-kpi-card.full { grid-column: 1 / -1; }
+    .bi-kpi       { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .bi-kpi.large { font-size: 26px; }
+
+    /* ----- BI performance bars ----- */
+    .bi-bar-bg { width: 100%; height: 16px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 8px 0; position: relative; }
+    .bi-bar  { height: 100%; border-radius: 10px; transition: width 0.8s ease-in-out; }
+    .bi-cash { background: #2ecc71; }
+    .bi-exp  { background: #e74c3c; }
+    .bi-bar-wrap { position: relative; margin-bottom: 28px; }
+    .bi-value { position: absolute; font-size: 11px; font-weight: 700; color: #555; white-space: nowrap; transition: left 0.8s ease-in-out; }
+    .bi-value.top    { top: -18px; }
+    .bi-value.bottom { bottom: -18px; }
+    .bi-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; font-weight: 700; }
+    .bi-net-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px; }
+    .bi-net { display: inline-block; font-size: 12px; font-weight: 700; white-space: nowrap; background: white; padding: 3px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .bi-gap-label { text-align: right; font-size: 13px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #eee; }
+
+    /* ----- BI expense breakdown ----- */
+    .bi-exp-list { list-style: none; }
+    .bi-exp-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .bi-exp-item:last-child { border-bottom: none; }
+    .bi-exp-type-wrap { display: flex; align-items: center; gap: 10px; }
+    .bi-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bi-exp-name  { font-size: 13px; font-weight: 600; color: #555; }
+    .bi-exp-vals  { font-size: 13px; font-weight: 700; color: #333; }
+    .bi-chart-container { position: relative; height: 200px; width: 100%; margin-top: 16px; }
+
+    /* ----- BI funnel table ----- */
+    .bi-funnel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .bi-funnel-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #999; font-weight: 700; padding: 0 8px 10px 8px; }
+    .bi-funnel-table th:not(:first-child) { text-align: right; }
+    .bi-funnel-table td { padding: 10px 8px; border-top: 1px solid #f0f0f0; font-weight: 600; color: #333; }
+    .bi-funnel-table td:not(:first-child) { text-align: right; }
+    .bi-funnel-table .row-total td { font-weight: 700; color: #2c3e50; }
+    .bi-funnel-stage { display: flex; align-items: center; gap: 8px; }
+    .bi-stage-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .bi-pct-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+    .pct-comp { background: #eafaf1; color: #1e8449; }
+    .pct-proc { background: #eaf4fb; color: #1a5276; }
+    .pct-can  { background: #fdedec; color: #922b21; }
+
+    /* ----- BI distribution bar ----- */
+    .bi-multi-bar { display: flex; width: 100%; height: 22px; background: #f0f0f0; border-radius: 11px; overflow: hidden; margin-top: 10px; }
+    .bi-seg       { height: 100%; transition: width 0.8s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800; }
+    .bi-seg-comp  { background: #2ecc71; }
+    .bi-seg-proc  { background: #2980b9; }
+    .bi-seg-can   { background: #e74c3c; }
+    .bi-dist-labels-wrap { position: relative; height: 20px; margin-top: 8px; }
+    .bi-dist-label-text  { position: absolute; font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase; white-space: nowrap; transform: translateX(-50%); transition: left 0.8s ease-in-out; }
+
+    /* ----- BI responsive ----- */
+    @media (min-width: 600px) {
+        .bi-header-grid  { grid-template-columns: repeat(4, 1fr); }
+        .bi-select-wrap  { grid-column: auto; }
+        .bi-kpi-grid     { grid-template-columns: repeat(3, 1fr); }
+        .bi-kpi-card.full { grid-column: auto; }
+        .bi-kpi.large    { font-size: 22px; }
+    }
+
   </style>
 </head>
 <body>
 
+<!-- ============================================================
+     SITE HEADER
+============================================================ -->
 <header class="site-header">
   <div class="header-left">
     <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
@@ -181,12 +278,13 @@
 
 <div class="dash-body">
 
+  <!-- MASTER SPREADSHEET BANNER -->
   <div class="parent-banner">
     <div class="parent-banner-left">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
       <div class="parent-banner-text">
-        <strong>Master Spreadsheet</strong>
-        <span>All sheets &amp; data sources in one place</span>
+        <strong>Google Spreadsheet</strong>
+        <span>All sheets &amp; data sources</span>
       </div>
     </div>
     <a class="open-btn" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit" target="_blank">
@@ -195,7 +293,31 @@
     </a>
   </div>
 
-  <!-- 1. GOALS -->
+<!-- APPSHEET BANNER -->
+  <div class="parent-banner">
+    <div class="parent-banner-left">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h6M7 16h4"/></svg>
+      <div class="parent-banner-text">
+        <strong>AppSheet</strong>
+        <span>Apps &amp; data entry</span>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+      <a class="open-btn" href="https://www.appsheet.com/template/AppDef?appName=Timbered-230806548&appId=831bfa0c-8b33-419d-9c73-8d17bd1c42f1&quickStart=False#Data.Columns.Buckets%20selection" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Timbered
+      </a>
+      <a class="open-btn" href="https://www.appsheet.com/template/AppDef?appName=Accounting-Entry-548387873-25-08-20&appId=25809a9d-557f-43a0-8fac-14a212f85519&quickStart=False#Data.Columns.Orders" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Finance Entry
+      </a>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       1. GOALS
+  ============================================================ -->
   <div class="section" id="section-goals">
     <div class="section-header">
       <div class="section-num">1</div>
@@ -222,34 +344,172 @@
     </div>
   </div>
 
-  <!-- 2. FINANCE -->
+  <!-- ============================================================
+       2. FINANCE — BI Dashboard
+  ============================================================ -->
   <div class="section" id="section-finance">
     <div class="section-header">
       <div class="section-num">2</div>
       <span class="section-title">Finance</span>
     </div>
-    <div class="section-body">
-      <div class="view-toggle">
-        <button class="toggle-btn active" id="btn-full" onclick="setFinView('full')">Full width</button>
-        <button class="toggle-btn" id="btn-half" onclick="setFinView('half')">Compact</button>
+    <div class="section-body" style="align-items: stretch;">
+
+      <!-- ---- Round selector + meta ---- -->
+      <div class="bi-card">
+        <div class="bi-header-grid">
+          <div class="bi-select-wrap bi-header-item">
+            <label class="bi-label">Round</label>
+            <select id="roundSelect" class="bi-select"><option>Loading...</option></select>
+          </div>
+          <div class="bi-header-item">
+            <label class="bi-label">Start date</label>
+            <div id="roundStart" class="bi-header-val">--</div>
+          </div>
+          <div class="bi-header-item">
+            <label class="bi-label">Duration</label>
+            <div id="roundDuration" class="bi-header-val">--</div>
+          </div>
+          <div class="bi-header-item">
+            <label class="bi-label">Avg orders / month</label>
+            <div class="bi-header-val">
+              <span id="ordersPerMonthNo">--</span>
+              <span id="ordersPerMonthVal" class="bi-header-val-sub">--</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="fin-frame-wrap">
-        <iframe id="fin-iframe" style="height:350px; width:885px;"
-          src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=0&single=true&widget=false&chrome=false&headers=false">
-        </iframe>
+
+      <!-- ---- KPI cards ---- -->
+      <div class="bi-kpi-grid">
+        <div class="bi-kpi-card full">
+          <div class="bi-label">Net cash flow</div>
+          <div id="kpiNet" class="bi-kpi large">--</div>
+        </div>
+        <div class="bi-kpi-card">
+          <div class="bi-label">Total cash in</div>
+          <div id="kpiCash" class="bi-kpi">--</div>
+        </div>
+        <div class="bi-kpi-card">
+          <div class="bi-label">Total expenses</div>
+          <div id="kpiExp" class="bi-kpi">--</div>
+        </div>
       </div>
-      <p class="scroll-hint" id="fin-hint" style="display:none;">Scroll right to see full table &rarr;</p>
-      <hr class="sect-divider">
-      <div class="chart-img full-width">
-        <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=2075051094&format=image" alt="Finance Chart 1">
+
+      <!-- ---- Performance vs ceiling ---- -->
+      <div class="bi-section-title">Performance vs ceiling</div>
+      <div class="bi-card">
+        <div class="bi-row"><span>Cash inflow</span></div>
+        <div class="bi-bar-wrap">
+          <div class="bi-bar-bg"><div id="cashBar" class="bi-bar bi-cash" style="width:0%"></div></div>
+          <div id="cashVal" class="bi-value top"></div>
+        </div>
+        <div class="bi-net-row" style="margin-top:20px;">
+          <span style="font-size:13px;font-weight:700;">Expenses</span>
+          <span id="netVal" class="bi-net">--</span>
+        </div>
+        <div class="bi-bar-wrap">
+          <div class="bi-bar-bg"><div id="expBar" class="bi-bar bi-exp" style="width:0%"></div></div>
+          <div id="expVal" class="bi-value bottom"></div>
+        </div>
+        <div class="bi-row" style="margin-top:10px;">
+          <span>Orders ceiling</span>
+          <span id="ceilingVal" class="bi-neutral">--</span>
+        </div>
+        <div class="bi-gap-label">Gap to ceiling: <b id="gapVal">--</b></div>
       </div>
-      <div class="chart-img full-width">
-        <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSFDtGSAAFBwFbQDQyHrrw2GR2FCx7pc-P8xVZBYpVAK8iTKt5dgK5JChu1eoaZsLbvHQtEataRzJlA/pubchart?oid=495163831&format=image" alt="Finance Chart 2">
+
+      <!-- ---- Expense breakdown ---- -->
+      <div class="bi-section-title">Expense breakdown</div>
+      <div class="bi-card">
+        <ul class="bi-exp-list">
+          <li class="bi-exp-item">
+            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#e67e22"></div><span class="bi-exp-name">COGS</span></div>
+            <div id="vCogsRow" class="bi-exp-vals">--</div>
+          </li>
+          <li class="bi-exp-item">
+            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#3498db"></div><span class="bi-exp-name">Marketing</span></div>
+            <div id="vMrkRow" class="bi-exp-vals">--</div>
+          </li>
+          <li class="bi-exp-item">
+            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#9b59b6"></div><span class="bi-exp-name">Fixed</span></div>
+            <div id="vFixRow" class="bi-exp-vals">--</div>
+          </li>
+          <li class="bi-exp-item">
+            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#f1c40f"></div><span class="bi-exp-name">Logistics</span></div>
+            <div id="vLogRow" class="bi-exp-vals">--</div>
+          </li>
+          <li class="bi-exp-item">
+            <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#95a5a6"></div><span class="bi-exp-name">Others</span></div>
+            <div id="vOthRow" class="bi-exp-vals">--</div>
+          </li>
+        </ul>
+        <div class="bi-chart-container">
+          <canvas id="expenseChart" role="img" aria-label="Doughnut chart of expense breakdown by category"></canvas>
+        </div>
       </div>
+
+      <!-- ---- Orders funnel ---- -->
+      <div class="bi-section-title">Orders funnel</div>
+      <div class="bi-card">
+        <table class="bi-funnel-table">
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th>Value</th>
+              <th>No.</th>
+              <th>% value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-total">
+              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#34495e"></div>Total</div></td>
+              <td id="fTotalVal">--</td>
+              <td id="fTotalNo">--</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2ecc71"></div>Completed</div></td>
+              <td id="fCompVal" class="bi-good">--</td>
+              <td id="fCompNo"  class="bi-good">--</td>
+              <td><span id="fCompPct" class="bi-pct-badge pct-comp">--</span></td>
+            </tr>
+            <tr>
+              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2980b9"></div>Processing</div></td>
+              <td id="fProcVal" class="bi-neutral">--</td>
+              <td id="fProcNo"  class="bi-neutral">--</td>
+              <td><span id="fProcPct" class="bi-pct-badge pct-proc">--</span></td>
+            </tr>
+            <tr>
+              <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#e74c3c"></div>Cancelled</div></td>
+              <td id="fCanVal" class="bi-bad">--</td>
+              <td id="fCanNo"  class="bi-bad">--</td>
+              <td><span id="fCanPct" class="bi-pct-badge pct-can">--</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ---- Value distribution bar ---- -->
+      <div class="bi-card" style="padding:14px;">
+        <div class="bi-label">Value distribution</div>
+        <div class="bi-multi-bar">
+          <div id="segComp" class="bi-seg bi-seg-comp" style="width:0%"></div>
+          <div id="segProc" class="bi-seg bi-seg-proc" style="width:0%"></div>
+          <div id="segCan"  class="bi-seg bi-seg-can"  style="width:0%"></div>
+        </div>
+        <div class="bi-dist-labels-wrap">
+          <span id="lblComp" class="bi-dist-label-text">Completed</span>
+          <span id="lblProc" class="bi-dist-label-text">Processing</span>
+          <span id="lblCan"  class="bi-dist-label-text">Cancelled</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- 3. PRODUCTION -->
+  <!-- ============================================================
+       3. PRODUCTION
+  ============================================================ -->
   <div class="section" id="section-production">
     <div class="section-header">
       <div class="section-num">3</div>
@@ -262,12 +522,16 @@
         </iframe>
       </div>
       <div class="chart-img full-width">
-        <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
+        <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image">
+          <img src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSjJj5578pSuakopiJDuhM_9cQ-oMq-lHgfOa161n1MXZCvw4LAy_cbEH1R28zmdPUC0wsDeZY_TD-2/pubchart?oid=555238756&format=image" alt="Production Chart">
+        </a>
       </div>
     </div>
   </div>
 
-  <!-- 4. WEEKLY / MONTHLY PERFORMANCE -->
+  <!-- ============================================================
+       4. WEEKLY / MONTHLY PERFORMANCE
+  ============================================================ -->
   <div class="section" id="section-performance">
     <div class="section-header">
       <div class="section-num">4</div>
@@ -283,7 +547,9 @@
     </div>
   </div>
 
-  <!-- 5. INVENTORY -->
+  <!-- ============================================================
+       5. INVENTORY
+  ============================================================ -->
   <div class="section" id="section-inventory">
     <div class="section-header">
       <div class="section-num">5</div>
@@ -301,8 +567,10 @@
 </div>
 
 <script>
-  const GOALS_URL = 'https://script.google.com/macros/s/AKfycbwMKGGTMPtbI0bcTekr-qb1Z1W9eqv-YfmsGBgEsJZdlLKj8PLA-6TGQvx8OhyZebK1Hg/exec';
 
+  // ================================================================
+  // HEADER — date + nav drawer
+  // ================================================================
   document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
   });
@@ -315,22 +583,10 @@
   burgerBtn.addEventListener('click', () => navDrawer.classList.contains('open') ? closeNav() : openNav());
   navOverlay.addEventListener('click', closeNav);
 
-  function setFinView(mode) {
-    const wrap = document.getElementById('fin-frame-wrap');
-    const iframe = document.getElementById('fin-iframe');
-    const hint = document.getElementById('fin-hint');
-    const btnFull = document.getElementById('btn-full');
-    const btnHalf = document.getElementById('btn-half');
-    if (mode === 'full') {
-      iframe.style.width = '885px'; wrap.style.maxWidth = '100%';
-      hint.style.display = 'block';
-      btnFull.classList.add('active'); btnHalf.classList.remove('active');
-    } else {
-      iframe.style.width = '442px'; wrap.style.maxWidth = '442px';
-      hint.style.display = 'block'; wrap.scrollLeft = 0;
-      btnFull.classList.remove('active'); btnHalf.classList.add('active');
-    }
-  }
+  // ================================================================
+  // GOALS — fetch + render
+  // ================================================================
+  const GOALS_URL = 'https://script.google.com/macros/s/AKfycbwMKGGTMPtbI0bcTekr-qb1Z1W9eqv-YfmsGBgEsJZdlLKj8PLA-6TGQvx8OhyZebK1Hg/exec';
 
   function fmtNum(val) {
     if (val === '' || val === null || val === undefined) return '';
@@ -338,27 +594,23 @@
     if (isNaN(n) || n === 0) return '';
     return Math.round(n).toLocaleString('en-GB');
   }
-
   function toNum(val) {
     if (val === '' || val === null || val === undefined) return null;
     const n = Number(String(val).replace(/,/g, ''));
     return isNaN(n) ? null : n;
   }
-
   function salesClass(actual, target) {
     const a = toNum(actual), t = toNum(target);
     if (a === null) return 'empty';
     if (t === null) return '';
     return a >= t ? 'good' : 'bad';
   }
-
   function mktClass(actual, target) {
     const a = toNum(actual), t = toNum(target);
     if (a === null) return 'empty';
     if (t === null) return '';
     return a > t ? 'bad' : 'good';
   }
-
   function normaliseRow(row) {
     if (Array.isArray(row)) {
       return { month: row[0], salesTgt: row[1], salesAct: row[2], mktTgt: row[3], mktAct: row[4] };
@@ -366,65 +618,269 @@
     const keys = Object.keys(row);
     return { month: row[keys[0]], salesTgt: row[keys[1]], salesAct: row[keys[2]], mktTgt: row[keys[3]], mktAct: row[keys[4]] };
   }
-
   const LABEL_WORDS = ['target', 'actual', 'month', 'sales', 'marketing'];
-  function isLabelRow(r) {
-    return LABEL_WORDS.some(w => String(r.month || '').toLowerCase().includes(w));
-  }
+  function isLabelRow(r) { return LABEL_WORDS.some(w => String(r.month || '').toLowerCase().includes(w)); }
 
   async function loadGoals() {
     const stateEl = document.getElementById('goals-state');
     const wrapEl  = document.getElementById('goals-wrap');
     const tbody   = document.getElementById('goals-tbody');
     try {
-      const res = await fetch(GOALS_URL);
+      const res  = await fetch(GOALS_URL);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       if (!json.data) throw new Error('No data returned');
-
       json.data.forEach(rawRow => {
         const r = normaliseRow(rawRow);
-        if (!r.month) return;
-        if (isLabelRow(r)) return;
-
+        if (!r.month || isLabelRow(r)) return;
         const isTotal = String(r.month).toLowerCase() === 'total';
         const tr = document.createElement('tr');
         if (isTotal) tr.classList.add('total-row');
-
-        const tdMonth = document.createElement('td');
-        tdMonth.textContent = r.month;
-        tr.appendChild(tdMonth);
-
-        const tdSalesTgt = document.createElement('td');
-        tdSalesTgt.textContent = fmtNum(r.salesTgt);
-        tr.appendChild(tdSalesTgt);
-
-        const tdSalesAct = document.createElement('td');
-        tdSalesAct.textContent = fmtNum(r.salesAct);
-        if (!isTotal) tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt));
-        tr.appendChild(tdSalesAct);
-
-        const tdMktTgt = document.createElement('td');
-        tdMktTgt.textContent = fmtNum(r.mktTgt);
-        tr.appendChild(tdMktTgt);
-
-        const tdMktAct = document.createElement('td');
-        tdMktAct.textContent = fmtNum(r.mktAct);
-        if (!isTotal) tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt));
-        tr.appendChild(tdMktAct);
-
+        const tdMonth = document.createElement('td'); tdMonth.textContent = r.month; tr.appendChild(tdMonth);
+        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt); tr.appendChild(tdSalesTgt);
+        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct); if (!isTotal) tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
+        const tdMktTgt = document.createElement('td'); tdMktTgt.textContent = fmtNum(r.mktTgt); tr.appendChild(tdMktTgt);
+        const tdMktAct = document.createElement('td'); tdMktAct.textContent = fmtNum(r.mktAct); if (!isTotal) tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
         tbody.appendChild(tr);
       });
-
       stateEl.style.display = 'none';
-      wrapEl.style.display = 'block';
+      wrapEl.style.display  = 'block';
     } catch (err) {
       stateEl.textContent = 'Could not load Goals — ' + err.message;
       stateEl.classList.add('error');
     }
   }
 
+  // ================================================================
+  // FINANCE BI DASHBOARD
+  // ================================================================
+
+  // ----------------------------------------------------------------
+  // CONFIG
+  // ----------------------------------------------------------------
+  const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMW1mnfPkLCMGGaDyZUaRAi01r0Q52piA-hEM1kmCtofN33suDWuXrIclDjd9QHhTDWdp7mMdbUoQqKkv54AElRF3GtjjAAAwNLDR-wnYcewLTAPNVZsamcbv4yhA7YMZDXaIa2cdeaufdB3DoYvIymy0F7_yteRiQJfqK3pAyp93I-9-MjdyM0XxAPQ813x42mNReqe71eVTYcSOqs3AW2dfiTdNiG_RwAUlLwsr5rd5K-p7CFWfD8iUcSe-vv5MOwnq66CzCmduARPdq8i9zQC8lj4_w&lib=MiVgYZ6q0MjaY4yXi_lTLrZ4HneKZwPqi";
+
+  const COLORS = {
+      positive : "#27ae60",
+      negative : "#e74c3c",
+      neutral  : "#2980b9",
+      cogs     : "#e67e22",
+      marketing: "#3498db",
+      fixed    : "#9b59b6",
+      logistics: "#f1c40f",
+      others   : "#95a5a6"
+  };
+
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let businessData = [];
+  let expenseChart = null;
+  Chart.register(ChartDataLabels);
+
+  // ----------------------------------------------------------------
+  // DATA FETCH
+  // ----------------------------------------------------------------
+  async function fetchBiData() {
+      try {
+          const res    = await fetch(API_URL);
+          businessData = await res.json();
+          setupDashboard();
+      } catch(e) {
+          document.getElementById("roundSelect").innerHTML = "<option>Error loading</option>";
+      }
+  }
+
+  // ----------------------------------------------------------------
+  // SETUP — populate round selector
+  // ----------------------------------------------------------------
+  function setupDashboard() {
+      const sel = document.getElementById("roundSelect");
+      sel.innerHTML = "";
+      businessData.forEach(d => {
+          const o = document.createElement("option");
+          o.value = d.Round;
+          o.text  = d.Round;
+          sel.appendChild(o);
+      });
+      sel.value = businessData[businessData.length - 1].Round;
+      sel.addEventListener("change", render);
+      render();
+  }
+
+  // ----------------------------------------------------------------
+  // HELPERS
+  // ----------------------------------------------------------------
+  function fmt(n) { return Math.round(n).toLocaleString(); }
+
+  function setBarLabel(id, val, pct) {
+      const el     = document.getElementById(id);
+      el.innerText = fmt(val) + " (" + Math.round(pct) + "%)";
+      el.style.left = Math.min(pct, 80) + "%";
+  }
+
+  // ----------------------------------------------------------------
+  // RENDER — main update, called on every round change
+  // ----------------------------------------------------------------
+  function render() {
+      const d = businessData.find(x => x.Round == document.getElementById("roundSelect").value);
+      if (!d) return;
+
+      // -- Header --
+      const startDate = d.Start_Date || "N/A";
+      document.getElementById("roundStart").innerText = startDate !== "N/A"
+          ? new Date(startDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+          : "N/A";
+
+      const dur = Math.round(d.Duration || 0);
+      document.getElementById("roundDuration").innerText = dur + " m";
+
+      const opmNo  = dur > 0 ? Math.round((d.Total_Orders_No    || 0) / dur) : 0;
+      const opmVal = dur > 0 ? Math.round((d.Total_Orders_Value || 0) / dur) : 0;
+      document.getElementById("ordersPerMonthNo").innerText  = opmNo.toLocaleString();
+      document.getElementById("ordersPerMonthVal").innerText = "(" + fmt(opmVal) + ")";
+
+      // -- KPI cards --
+      const cashIn = d.CashIn_Value   || 0;
+      const exp    = d.Expenses       || 0;
+      const ceil   = d.Orders_Ceiling || 0;
+      const net    = cashIn - exp;
+
+      document.getElementById("kpiCash").innerText = fmt(cashIn);
+      document.getElementById("kpiExp").innerText  = fmt(exp);
+
+      const nKpi     = document.getElementById("kpiNet");
+      nKpi.innerText = fmt(net);
+      nKpi.className = "bi-kpi large " + (net < 0 ? "bi-bad" : "bi-good");
+
+      // -- Performance bars --
+      const max  = Math.max(cashIn, exp, ceil) || 1;
+      const cPct = (cashIn / max) * 100;
+      const ePct = (exp    / max) * 100;
+
+      document.getElementById("cashBar").style.width = cPct + "%";
+      document.getElementById("expBar").style.width  = ePct + "%";
+      setBarLabel("cashVal", cashIn, cPct);
+      setBarLabel("expVal",  exp,    ePct);
+
+      const nBadge     = document.getElementById("netVal");
+      nBadge.innerText = "Net: " + fmt(net);
+      nBadge.className = "bi-net " + (net < 0 ? "bi-negative" : "bi-positive");
+
+      // -- Ceiling & gap --
+      document.getElementById("ceilingVal").innerText = fmt(ceil);
+
+      const gap        = d.Ceiling_Gap || 0;
+      const gapEl      = document.getElementById("gapVal");
+      gapEl.innerText  = fmt(gap);
+      gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
+
+      // -- Funnel table --
+      const totalV = (d.Completed_Value  || 0)
+                   + (d.Processing_Value || 0)
+                   + (d.Cancelled_Value  || 0) || 1;
+
+      const cPV = (d.Completed_Value  || 0) / totalV;
+      const pPV = (d.Processing_Value || 0) / totalV;
+      const aPV = (d.Cancelled_Value  || 0) / totalV;
+
+      document.getElementById("fTotalVal").innerText = fmt(d.Total_Orders_Value || 0);
+      document.getElementById("fTotalNo").innerText  = Math.round(d.Total_Orders_No || 0);
+      document.getElementById("fCompVal").innerText  = fmt(d.Completed_Value  || 0);
+      document.getElementById("fCompNo").innerText   = Math.round(d.Completed_No  || 0);
+      document.getElementById("fCompPct").innerText  = Math.round(cPV * 100) + "%";
+      document.getElementById("fProcVal").innerText  = fmt(d.Processing_Value || 0);
+      document.getElementById("fProcNo").innerText   = Math.round(d.Processing_No || 0);
+      document.getElementById("fProcPct").innerText  = Math.round(pPV * 100) + "%";
+      document.getElementById("fCanVal").innerText   = fmt(d.Cancelled_Value  || 0);
+      document.getElementById("fCanNo").innerText    = Math.round(d.Cancelled_No  || 0);
+      document.getElementById("fCanPct").innerText   = Math.round(aPV * 100) + "%";
+
+      // -- Distribution bar --
+      const cP = Math.round(cPV * 100);
+      const pP = Math.round(pPV * 100);
+      const aP = Math.round(aPV * 100);
+
+      document.getElementById("segComp").style.width = cP + "%";
+      document.getElementById("segProc").style.width = pP + "%";
+      document.getElementById("segCan").style.width  = (100 - cP - pP) + "%";
+      document.getElementById("segComp").innerText   = cP > 12 ? cP + "%" : "";
+      document.getElementById("segProc").innerText   = pP > 12 ? pP + "%" : "";
+      document.getElementById("segCan").innerText    = aP > 12 ? aP + "%" : "";
+
+      document.getElementById("lblComp").style.left    = (cP / 2) + "%";
+      document.getElementById("lblProc").style.left    = (cP + pP / 2) + "%";
+      document.getElementById("lblCan").style.left     = (cP + pP + aP / 2) + "%";
+      document.getElementById("lblComp").style.opacity = cP > 8 ? 1 : 0;
+      document.getElementById("lblProc").style.opacity = pP > 8 ? 1 : 0;
+      document.getElementById("lblCan").style.opacity  = aP > 8 ? 1 : 0;
+
+      // -- Expense breakdown --
+      const eD = {
+          cogs : { val: d.COGS_Value        || 0, pct: Math.round((d.COGS_Percent        || 0) * 100) },
+          mrk  : { val: d.MRK_Value         || 0, pct: Math.round((d.MRK_Percent         || 0) * 100) },
+          fix  : { val: d.FixedCost_Value   || 0, pct: Math.round((d.FixedCost_Percent   || 0) * 100) },
+          log  : { val: d.Logistics_Value   || 0, pct: Math.round((d.Logistics_Percent   || 0) * 100) },
+          oth  : { val: d.Others_Value      || 0, pct: Math.round((d.Others_Percent      || 0) * 100) }
+      };
+
+      document.getElementById("vCogsRow").innerText = eD.cogs.pct + "% (" + fmt(eD.cogs.val) + ")";
+      document.getElementById("vMrkRow").innerText  = eD.mrk.pct  + "% (" + fmt(eD.mrk.val)  + ")";
+      document.getElementById("vFixRow").innerText  = eD.fix.pct  + "% (" + fmt(eD.fix.val)  + ")";
+      document.getElementById("vLogRow").innerText  = eD.log.pct  + "% (" + fmt(eD.log.val)  + ")";
+      document.getElementById("vOthRow").innerText  = eD.oth.pct  + "% (" + fmt(eD.oth.val)  + ")";
+
+      updatePieChart(eD);
+  }
+
+  // ----------------------------------------------------------------
+  // PIE CHART — create on first run, update on subsequent rounds
+  // ----------------------------------------------------------------
+  function updatePieChart(eD) {
+      const ctx  = document.getElementById('expenseChart').getContext('2d');
+      const vals = [eD.cogs.val, eD.mrk.val, eD.fix.val, eD.log.val, eD.oth.val];
+
+      if (expenseChart) {
+          expenseChart.data.datasets[0].data = vals;
+          expenseChart.update();
+          return;
+      }
+
+      expenseChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+              labels  : ['COGS', 'Marketing', 'Fixed', 'Logistics', 'Others'],
+              datasets: [{
+                  data           : vals,
+                  backgroundColor: [COLORS.cogs, COLORS.marketing, COLORS.fixed, COLORS.logistics, COLORS.others],
+                  borderWidth    : 2
+              }]
+          },
+          options: {
+              responsive         : true,
+              maintainAspectRatio: false,
+              cutout             : '58%',
+              plugins: {
+                  legend: { display: false },
+                  datalabels: {
+                      color    : '#fff',
+                      font     : { weight: 'bold', size: 11 },
+                      formatter: (v, ctx) => {
+                          const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                          return v > 0 ? Math.round(v * 100 / sum) + "%" : '';
+                      }
+                  }
+              }
+          }
+      });
+  }
+
+  // ================================================================
+  // INIT
+  // ================================================================
   loadGoals();
+  fetchBiData();
+
 </script>
 </body>
 </html>
