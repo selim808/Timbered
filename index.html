@@ -374,14 +374,17 @@
             <div class="bi-kpi-card full" style="text-align:center; font-size:13px;">
               <div class="bi-label">Net cash flow</div>
               <div id="kpiNet" class="bi-kpi large">--</div>
+              <div id="kpiNetPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
             </div>
             <div class="bi-kpi-card">
               <div class="bi-label">Total cash in</div>
               <div id="kpiCash" class="bi-kpi">--</div>
+              <div id="kpiCashPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
             </div>
             <div class="bi-kpi-card">
               <div class="bi-label">Total expenses</div>
               <div id="kpiExp" class="bi-kpi">--</div>
+              <div id="kpiExpPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
             </div>
           </div>
 
@@ -791,17 +794,28 @@
       document.getElementById("ordersPerMonthVal").innerText = "(" + fmt(opmVal) + ")";
 
       // -- KPI cards --
-      const cashIn = d.CashIn_Value   || 0;
-      const exp    = d.Expenses       || 0;
-      const ceil   = d.Orders_Ceiling || 0;
-      const net    = cashIn - exp;
+      const rawDur   = d.Duration || 1;
+      const cashIn   = d.CashIn_Value   || 0;
+      const exp      = d.Expenses       || 0;
+      const ceil     = d.Orders_Ceiling || 0;
+      const net      = cashIn - exp;
 
       document.getElementById("kpiCash").innerText = fmt(cashIn);
       document.getElementById("kpiExp").innerText  = fmt(exp);
 
+      const cashPerMon = cashIn / rawDur;
+      const expPerMon  = exp    / rawDur;
+      document.getElementById("kpiCashPerMon").innerText = "+" + Math.round(cashPerMon / 1000) + "K/mon";
+      document.getElementById("kpiExpPerMon").innerText  = "+" + Math.round(expPerMon  / 1000) + "K/mon";
+
       const nKpi     = document.getElementById("kpiNet");
       nKpi.innerText = fmt(net);
       nKpi.className = "bi-kpi large " + (net < 0 ? "bi-bad" : "bi-good");
+      const netPerMon    = net / rawDur;
+      const netPerMonEl  = document.getElementById("kpiNetPerMon");
+      const kVal         = Math.round(netPerMon / 1000);
+      netPerMonEl.innerText   = (kVal >= 0 ? "+" : "") + kVal + "K/mon";
+      netPerMonEl.style.color = netPerMon >= 0 ? COLORS.positive : COLORS.negative;
 
       // -- Performance bars --
       const max  = Math.max(cashIn, exp, ceil) || 1;
