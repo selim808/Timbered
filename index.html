@@ -538,10 +538,29 @@
       <div class="section-body-inner">
         <div class="section-body">
           <div id="prod-state" class="gviz-state">Loading…</div>
-          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
-            <div style="min-width:700px; height:360px; padding:8px;">
-              <canvas id="productionChart"></canvas>
+          <div class="bi-kpi-grid" style="width:100%; grid-template-columns: repeat(2, 1fr);">
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Total WIP Value</div>
+              <div id="prodTotalWip" class="bi-kpi">--</div>
             </div>
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Processing Value</div>
+              <div id="prodProcessingVal" class="bi-kpi">--</div>
+            </div>
+          </div>
+          <div id="prodMismatchMsg" style="display:none; color:#e74c3c; font-size:13px; font-weight:700; text-align:center; width:100%;">Kanban ≠ Processing → check</div>
+          <div style="width:100%; padding: 0 4px;">
+            <div class="bi-multi-bar">
+              <div id="prodSegFab" class="bi-seg" style="width:0%; background:#2980b9;"></div>
+              <div id="prodSegDlv" class="bi-seg" style="width:0%; background:#27ae60;"></div>
+            </div>
+            <div class="bi-dist-labels-wrap">
+              <span id="prodLblFab" class="bi-dist-label-text">Fabrication</span>
+              <span id="prodLblDlv" class="bi-dist-label-text">Delivery</span>
+            </div>
+          </div>
+          <div style="width:100%; height:360px;">
+            <canvas id="productionChart"></canvas>
           </div>
         </div>
       </div>
@@ -835,6 +854,10 @@
       gapEl.innerText   = fmt(gap);
       gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
 
+      // -- Production: sync processing value --
+      const procValEl = document.getElementById("prodProcessingVal");
+      if (procValEl) { procValEl.innerText = fmt(d.Processing_Value || 0); checkWipMatch(); }
+
       // -- Cash In vs Completed --
       document.getElementById("ciCashVal").innerText = fmt(d.CashIn_Value   || 0);
       document.getElementById("ciCompVal").innerText = fmt(d.Completed_Value || 0);
@@ -951,6 +974,20 @@
   }
 
   // ================================================================
+  // PRODUCTION — mismatch check
+  // ================================================================
+  function checkWipMatch() {
+      const wipEl  = document.getElementById("prodTotalWip");
+      const procEl = document.getElementById("prodProcessingVal");
+      const msgEl  = document.getElementById("prodMismatchMsg");
+      if (!wipEl || !procEl || !msgEl) return;
+      const wip  = parseInt(wipEl.innerText.replace(/,/g, ""));
+      const proc = parseInt(procEl.innerText.replace(/,/g, ""));
+      if (isNaN(wip) || isNaN(proc)) return;
+      msgEl.style.display = wip !== proc ? "block" : "none";
+  }
+
+  // ================================================================
   // PRODUCTION — WIP Breakdown chart
   // ================================================================
   const PROD_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMX42x3UF750oImkO1L4VzlPR7IdfBDchfunY_l7lSAct2YUF3vdALKQMktqwT6W9--oNMyqTUZLOltI4iJaVWHfW-4G5NQNfLnk3lC4EvIAZxHgM-ED5q2ms4-CCpwBONJYGLkrUtsJhvyCLjmEoJK-EptanA0jaYJ7udgV3TVWaeKqvqdl-DEdlW4p2o4gTBCf-t__dl6N_wJJRVAOFisC3-blsjEUKosfPewTMS5dCgy4Lzjgw6l8cQX0I7pDQdhfmQeovA1q1C2XemPcg4Je5b_mjg&lib=MGmF2JFxrWed-6EV_EKU_rUeDcafZ4rz6";
@@ -965,12 +1002,34 @@
           const res  = await fetch(PROD_API_URL);
           const data = await res.json();
           document.getElementById("prod-state").style.display = "none";
-          const labels = data.map(d => d.Phases);
-          const values = data.map(d => d["WIP Value"] || 0);
-          const colors = data.map(d =>
+          const totalWip = data.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          document.getElementById("prodTotalWip").innerText = fmt(totalWip);
+
+          const splitIdx = data.findIndex(d => d.Phases === "Rdy for ship");
+          const fabData  = splitIdx >= 0 ? data.slice(0, splitIdx + 1) : [];
+          const dlvData  = splitIdx >= 0 ? data.slice(splitIdx + 1)    : data;
+          const fabVal   = fabData.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          const dlvVal   = dlvData.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          const fabPct   = totalWip > 0 ? Math.round(fabVal / totalWip * 100) : 0;
+          const dlvPct   = totalWip > 0 ? Math.round(dlvVal / totalWip * 100) : 0;
+          document.getElementById("prodSegFab").style.width   = fabPct + "%";
+          document.getElementById("prodSegDlv").style.width   = dlvPct + "%";
+          document.getElementById("prodSegFab").innerText     = fabPct > 8 ? fabPct + "%" : "";
+          document.getElementById("prodSegDlv").innerText     = dlvPct > 8 ? dlvPct + "%" : "";
+          document.getElementById("prodLblFab").style.left    = (fabPct / 2) + "%";
+          document.getElementById("prodLblDlv").style.left    = (fabPct + dlvPct / 2) + "%";
+          document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
+          document.getElementById("prodLblDlv").style.opacity = dlvPct > 8 ? 1 : 0;
+
+          checkWipMatch();
+          const filtered = data.filter(d => (d["WIP Value"] || 0) > 0);
+          const labels = filtered.map(d => d.Phases);
+          const values = filtered.map(d => d["WIP Value"]);
+          const colors = filtered.map(d =>
               PROD_GREEN.includes(d.Phases) ? "#27ae60" :
               PROD_RED.includes(d.Phases)   ? "#e74c3c" : "#3498db"
           );
+
           const ctx = document.getElementById("productionChart").getContext("2d");
           new Chart(ctx, {
               type: "bar",
