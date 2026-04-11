@@ -1113,12 +1113,30 @@
   // ================================================================
   // WEEKLY PERFORMANCE CHART
   // ================================================================
-  const WEEKLY_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMViIJC1a3JS2Qk3aDibjv7x3ix128PL7TTODuXCVho1i5TQtTAkR9LliRzCUg8XdbcL0JZgEptbgw0frVY7wKq-ui350ur4Bxk32oaivi_B6CvO-z52WSd-IpICvpmr7-tdZVDhEDTyYPQnGPNRuLAP_RKfWAeJEuoWtI57Gd4blO3qNu3B-V4u9VLsMhouasi6ASHb9f1mQzq5noYsa497QsxZ4Q1_yEWeAHLxySGmlq3abVb94S5ajxbvPozs-xgjxC9KmizmFFkJbLvI2BxY98Ksdw&lib=MGPUElNlImMEK8HlrkK70tDpT4f47GaH-";
+  const WC_BASE = "https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de&orderby=date&order=desc&per_page=100";
+
+  async function fetchAllOrders() {
+      let all = [], page = 1;
+      while (true) {
+          const res  = await fetch(WC_BASE + '&page=' + page);
+          const rows = await res.json();
+          if (!rows.length) break;
+          rows.forEach(o => all.push({
+              Status:             o.status,
+              Order_Value:        parseFloat(o.total) || 0,
+              Created_Date:       o.date_created  || '',
+              Completed_Date:     o.date_completed || '',
+              Last_Modified_Date: o.date_modified  || ''
+          }));
+          if (rows.length < 100) break;
+          page++;
+      }
+      return all;
+  }
 
   async function loadWeeklyChart() {
       try {
-          const res  = await fetch(WEEKLY_API_URL);
-          const data = await res.json();
+          const data = await fetchAllOrders();
           document.getElementById('perf-state').style.display = 'none';
 
           const localDs  = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -1192,7 +1210,7 @@
               });
 
               function dayTotal(d, filterFn) {
-                  const ds = d.toISOString().slice(0, 10);
+                  const ds = localDs(d);
                   return data.filter(o => filterFn(o, ds)).reduce((s, o) => s + (o.Order_Value || 0), 0);
               }
               const rows = [
