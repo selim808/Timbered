@@ -90,19 +90,23 @@
     return all;
   }
 
-  // ── Save kanban_phases meta back to WooCommerce ──────────────────
-  // Returns the meta id so we can reuse it on future saves (avoids duplicates)
-  async function savePhases(orderId, phasesObj, metaId) {
-    const entry = { key: 'kanban_phases', value: JSON.stringify(phasesObj) };
-    if (metaId) entry.id = metaId; // update existing entry, not create new
-    const res    = await fetch(WC_PUT(orderId), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meta_data: [entry] })
-    });
-    const updated = await res.json();
-    const saved   = (updated.meta_data || []).filter(m => m.key === 'kanban_phases');
-    return saved.length ? saved[saved.length - 1].id : metaId;
+  // ── localStorage helpers (primary storage) ───────────────────────
+  const LS_KEY = 'tg_kanban_phases';
+
+  function lsLoad() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+  }
+  function lsSave(allPhases) {
+    localStorage.setItem(LS_KEY, JSON.stringify(allPhases));
+  }
+  function getOrderPhases(orderId) {
+    return lsLoad()[orderId] || {};
+  }
+  function setItemPhase(orderId, itemId, phase) {
+    const all = lsLoad();
+    if (!all[orderId]) all[orderId] = {};
+    all[orderId][itemId] = phase;
+    lsSave(all);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -136,28 +140,16 @@
       setupDropZone(body);
     });
 
-    // Per-order state: shared between all cards of the same order
-    // orderState[orderId] = { phases: {}, metaId: number|null }
-    const orderState = {};
-
     // Expand orders → line item cards
     let totalItems = 0;
     orders.forEach(order => {
-      const meta      = order.meta_data || [];
-      // Use the last kanban_phases entry (in case duplicates exist from previous bug)
-      const allPhasesMeta = meta.filter(m => m.key === 'kanban_phases');
-      const phaseMeta     = allPhasesMeta.length ? allPhasesMeta[allPhasesMeta.length - 1] : null;
-      const savedPhases   = phaseMeta ? JSON.parse(phaseMeta.value) : {};
-      const metaId        = phaseMeta ? phaseMeta.id : null;
-
-      orderState[order.id] = { phases: savedPhases, metaId };
-
-      const itemCount = order.line_items.length;
-      const days      = daysSince(order.date_created);
+      const savedPhases = getOrderPhases(order.id);
+      const itemCount   = order.line_items.length;
+      const days        = daysSince(order.date_created);
 
       order.line_items.forEach((item, idx) => {
-        const phase = savedPhases[item.id] || 'Chk Inventory';
-        const card  = createCard(order, item, idx + 1, itemCount, days, phase, orderState);
+        const phase = savedPhases[String(item.id)] || 'Chk Inventory';
+        const card  = createCard(order, item, idx + 1, itemCount, days, phase);
         const col   = colMap[phase];
         if (col) col.appendChild(card);
         totalItems++;
@@ -176,7 +168,7 @@
 
   function encodePhase(p) { return p.replace(/[^a-zA-Z0-9]/g, '_'); }
 
-  function createCard(order, item, itemNo, itemCount, days, phase, orderState) {
+  function createCard(order, item, itemNo, itemCount, days, phase) {
     const card = document.createElement('div');
     card.className = 'card';
     card.draggable = true;
@@ -193,15 +185,12 @@
 
     card.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
-        orderId: order.id,
-        itemId:  item.id
+        orderId: String(order.id),
+        itemId:  String(item.id)
       }));
       card.classList.add('dragging');
     });
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
-
-    // Store reference to shared order state
-    card._orderState = orderState;
     return card;
   }
 
@@ -211,7 +200,7 @@
       colBody.classList.add('drag-over');
     });
     colBody.addEventListener('dragleave', () => colBody.classList.remove('drag-over'));
-    colBody.addEventListener('drop', async e => {
+    colBody.addEventListener('drop', e => {
       e.preventDefault();
       colBody.classList.remove('drag-over');
 
@@ -224,19 +213,13 @@
       const oldPhase = card.dataset.phase;
       if (oldPhase === newPhase) return;
 
+      // Save to localStorage immediately
+      setItemPhase(orderId, itemId, newPhase);
+
       // Move card visually
       colBody.appendChild(card);
       card.dataset.phase = newPhase;
-      card.classList.add('card-saving');
 
-      // Update shared order state and save
-      const state = card._orderState[orderId];
-      state.phases[itemId] = newPhase;
-
-      const newMetaId = await savePhases(orderId, state.phases, state.metaId);
-      state.metaId = newMetaId; // update so next save uses correct meta id
-
-      card.classList.remove('card-saving');
       updateCount(oldPhase);
       updateCount(newPhase);
     });
