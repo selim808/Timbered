@@ -588,7 +588,17 @@
       <div class="section-body-inner">
         <div class="section-body" style="padding:12px;">
           <div id="perf-state" class="gviz-state">Loading…</div>
-          <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:4px;"></div>
+          <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
+          <div class="bi-card" style="padding:10px 12px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <table class="bi-funnel-table" style="width:100%; border-collapse:collapse;" id="weekDailyTable">
+              <thead><tr id="weekDailyHead"></tr></thead>
+              <tbody>
+                <tr id="weekDailyRowComp"></tr>
+                <tr id="weekDailyRowCanc"></tr>
+                <tr id="weekDailyRowCrea"></tr>
+              </tbody>
+            </table>
+          </div>
           <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
             <div>
               <div class="bi-label">Year</div>
@@ -1109,6 +1119,54 @@
           const res  = await fetch(WEEKLY_API_URL);
           const data = await res.json();
           document.getElementById('perf-state').style.display = 'none';
+
+          // -- Current-week daily table --
+          (function() {
+              const today    = new Date();
+              const todayStr = today.toISOString().slice(0, 10);
+              const day      = today.getDay();
+              const sun      = new Date(today); sun.setDate(today.getDate() - day); sun.setHours(0,0,0,0);
+              const days     = [];
+              for (let i = 0; i < 7; i++) {
+                  const d = new Date(sun); d.setDate(sun.getDate() + i);
+                  days.push(d);
+              }
+              const head     = document.getElementById('weekDailyHead');
+              const rowComp  = document.getElementById('weekDailyRowComp');
+              const rowCanc  = document.getElementById('weekDailyRowCanc');
+              const rowCrea  = document.getElementById('weekDailyRowCrea');
+
+              const thStyle  = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
+              const tdStyle  = 'text-align:center; font-size:12px; padding:3px 6px;';
+              const labelStyle = 'text-align:left; font-size:11px; font-weight:600; color:#888; padding:3px 6px; white-space:nowrap;';
+
+              // header row
+              head.innerHTML = `<th style="${labelStyle}"></th>`;
+              days.forEach(d => {
+                  const isToday = d.toISOString().slice(0, 10) === todayStr;
+                  const lbl = d.toLocaleDateString('en-GB', { weekday: 'short' });
+                  head.innerHTML += `<th style="${thStyle}${isToday ? 'color:var(--brand-dark);font-weight:700;' : ''}">${lbl}</th>`;
+              });
+
+              // compute daily totals for each row type
+              function dayTotal(d, filterFn) {
+                  const ds = d.toISOString().slice(0, 10);
+                  return data.filter(o => filterFn(o, ds)).reduce((s, o) => s + (o.Order_Value || 0), 0);
+              }
+              const rows = [
+                  { el: rowComp, label: 'Completed', color: COLORS.positive,  fn: (o,ds) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)===ds },
+                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative,  fn: (o,ds) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)===ds },
+                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,   fn: (o,ds) => o.Created_Date && o.Created_Date.slice(0,10)===ds },
+              ];
+              rows.forEach(({ el, label, color, fn }) => {
+                  el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
+                  days.forEach(d => {
+                      const val = dayTotal(d, fn);
+                      const isToday = d.toISOString().slice(0, 10) === todayStr;
+                      el.innerHTML += `<td style="${tdStyle} color:${val > 0 ? '#333' : '#ccc'}; ${isToday ? 'font-weight:700;' : ''}">${val > 0 ? Math.round(val/1000)+'K' : '—'}</td>`;
+                  });
+              });
+          })();
 
           function getWeekLabel(dateStr) {
               if (!dateStr) return null;
