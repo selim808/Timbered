@@ -588,6 +588,10 @@
       <div class="section-body-inner">
         <div class="section-body" style="padding:12px;">
           <div id="perf-state" class="gviz-state">Loading…</div>
+          <div style="margin-bottom:8px;">
+            <label class="bi-label">Week</label>
+            <select id="weekPickerSel" class="bi-select" style="width:100%;"></select>
+          </div>
           <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
             <div class="bi-card" style="padding:10px 12px; text-align:center;">
@@ -1112,88 +1116,112 @@
   const WEEKLY_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMViIJC1a3JS2Qk3aDibjv7x3ix128PL7TTODuXCVho1i5TQtTAkR9LliRzCUg8XdbcL0JZgEptbgw0frVY7wKq-ui350ur4Bxk32oaivi_B6CvO-z52WSd-IpICvpmr7-tdZVDhEDTyYPQnGPNRuLAP_RKfWAeJEuoWtI57Gd4blO3qNu3B-V4u9VLsMhouasi6ASHb9f1mQzq5noYsa497QsxZ4Q1_yEWeAHLxySGmlq3abVb94S5ajxbvPozs-xgjxC9KmizmFFkJbLvI2BxY98Ksdw&lib=MGPUElNlImMEK8HlrkK70tDpT4f47GaH-";
 
   async function loadWeeklyChart() {
-      // -- Current week banner --
-      (function() {
-          const today    = new Date();
-          const day      = today.getDay(); // 0=Sun
-          const dayNum   = day + 1; // Sun=1 … Sat=7
-          const sunStart = new Date(today); sunStart.setDate(today.getDate() - day);
-          const satEnd   = new Date(sunStart); satEnd.setDate(sunStart.getDate() + 6);
-          const jan1     = new Date(today.getFullYear(), 0, 1);
-          const weekNo   = Math.ceil(((sunStart - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-          const fmt      = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
-          const banner   = document.getElementById('currentWeekBanner');
-          banner.innerHTML = `
-            <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
-            <div><span class="bi-label">Start</span><div class="bi-header-val">${fmt(sunStart)}</div></div>
-            <div><span class="bi-label">End</span><div class="bi-header-val">${fmt(satEnd)}</div></div>
-            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmt(today)} <span style="font-size:12px;color:#888;">(${dayNum}/7)</span></div></div>`;
-      })();
-
       try {
           const res  = await fetch(WEEKLY_API_URL);
           const data = await res.json();
           document.getElementById('perf-state').style.display = 'none';
 
-          // -- Current-week daily table --
-          (function() {
-              const today    = new Date();
-              const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-              const day      = today.getDay();
-              const sun      = new Date(today); sun.setDate(today.getDate() - day); sun.setHours(0,0,0,0);
-              const days     = [];
-              for (let i = 0; i < 7; i++) {
-                  const d = new Date(sun); d.setDate(sun.getDate() + i);
-                  days.push(d);
-              }
-              const head     = document.getElementById('weekDailyHead');
-              const rowComp  = document.getElementById('weekDailyRowComp');
-              const rowCanc  = document.getElementById('weekDailyRowCanc');
-              const rowCrea  = document.getElementById('weekDailyRowCrea');
+          const localDs  = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          const today    = new Date();
+          const todayStr = localDs(today);
+          const curSun   = new Date(today); curSun.setDate(today.getDate() - today.getDay()); curSun.setHours(0,0,0,0);
+          const curKey   = localDs(curSun);
 
-              const thStyle  = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
-              const tdStyle  = 'text-align:center; font-size:12px; padding:3px 6px;';
+          // Build map of all week Sundays from data
+          const weekStarts = new Map();
+          data.forEach(o => {
+              const ds = (o.Completed_Date || o.Created_Date || o.Last_Modified_Date || '').slice(0,10);
+              if (!ds) return;
+              const d = new Date(ds); d.setHours(0,0,0,0);
+              const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
+              const key = localDs(sun);
+              if (!weekStarts.has(key)) weekStarts.set(key, sun);
+          });
+          weekStarts.set(curKey, curSun);
+
+          const sortedWeeks = [...weekStarts.entries()].sort((a,b) => b[0].localeCompare(a[0]));
+
+          // Populate week picker
+          const sel = document.getElementById('weekPickerSel');
+          sel.innerHTML = '';
+          sortedWeeks.forEach(([key, sun]) => {
+              const jan1  = new Date(sun.getFullYear(), 0, 1);
+              const wNo   = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+              const sat   = new Date(sun); sat.setDate(sun.getDate() + 6);
+              const fmtS  = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+              sel.appendChild(new Option('W' + String(wNo).padStart(2,'0') + '  ' + fmtS(sun) + ' – ' + fmtS(sat), key));
+          });
+          sel.value = curKey;
+
+          // -- Render banner + cards + table for selected week --
+          function renderWeekBlock(sunKey) {
+              const sun    = new Date(sunKey); sun.setHours(0,0,0,0);
+              const sat    = new Date(sun); sat.setDate(sun.getDate() + 6);
+              const jan1   = new Date(sun.getFullYear(), 0, 1);
+              const weekNo = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+              const fmtD   = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+              const isCurWeek = sunKey === curKey;
+
+              // Banner
+              const banner = document.getElementById('currentWeekBanner');
+              const dayNum = today.getDay() + 1;
+              banner.innerHTML = `
+                <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
+                <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(sun)}</div></div>
+                <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(sat)}</div></div>
+                ${isCurWeek ? `<div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(today)} <span style="font-size:12px;color:#888;">(${dayNum}/7)</span></div></div>` : ''}`;
+
+              // Daily table
+              const days = [];
+              for (let i = 0; i < 7; i++) { const d = new Date(sun); d.setDate(sun.getDate() + i); days.push(d); }
+
+              const head    = document.getElementById('weekDailyHead');
+              const rowComp = document.getElementById('weekDailyRowComp');
+              const rowCanc = document.getElementById('weekDailyRowCanc');
+              const rowCrea = document.getElementById('weekDailyRowCrea');
+
+              const thStyle    = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
+              const tdStyle    = 'text-align:center; font-size:12px; padding:3px 6px;';
               const labelStyle = 'text-align:left; font-size:11px; font-weight:600; color:#888; padding:3px 6px; white-space:nowrap;';
 
-              // header row
               head.innerHTML = `<th style="${labelStyle}"></th>`;
-              const localDs = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
               days.forEach(d => {
-                  const isToday = localDs(d) === todayStr;
+                  const isToday = isCurWeek && localDs(d) === todayStr;
                   const lbl = d.toLocaleDateString('en-GB', { weekday: 'short' });
                   head.innerHTML += `<th style="${thStyle}${isToday ? 'color:var(--brand-dark);font-weight:700;' : ''}">${isToday ? `<span style="display:inline-block;background:#fef3e2;border-radius:4px;padding:1px 5px;">${lbl}</span>` : lbl}</th>`;
               });
 
-              // compute daily totals for each row type
               function dayTotal(d, filterFn) {
                   const ds = d.toISOString().slice(0, 10);
                   return data.filter(o => filterFn(o, ds)).reduce((s, o) => s + (o.Order_Value || 0), 0);
               }
               const rows = [
-                  { el: rowComp, label: 'Completed', color: COLORS.positive,  fn: (o,ds) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)===ds },
-                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative,  fn: (o,ds) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)===ds },
-                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,   fn: (o,ds) => o.Created_Date && o.Created_Date.slice(0,10)===ds },
+                  { el: rowComp, label: 'Completed', color: COLORS.positive, fn: (o,ds) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)===ds },
+                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative, fn: (o,ds) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)===ds },
+                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,  fn: (o,ds) => o.Created_Date && o.Created_Date.slice(0,10)===ds },
               ];
               rows.forEach(({ el, label, color, fn }) => {
                   el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
                   days.forEach(d => {
                       const val = dayTotal(d, fn);
-                      const isToday = localDs(d) === todayStr;
-                      el.innerHTML += `<td style="${tdStyle} color:${val > 0 ? '#333' : '#ccc'}; ${isToday ? 'font-weight:700;' : ''}">${val > 0 ? Math.round(val/1000)+'K' : '—'}</td>`;
+                      const isToday = isCurWeek && localDs(d) === todayStr;
+                      el.innerHTML += `<td style="${tdStyle} color:${val>0?'#333':'#ccc'}; ${isToday?'font-weight:700;':''}">${val>0?Math.round(val/1000)+'K':'—'}</td>`;
                   });
               });
 
-              // Populate KPI cards with week totals
-              const sunStr = sun.toISOString().slice(0, 10);
-              const satEnd = new Date(sun); satEnd.setDate(sun.getDate() + 6);
-              const satStr = satEnd.toISOString().slice(0, 10);
+              // KPI cards
+              const sunStr = localDs(sun);
+              const satStr = localDs(sat);
               const totalComp = data.filter(o => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=sunStr && o.Completed_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
               const totalCanc = data.filter(o => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=sunStr && o.Last_Modified_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
               const totalCrea = data.filter(o => o.Created_Date && o.Created_Date.slice(0,10)>=sunStr && o.Created_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
               document.getElementById('cwCompleted').innerText = fmt(totalComp);
               document.getElementById('cwCancelled').innerText = fmt(totalCanc);
               document.getElementById('cwCreated').innerText   = fmt(totalCrea);
-          })();
+          }
+
+          sel.addEventListener('change', () => renderWeekBlock(sel.value));
+          renderWeekBlock(curKey);
 
           function getWeekLabel(dateStr) {
               if (!dateStr) return null;
