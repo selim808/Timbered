@@ -215,7 +215,7 @@
     .bi-seg-comp  { background: #2ecc71; }
     .bi-seg-proc  { background: #2980b9; }
     .bi-seg-can   { background: #e74c3c; }
-    .bi-dist-labels-wrap { position: relative; height: 20px; margin-top: 8px; }
+    .bi-dist-labels-wrap { position: relative; height: 20px; margin-top: 8px; overflow: visible; margin-bottom: 12px; }
     .bi-dist-label-text  { position: absolute; font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase; white-space: nowrap; transform: translateX(-50%); transition: left 0.8s ease-in-out; }
 
     /* ----- Year toggle buttons ----- */
@@ -553,7 +553,7 @@
             </div>
           </div>
           <div id="prodMismatchMsg" style="display:none; color:#e74c3c; font-size:13px; font-weight:700; text-align:center; width:100%;">Kanban ≠ Processing → check</div>
-          <div style="width:100%; padding: 0 4px;">
+          <div style="width:100%; padding: 0 4px; padding-bottom: 28px;">
             <div class="bi-multi-bar">
               <div id="prodSegFab" class="bi-seg" style="width:0%; background:#2980b9;"></div>
               <div id="prodSegDlv" class="bi-seg" style="width:0%; background:#27ae60;"></div>
@@ -589,6 +589,20 @@
         <div class="section-body" style="padding:12px;">
           <div id="perf-state" class="gviz-state">Loading…</div>
           <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Completed</div>
+              <div class="bi-kpi bi-good" id="cwCompleted" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Cancelled</div>
+              <div class="bi-kpi bi-bad" id="cwCancelled" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Created</div>
+              <div class="bi-kpi" id="cwCreated" style="font-size:18px; color:#2563EB;">—</div>
+            </div>
+          </div>
           <div class="bi-card" style="padding:10px 12px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
             <table class="bi-funnel-table" style="width:100%; border-collapse:collapse;" id="weekDailyTable">
               <thead><tr id="weekDailyHead"></tr></thead>
@@ -599,10 +613,10 @@
               </tbody>
             </table>
           </div>
-          <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
             <div>
               <div class="bi-label">Year</div>
-              <div id="weekYearBtns" style="display:flex; flex-wrap:wrap; gap:4px; max-width:160px;"></div>
+              <div id="weekYearBtns" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
             </div>
             <div>
               <label class="bi-label">Start</label>
@@ -1166,6 +1180,17 @@
                       el.innerHTML += `<td style="${tdStyle} color:${val > 0 ? '#333' : '#ccc'}; ${isToday ? 'font-weight:700;' : ''}">${val > 0 ? Math.round(val/1000)+'K' : '—'}</td>`;
                   });
               });
+
+              // Populate KPI cards with week totals
+              const sunStr = sun.toISOString().slice(0, 10);
+              const satEnd = new Date(sun); satEnd.setDate(sun.getDate() + 6);
+              const satStr = satEnd.toISOString().slice(0, 10);
+              const totalComp = data.filter(o => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=sunStr && o.Completed_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCanc = data.filter(o => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=sunStr && o.Last_Modified_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCrea = data.filter(o => o.Created_Date && o.Created_Date.slice(0,10)>=sunStr && o.Created_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              document.getElementById('cwCompleted').innerText = fmt(totalComp);
+              document.getElementById('cwCancelled').innerText = fmt(totalCanc);
+              document.getElementById('cwCreated').innerText   = fmt(totalCrea);
           })();
 
           function getWeekLabel(dateStr) {
