@@ -588,33 +588,7 @@
       <div class="section-body-inner">
         <div class="section-body" style="padding:12px;">
           <div id="perf-state" class="gviz-state">Loading…</div>
-          <div style="margin-bottom:8px;">
-            <label class="bi-label">Week</label>
-            <select id="weekPickerSel" class="bi-select"></select>
-          </div>
-          <div class="goals-wrap" style="width:100%; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; padding-top:10px;">
-            <table class="bi-funnel-table" id="prodDailyTable">
-              <thead><tr id="prodDailyHead"></tr></thead>
-              <tbody><tr id="prodDailyRow"></tr></tbody>
-            </table>
-          </div>
-          <hr class="sect-divider">
           <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:4px;"></div>
-          <div class="bi-kpi-grid" style="width:100%; grid-template-columns: repeat(3,1fr); margin-bottom:4px;">
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Completed</div>
-              <div id="cwCompleted" class="bi-kpi" style="color:#27ae60;">--</div>
-            </div>
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Created</div>
-              <div id="cwCreated" class="bi-kpi" style="color:#3498db;">--</div>
-            </div>
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Cancelled</div>
-              <div id="cwCancelled" class="bi-kpi" style="color:#e74c3c;">--</div>
-            </div>
-          </div>
-          <hr class="sect-divider">
           <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
             <div>
               <div class="bi-label">Year</div>
@@ -640,79 +614,12 @@
   </div>
 
   <!-- ============================================================
-       5. MONTHLY PERFORMANCE
-  ============================================================ -->
-  <div class="section collapsed" id="section-monthly">
-    <div class="section-header" onclick="toggleSection('section-monthly')">
-      <div class="section-header-left">
-        <div class="section-num">5</div>
-        <span class="section-title">Monthly Performance</span>
-      </div>
-      <div class="chevron">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
-      </div>
-    </div>
-    <div class="section-body-wrap">
-      <div class="section-body-inner">
-        <div class="section-body" style="padding:12px;">
-          <!-- Weekly table for current month -->
-          <div class="goals-wrap" style="width:100%; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; padding-top:10px;">
-            <table class="bi-funnel-table" id="monthDailyTable">
-              <thead><tr id="monthWeekHead"></tr></thead>
-              <tbody><tr id="monthWeekRow"></tr></tbody>
-            </table>
-          </div>
-          <hr class="sect-divider">
-          <!-- Current month banner -->
-          <div id="currentMonthBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:4px;"></div>
-          <div class="bi-kpi-grid" style="width:100%; grid-template-columns:repeat(3,1fr); margin-bottom:4px;">
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Completed</div>
-              <div id="cmCompleted" class="bi-kpi" style="color:#27ae60;">--</div>
-            </div>
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Created</div>
-              <div id="cmCreated" class="bi-kpi" style="color:#3498db;">--</div>
-            </div>
-            <div class="bi-kpi-card" style="text-align:center;">
-              <div class="bi-label">Cancelled</div>
-              <div id="cmCancelled" class="bi-kpi" style="color:#e74c3c;">--</div>
-            </div>
-          </div>
-          <hr class="sect-divider">
-          <!-- Year buttons + Start/End selectors -->
-          <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
-            <div>
-              <div class="bi-label">Year</div>
-              <div id="monthYearBtns" style="display:flex; flex-wrap:wrap; gap:4px; max-width:160px;"></div>
-            </div>
-            <div>
-              <label class="bi-label">Start</label>
-              <select id="monthStart" class="bi-select"></select>
-            </div>
-            <div>
-              <label class="bi-label">End</label>
-              <select id="monthEnd" class="bi-select"></select>
-            </div>
-          </div>
-          <!-- Chart -->
-          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
-            <div id="monthlyChartWrap" style="height:320px;">
-              <canvas id="monthlyChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       6. INVENTORY
+       5. INVENTORY
   ============================================================ -->
   <div class="section collapsed" id="section-inventory">
     <div class="section-header" onclick="toggleSection('section-inventory')">
       <div class="section-header-left">
-        <div class="section-num">6</div>
+        <div class="section-num">5</div>
         <span class="section-title">Inventory</span>
       </div>
       <div class="chevron">
@@ -1176,124 +1083,32 @@
   }
 
   // ================================================================
-  // PRODUCTION — last 7 days completed table
-  // ================================================================
-  function localDateStr(d) {
-      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
-  function populateProdDailyTable(data) {
-      const todayRaw = new Date();
-      todayRaw.setHours(0, 0, 0, 0);
-
-      // Build list of all unique week-starting Sundays from the data
-      const weekStarts = new Map();
-      data.forEach(o => {
-          const d = new Date(o.Completed_Date || o.Created_Date);
-          if (isNaN(d)) return;
-          d.setHours(0, 0, 0, 0);
-          const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
-          const key = localDateStr(sun);
-          if (!weekStarts.has(key)) weekStarts.set(key, sun);
-      });
-
-      // Also add the current week
-      const curSun = new Date(todayRaw); curSun.setDate(todayRaw.getDate() - todayRaw.getDay());
-      weekStarts.set(localDateStr(curSun), curSun);
-
-      const sortedWeeks = [...weekStarts.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-      const curKey      = localDateStr(curSun);
-
-      const sel = document.getElementById('weekPickerSel');
-      sel.innerHTML = '';
-      sortedWeeks.forEach(([key, sun]) => {
-          const jan1  = new Date(sun.getFullYear(), 0, 1);
-          const wNo   = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-          const label = 'W' + String(wNo).padStart(2, '0') + ' — ' + sun.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-          const opt   = new Option(label, key);
-          sel.appendChild(opt);
-      });
-      sel.value = curKey;
-
-      function renderDailyTable(sunKey) {
-          const sun   = new Date(sunKey); sun.setHours(0, 0, 0, 0);
-          const isCurrentWeek = sunKey === curKey;
-          const days  = [];
-          for (let i = 0; i < 7; i++) {
-              const d = new Date(sun); d.setDate(sun.getDate() + i);
-              days.push(d);
-          }
-          const dayTotals = days.map(d => {
-              const dStr = localDateStr(d);
-              return data
-                  .filter(o => o.Status === 'completed' && o.Completed_Date && o.Completed_Date.slice(0, 10) === dStr)
-                  .reduce((s, o) => s + (o.Order_Value || 0), 0);
-          });
-
-          const head = document.getElementById('prodDailyHead');
-          const row  = document.getElementById('prodDailyRow');
-          head.innerHTML = '<th style="text-align:left;">Day</th>';
-          row.innerHTML  = '<td style="font-size:11px; color:#888; font-weight:600;">Completed</td>';
-
-          days.forEach((d, i) => {
-              const isToday = isCurrentWeek && localDateStr(d) === localDateStr(todayRaw);
-              const label   = d.toLocaleDateString('en-GB', { weekday: 'short' });
-              const th = document.createElement('th');
-              th.textContent     = label;
-              th.style.textAlign = 'center';
-              if (isToday) th.style.color = COLORS.positive;
-              head.appendChild(th);
-
-              const td = document.createElement('td');
-              td.textContent     = dayTotals[i] > 0 ? Math.round(dayTotals[i] / 1000) + 'K' : '—';
-              td.style.textAlign = 'center';
-              td.style.color     = dayTotals[i] > 0 ? '#333' : '#ccc';
-              if (isToday) td.style.fontWeight = '700';
-              row.appendChild(td);
-          });
-
-          // Update KPI cards and banner for selected week
-          const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
-          const fmtD = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
-          const jan1 = new Date(sun.getFullYear(), 0, 1);
-          const wNo  = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-          const banner = document.getElementById('currentWeekBanner');
-          const dayNum = todayRaw.getDay() + 1;
-          banner.innerHTML = `
-            <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(wNo).padStart(2,'0')}</div></div>
-            <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(sun)}</div></div>
-            <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(sat)}</div></div>
-            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(todayRaw)} <span style="font-size:12px;color:#888;">(${dayNum}/7)</span></div></div>`;
-
-          const sunStr = localDateStr(sun);
-          const satStr = localDateStr(sat);
-          const inRange = o => {
-              const d = o.Completed_Date || o.Created_Date || o.Last_Modified_Date;
-              return d && d.slice(0, 10) >= sunStr && d.slice(0, 10) <= satStr;
-          };
-          const cwComp = data.filter(o => o.Status === 'completed' && o.Completed_Date && o.Completed_Date.slice(0,10) >= sunStr && o.Completed_Date.slice(0,10) <= satStr).reduce((s,o) => s+(o.Order_Value||0),0);
-          const cwCrea = data.filter(o => o.Created_Date && o.Created_Date.slice(0,10) >= sunStr && o.Created_Date.slice(0,10) <= satStr).reduce((s,o) => s+(o.Order_Value||0),0);
-          const cwCanc = data.filter(o => o.Status === 'cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10) >= sunStr && o.Last_Modified_Date.slice(0,10) <= satStr).reduce((s,o) => s+(o.Order_Value||0),0);
-          document.getElementById('cwCompleted').innerText = fmt(cwComp);
-          document.getElementById('cwCreated').innerText   = fmt(cwCrea);
-          document.getElementById('cwCancelled').innerText = fmt(cwCanc);
-      }
-
-      sel.addEventListener('change', () => renderDailyTable(sel.value));
-      renderDailyTable(curKey);
-  }
-
-  // ================================================================
   // WEEKLY PERFORMANCE CHART
   // ================================================================
   const WEEKLY_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMViIJC1a3JS2Qk3aDibjv7x3ix128PL7TTODuXCVho1i5TQtTAkR9LliRzCUg8XdbcL0JZgEptbgw0frVY7wKq-ui350ur4Bxk32oaivi_B6CvO-z52WSd-IpICvpmr7-tdZVDhEDTyYPQnGPNRuLAP_RKfWAeJEuoWtI57Gd4blO3qNu3B-V4u9VLsMhouasi6ASHb9f1mQzq5noYsa497QsxZ4Q1_yEWeAHLxySGmlq3abVb94S5ajxbvPozs-xgjxC9KmizmFFkJbLvI2BxY98Ksdw&lib=MGPUElNlImMEK8HlrkK70tDpT4f47GaH-";
 
   async function loadWeeklyChart() {
+      // -- Current week banner --
+      (function() {
+          const today    = new Date();
+          const day      = today.getDay(); // 0=Sun
+          const sunStart = new Date(today); sunStart.setDate(today.getDate() - day);
+          const satEnd   = new Date(sunStart); satEnd.setDate(sunStart.getDate() + 6);
+          const jan1     = new Date(today.getFullYear(), 0, 1);
+          const weekNo   = Math.ceil(((sunStart - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+          const fmt      = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+          const banner   = document.getElementById('currentWeekBanner');
+          banner.innerHTML = `
+            <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
+            <div><span class="bi-label">Start</span><div class="bi-header-val">${fmt(sunStart)}</div></div>
+            <div><span class="bi-label">End</span><div class="bi-header-val">${fmt(satEnd)}</div></div>
+            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmt(today)}</div></div>`;
+      })();
+
       try {
           const res  = await fetch(WEEKLY_API_URL);
           const data = await res.json();
           document.getElementById('perf-state').style.display = 'none';
-          populateProdDailyTable(data);
-          loadMonthlyChart(data);
 
           function getWeekLabel(dateStr) {
               if (!dateStr) return null;
@@ -1436,9 +1251,9 @@
                   data: {
                       labels: filtered,
                       datasets: [
-                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db', barPercentage: 0.9, categoryPercentage: 1.0 },
-                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60', barPercentage: 0.9, categoryPercentage: 1.0 },
-                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c', barPercentage: 0.9, categoryPercentage: 1.0 }
+                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db' },
+                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60' },
+                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c' }
                       ]
                   },
                   options: {
@@ -1473,200 +1288,6 @@
           s.textContent = 'Could not load Weekly Performance — ' + e.message;
           s.classList.add('error');
       }
-  }
-
-  // ================================================================
-  // MONTHLY PERFORMANCE CHART
-  // ================================================================
-  function loadMonthlyChart(data) {
-      // Current month banner
-      const today   = new Date();
-      const monStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const monEnd   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      const fmtD     = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
-      const banner   = document.getElementById('currentMonthBanner');
-      banner.innerHTML = `
-        <div><span class="bi-label">Month</span><div class="bi-header-val">${today.toLocaleDateString('en-GB',{month:'short', year:'numeric'})}</div></div>
-        <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(monStart)}</div></div>
-        <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(monEnd)}</div></div>
-        <div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(today)}</div></div>`;
-
-      function getMonthLabel(dateStr) {
-          if (!dateStr) return null;
-          const d = new Date(dateStr);
-          if (isNaN(d)) return null;
-          return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      }
-
-      const monthMap = {};
-      function ensure(l) { if (!monthMap[l]) monthMap[l] = { created: 0, completed: 0, cancelled: 0 }; }
-
-      data.forEach(o => {
-          const cLbl = getMonthLabel(o.Created_Date);
-          if (cLbl) { ensure(cLbl); monthMap[cLbl].created += o.Order_Value || 0; }
-          if (o.Status === 'completed' && o.Completed_Date) {
-              const pLbl = getMonthLabel(o.Completed_Date);
-              if (pLbl) { ensure(pLbl); monthMap[pLbl].completed += o.Order_Value || 0; }
-          }
-          if (o.Status === 'cancelled' && o.Last_Modified_Date) {
-              const mLbl = getMonthLabel(o.Last_Modified_Date);
-              if (mLbl) { ensure(mLbl); monthMap[mLbl].cancelled += o.Order_Value || 0; }
-          }
-      });
-
-      // Current month KPIs
-      const cmLbl = getMonthLabel(today.toISOString());
-      const cmD   = monthMap[cmLbl] || { created: 0, completed: 0, cancelled: 0 };
-      document.getElementById('cmCompleted').innerText = fmt(cmD.completed);
-      document.getElementById('cmCreated').innerText   = fmt(cmD.created);
-      document.getElementById('cmCancelled').innerText = fmt(cmD.cancelled);
-
-      // Weekly table for current month
-      (function() {
-          const head = document.getElementById('monthWeekHead');
-          const row  = document.getElementById('monthWeekRow');
-          // get all Sundays in the current month
-          const yr   = today.getFullYear(), mo = today.getMonth();
-          const weeks = [];
-          let d = new Date(yr, mo, 1);
-          // go back to Sunday of the first week
-          d.setDate(d.getDate() - d.getDay());
-          while (d <= monEnd) {
-              const wSun = new Date(d);
-              const wSat = new Date(d); wSat.setDate(d.getDate() + 6);
-              weeks.push({ sun: wSun, sat: wSat });
-              d.setDate(d.getDate() + 7);
-          }
-          head.innerHTML = '<th style="text-align:left;">Week</th>';
-          row.innerHTML  = '<td style="font-size:11px; color:#888; font-weight:600;">Completed</td>';
-          weeks.forEach(({ sun, sat }) => {
-              const isCurrent = today >= sun && today <= sat;
-              const jan1    = new Date(sun.getFullYear(), 0, 1);
-              const wNo     = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-              const label   = 'W' + String(wNo).padStart(2, '0');
-              const th = document.createElement('th');
-              th.textContent     = label;
-              th.style.textAlign = 'center';
-              if (isCurrent) th.style.color = COLORS.positive;
-              head.appendChild(th);
-
-              // sum completed in this week
-              const sunStr = localDateStr(sun);
-              const satStr = localDateStr(sat);
-              const val = data
-                  .filter(o => o.Status === 'completed' && o.Completed_Date)
-                  .filter(o => o.Completed_Date.slice(0, 10) >= sunStr && o.Completed_Date.slice(0, 10) <= satStr)
-                  .reduce((s, o) => s + (o.Order_Value || 0), 0);
-              const td = document.createElement('td');
-              td.textContent     = val > 0 ? Math.round(val / 1000) + 'K' : '—';
-              td.style.textAlign = 'center';
-              td.style.color     = val > 0 ? '#333' : '#ccc';
-              if (isCurrent) td.style.fontWeight = '700';
-              row.appendChild(td);
-          });
-      })();
-
-      const allMonths = Object.keys(monthMap).sort();
-      const curYear   = String(today.getFullYear()).slice(-2);
-      const allYears  = [...new Set(allMonths.map(l => l.slice(2, 4)))].sort().reverse();
-      let selMonYears = new Set([curYear]);
-
-      const btnWrap  = document.getElementById('monthYearBtns');
-      const startSel = document.getElementById('monthStart');
-      const endSel   = document.getElementById('monthEnd');
-      const ctx      = document.getElementById('monthlyChart').getContext('2d');
-      let monthlyChart = null;
-
-      function fmtMonLabel(l) {
-          const [yr, mo] = l.split('-');
-          return new Date(parseInt(yr), parseInt(mo) - 1, 1).toLocaleDateString('en-GB', { month:'short', year:'2-digit' });
-      }
-
-      function renderMonthly() {
-          const s = startSel.value, e = endSel.value;
-          const filtered   = allMonths.filter(l => l >= s && l <= e);
-          const dCreated   = filtered.map(l => monthMap[l]?.created   || 0);
-          const dCompleted = filtered.map(l => monthMap[l]?.completed || 0);
-          const dCancelled = filtered.map(l => monthMap[l]?.cancelled || 0);
-          const yMax = Math.ceil((Math.max(...dCreated, ...dCompleted, ...dCancelled) + 20000) / 10000) * 10000;
-          const wrap = document.getElementById('monthlyChartWrap');
-          wrap.style.minWidth = Math.max(filtered.length * 60, 300) + 'px';
-
-          if (monthlyChart) {
-              monthlyChart.data.labels = filtered.map(fmtMonLabel);
-              monthlyChart.data.datasets[0].data = dCreated;
-              monthlyChart.data.datasets[1].data = dCompleted;
-              monthlyChart.data.datasets[2].data = dCancelled;
-              monthlyChart.options.scales.y.max  = yMax;
-              monthlyChart.update();
-              return;
-          }
-
-          monthlyChart = new Chart(ctx, {
-              type: 'bar',
-              data: {
-                  labels: filtered.map(fmtMonLabel),
-                  datasets: [
-                      { label: 'Created',   data: dCreated,   backgroundColor: '#3498db', barPercentage: 0.9, categoryPercentage: 1.0 },
-                      { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60', barPercentage: 0.9, categoryPercentage: 1.0 },
-                      { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c', barPercentage: 0.9, categoryPercentage: 1.0 }
-                  ]
-              },
-              options: {
-                  responsive: true, maintainAspectRatio: false,
-                  plugins: {
-                      legend: { display: true, position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 20 } },
-                      title : { display: true, text: 'Monthly', font: { size: 14, weight: 'bold' } },
-                      datalabels: {
-                          anchor: 'end', align: 'top', rotation: -90,
-                          font  : { size: 8, weight: 'bold' },
-                          color : (c) => ['#3498db','#27ae60','#e74c3c'][c.datasetIndex],
-                          formatter: (v) => v > 0 ? Math.round(v / 1000) : ''
-                      }
-                  },
-                  scales: {
-                      x: { ticks: { font: { size: 9 } }, grid: { display: false } },
-                      y: { max: yMax, ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
-                  }
-              }
-          });
-      }
-
-      function refreshMonthSel() {
-          const filtered = allMonths.filter(l => selMonYears.has(l.slice(2, 4)));
-          startSel.innerHTML = ''; endSel.innerHTML = '';
-          filtered.forEach(l => {
-              startSel.appendChild(new Option(fmtMonLabel(l), l));
-              endSel.appendChild(new Option(fmtMonLabel(l), l));
-          });
-          if (filtered.length) { startSel.value = filtered[0]; endSel.value = filtered[filtered.length - 1]; }
-          renderMonthly();
-      }
-
-      function buildMonYearBtns() {
-          btnWrap.innerHTML = '';
-          const allBtn = document.createElement('button');
-          allBtn.textContent = 'All';
-          allBtn.className   = 'yr-btn' + (selMonYears.size === allYears.length ? ' active' : '');
-          allBtn.onclick = () => { selMonYears = selMonYears.size === allYears.length ? new Set([curYear]) : new Set(allYears); buildMonYearBtns(); refreshMonthSel(); };
-          btnWrap.appendChild(allBtn);
-          allYears.forEach(yr => {
-              const btn = document.createElement('button');
-              btn.textContent = '20' + yr;
-              btn.className   = 'yr-btn' + (selMonYears.has(yr) ? ' active' : '');
-              btn.onclick = () => {
-                  if (selMonYears.has(yr)) { if (selMonYears.size > 1) selMonYears.delete(yr); }
-                  else selMonYears.add(yr);
-                  buildMonYearBtns(); refreshMonthSel();
-              };
-              btnWrap.appendChild(btn);
-          });
-      }
-
-      startSel.addEventListener('change', renderMonthly);
-      endSel.addEventListener('change', renderMonthly);
-      buildMonYearBtns();
-      refreshMonthSel();
   }
 
   // ================================================================
