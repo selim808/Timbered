@@ -1116,6 +1116,7 @@
       (function() {
           const today    = new Date();
           const day      = today.getDay(); // 0=Sun
+          const dayNum   = day + 1; // Sun=1 … Sat=7
           const sunStart = new Date(today); sunStart.setDate(today.getDate() - day);
           const satEnd   = new Date(sunStart); satEnd.setDate(sunStart.getDate() + 6);
           const jan1     = new Date(today.getFullYear(), 0, 1);
@@ -1126,7 +1127,7 @@
             <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
             <div><span class="bi-label">Start</span><div class="bi-header-val">${fmt(sunStart)}</div></div>
             <div><span class="bi-label">End</span><div class="bi-header-val">${fmt(satEnd)}</div></div>
-            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmt(today)}</div></div>`;
+            <div><span class="bi-label">Today</span><div class="bi-header-val">${fmt(today)} <span style="font-size:12px;color:#888;">(${dayNum}/7)</span></div></div>`;
       })();
 
       try {
@@ -1137,7 +1138,7 @@
           // -- Current-week daily table --
           (function() {
               const today    = new Date();
-              const todayStr = today.toISOString().slice(0, 10);
+              const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
               const day      = today.getDay();
               const sun      = new Date(today); sun.setDate(today.getDate() - day); sun.setHours(0,0,0,0);
               const days     = [];
@@ -1156,10 +1157,11 @@
 
               // header row
               head.innerHTML = `<th style="${labelStyle}"></th>`;
+              const localDs = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
               days.forEach(d => {
-                  const isToday = d.toISOString().slice(0, 10) === todayStr;
+                  const isToday = localDs(d) === todayStr;
                   const lbl = d.toLocaleDateString('en-GB', { weekday: 'short' });
-                  head.innerHTML += `<th style="${thStyle}${isToday ? 'color:var(--brand-dark);font-weight:700;' : ''}">${lbl}</th>`;
+                  head.innerHTML += `<th style="${thStyle}${isToday ? 'color:var(--brand-dark);font-weight:700;' : ''}">${isToday ? `<span style="display:inline-block;background:#fef3e2;border-radius:4px;padding:1px 5px;">${lbl}</span>` : lbl}</th>`;
               });
 
               // compute daily totals for each row type
@@ -1176,7 +1178,7 @@
                   el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
                   days.forEach(d => {
                       const val = dayTotal(d, fn);
-                      const isToday = d.toISOString().slice(0, 10) === todayStr;
+                      const isToday = localDs(d) === todayStr;
                       el.innerHTML += `<td style="${tdStyle} color:${val > 0 ? '#333' : '#ccc'}; ${isToday ? 'font-weight:700;' : ''}">${val > 0 ? Math.round(val/1000)+'K' : '—'}</td>`;
                   });
               });
