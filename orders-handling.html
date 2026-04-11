@@ -91,14 +91,18 @@
   }
 
   // ── Save kanban_phases meta back to WooCommerce ──────────────────
-  async function savePhases(orderId, phasesObj) {
-    await fetch(WC_PUT(orderId), {
+  // Returns the meta id so we can reuse it on future saves (avoids duplicates)
+  async function savePhases(orderId, phasesObj, metaId) {
+    const entry = { key: 'kanban_phases', value: JSON.stringify(phasesObj) };
+    if (metaId) entry.id = metaId; // update existing entry, not create new
+    const res    = await fetch(WC_PUT(orderId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        meta_data: [{ key: 'kanban_phases', value: JSON.stringify(phasesObj) }]
-      })
+      body: JSON.stringify({ meta_data: [entry] })
     });
+    const updated = await res.json();
+    const saved   = (updated.meta_data || []).filter(m => m.key === 'kanban_phases');
+    return saved.length ? saved[saved.length - 1].id : metaId;
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -132,20 +136,28 @@
       setupDropZone(body);
     });
 
+    // Per-order state: shared between all cards of the same order
+    // orderState[orderId] = { phases: {}, metaId: number|null }
+    const orderState = {};
+
     // Expand orders → line item cards
     let totalItems = 0;
     orders.forEach(order => {
-      // Read saved phases from meta
-      const meta       = order.meta_data || [];
-      const phaseMeta  = meta.find(m => m.key === 'kanban_phases');
-      const savedPhases = phaseMeta ? JSON.parse(phaseMeta.value) : {};
+      const meta      = order.meta_data || [];
+      // Use the last kanban_phases entry (in case duplicates exist from previous bug)
+      const allPhasesMeta = meta.filter(m => m.key === 'kanban_phases');
+      const phaseMeta     = allPhasesMeta.length ? allPhasesMeta[allPhasesMeta.length - 1] : null;
+      const savedPhases   = phaseMeta ? JSON.parse(phaseMeta.value) : {};
+      const metaId        = phaseMeta ? phaseMeta.id : null;
+
+      orderState[order.id] = { phases: savedPhases, metaId };
 
       const itemCount = order.line_items.length;
       const days      = daysSince(order.date_created);
 
       order.line_items.forEach((item, idx) => {
         const phase = savedPhases[item.id] || 'Chk Inventory';
-        const card  = createCard(order, item, idx + 1, itemCount, days, phase, savedPhases);
+        const card  = createCard(order, item, idx + 1, itemCount, days, phase, orderState);
         const col   = colMap[phase];
         if (col) col.appendChild(card);
         totalItems++;
@@ -164,13 +176,13 @@
 
   function encodePhase(p) { return p.replace(/[^a-zA-Z0-9]/g, '_'); }
 
-  function createCard(order, item, itemNo, itemCount, days, phase, savedPhases) {
+  function createCard(order, item, itemNo, itemCount, days, phase, orderState) {
     const card = document.createElement('div');
     card.className = 'card';
     card.draggable = true;
-    card.dataset.orderId  = order.id;
-    card.dataset.itemId   = item.id;
-    card.dataset.phase    = phase;
+    card.dataset.orderId = order.id;
+    card.dataset.itemId  = item.id;
+    card.dataset.phase   = phase;
 
     const dc = daysClass(days);
     card.innerHTML = `
@@ -185,11 +197,11 @@
         itemId:  item.id
       }));
       card.classList.add('dragging');
-      // store the full savedPhases on the card so we can update it on drop
-      card._savedPhases = savedPhases;
     });
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
 
+    // Store reference to shared order state
+    card._orderState = orderState;
     return card;
   }
 
@@ -206,7 +218,6 @@
       const { orderId, itemId } = JSON.parse(e.dataTransfer.getData('text/plain'));
       const newPhase = colBody.dataset.phase;
 
-      // Find the dragged card
       const card = document.querySelector(`.card[data-order-id="${orderId}"][data-item-id="${itemId}"]`);
       if (!card) return;
 
@@ -218,15 +229,14 @@
       card.dataset.phase = newPhase;
       card.classList.add('card-saving');
 
-      // Update phase in savedPhases and save
-      const savedPhases = card._savedPhases || {};
-      savedPhases[itemId] = newPhase;
-      card._savedPhases = savedPhases;
+      // Update shared order state and save
+      const state = card._orderState[orderId];
+      state.phases[itemId] = newPhase;
 
-      await savePhases(orderId, savedPhases);
+      const newMetaId = await savePhases(orderId, state.phases, state.metaId);
+      state.metaId = newMetaId; // update so next save uses correct meta id
+
       card.classList.remove('card-saving');
-
-      // Update column counts
       updateCount(oldPhase);
       updateCount(newPhase);
     });
