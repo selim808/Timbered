@@ -114,9 +114,12 @@
     .completed-row.visible { display: flex; }
     .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
-    .completed-cancel { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #aaa; background: #fff; color: #666; cursor: pointer; white-space: nowrap; }
+    .cancel-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #c0392b; background: #c0392b; color: #fff; cursor: pointer; white-space: nowrap; }
+    .cancel-filter.selecting { background: #922b21; border-color: #922b21; }
     /* selection bar */
-    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: sticky; top: 51px; z-index: 97; }
+    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid; position: sticky; top: 51px; z-index: 97; }
+    .completed-bar.complete-mode { background: #e8f5ee; border-color: #b7dfc8; }
+    .completed-bar.cancel-mode  { background: #fdecea; border-color: #f1a9a0; }
     .completed-bar.visible { display: flex; }
     .completed-bar-msg { font-size: 12px; color: #1a7a3c; font-weight: 600; flex: 1; }
 
@@ -164,7 +167,7 @@
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
   <div class="filter-area">
     <div class="completed-row" id="completedRow">
-      <button class="completed-cancel" id="completedCancel">Cancel</button>
+      <button class="cancel-filter" id="cancelBtn">Cancel</button>
       <button class="completed-filter" id="completedBtn">Complete</button>
     </div>
     <div class="filter-stack">
@@ -177,7 +180,7 @@
 </div>
 
 <div class="completed-bar" id="completedBar">
-  <span class="completed-bar-msg">Select completed orders</span>
+  <span class="completed-bar-msg" id="completedBarMsg">Select orders</span>
 </div>
 
 <div id="state">Loading fabrication items…</div>
@@ -452,18 +455,21 @@
     render();
   });
 
-  // ── Completed flow ────────────────────────────────────────────────
+  // ── Order action flow (Complete / Cancel) ────────────────────────
   const completedBar = document.getElementById('completedBar');
   const completedBtn = document.getElementById('completedBtn');
+  const cancelBtn    = document.getElementById('cancelBtn');
   const completedRow = document.getElementById('completedRow');
-  let selectingMode = false;
+  let selectingMode = null; // null | 'complete' | 'cancel'
 
   function exitSelectingMode() {
-    selectingMode = false;
+    selectingMode = null;
     selectedOrderIds.clear();
     completedBtn.classList.remove('selecting');
+    cancelBtn.classList.remove('selecting');
     completedBtn.textContent = 'Complete';
-    completedBar.classList.remove('visible');
+    cancelBtn.textContent    = 'Cancel';
+    completedBar.classList.remove('visible', 'complete-mode', 'cancel-mode');
     document.querySelectorAll('.order-sel-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.order-card').forEach(c => c.classList.remove('selected'));
   }
@@ -474,34 +480,45 @@
       else selectedOrderIds.delete(String(cb.dataset.orderId));
     });
     const count = selectedOrderIds.size;
-    completedBtn.textContent = count > 0 ? `Complete (${count})` : 'Complete';
+    if (selectingMode === 'complete')
+      completedBtn.textContent = count > 0 ? `Complete (${count})` : 'Complete';
+    else if (selectingMode === 'cancel')
+      cancelBtn.textContent = count > 0 ? `Cancel (${count})` : 'Cancel';
     document.querySelectorAll('.order-card').forEach(card => {
       card.classList.toggle('selected', selectedOrderIds.has(String(card.dataset.orderId)));
     });
   }
 
-  completedBtn.addEventListener('click', () => {
-    if (!selectingMode) {
-      // First click: enter selection mode
-      selectingMode = true;
+  function enterMode(mode) {
+    exitSelectingMode();
+    selectingMode = mode;
+    if (mode === 'complete') {
       completedBtn.classList.add('selecting');
-      completedBar.classList.add('visible');
-      render();
-      return;
+      completedBar.classList.add('visible', 'complete-mode');
+      document.getElementById('completedBarMsg').textContent = 'Select orders to complete';
+    } else {
+      cancelBtn.classList.add('selecting');
+      completedBar.classList.add('visible', 'cancel-mode');
+      document.getElementById('completedBarMsg').textContent = 'Select orders to cancel';
     }
-    // Second click: exit if nothing selected, else show popup
+    render();
+  }
+
+  function handleActionClick(mode, btn) {
+    if (selectingMode !== mode) { enterMode(mode); return; }
     const count = selectedOrderIds.size;
     if (!count) { exitSelectingMode(); render(); return; }
     const totalVal = [...document.querySelectorAll('.order-sel-check:checked')]
       .reduce((s, cb) => s + parseFloat(cb.dataset.orderTotal || 0), 0);
+    const action = mode === 'complete' ? 'completed' : 'cancelled';
     document.getElementById('confirmModalBody').textContent =
-      `Are you sure? ${count} order${count !== 1 ? 's' : ''} with value ${Math.round(totalVal / 1000)}K will be marked as completed.`;
+      `Are you sure? ${count} order${count !== 1 ? 's' : ''} with value ${Math.round(totalVal / 1000)}K will be marked as ${action}.`;
+    document.getElementById('confirmModal').dataset.action = action;
     document.getElementById('confirmModal').classList.add('open');
-  });
+  }
 
-  document.getElementById('completedCancel').addEventListener('click', () => {
-    exitSelectingMode(); render();
-  });
+  completedBtn.addEventListener('click', () => handleActionClick('complete', completedBtn));
+  cancelBtn.addEventListener('click',    () => handleActionClick('cancel',   cancelBtn));
 
   document.getElementById('modalNo').addEventListener('click', () => {
     document.getElementById('confirmModal').classList.remove('open');
@@ -512,14 +529,15 @@
 
   document.getElementById('modalYes').addEventListener('click', async () => {
     const checked = [...document.querySelectorAll('.order-sel-check:checked')];
-    const yesBtn = document.getElementById('modalYes');
+    const action  = document.getElementById('confirmModal').dataset.action || 'completed';
+    const yesBtn  = document.getElementById('modalYes');
     yesBtn.disabled = true;
     yesBtn.textContent = 'Saving…';
     await Promise.all(checked.map(cb =>
       fetch(WC_PUT(cb.dataset.orderId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' })
+        body: JSON.stringify({ status: action })
       }).catch(() => {})
     ));
     document.getElementById('confirmModal').classList.remove('open');
