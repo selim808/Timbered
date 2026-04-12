@@ -16,7 +16,7 @@
     .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
     /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; gap: 8px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; gap: 8px; flex-wrap: wrap; }
     .view-btns { display: flex; gap: 4px; }
     .view-btn { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; }
     .view-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
@@ -28,8 +28,8 @@
     .toggle input:checked + .toggle-slider { background: #7A4610; }
     .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
     .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
-    .bulk-phase-sel { font-size: 12px; border: 1.5px solid #7A4610; border-radius: 8px; padding: 3px 6px; color: #7A4610; display: none; }
-    .bulk-apply-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; display: none; }
+    .bulk-phase-sel { font-size: 12px; border: 1.5px solid #7A4610; border-radius: 8px; padding: 3px 6px; color: #7A4610; display: none; max-width: 140px; }
+    .bulk-apply-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; display: none; white-space: nowrap; }
 
     /* STATE */
     #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
@@ -72,6 +72,7 @@
     .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
     .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 130px; }
+    .bulk-mode .phase-sel { display: none; }
 
     /* ── BY ORDER VIEW ── */
     .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
