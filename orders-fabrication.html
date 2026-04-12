@@ -484,9 +484,9 @@
       render();
       return;
     }
-    // Second click: show popup if something selected
+    // Second click: exit if nothing selected, else show popup
     const count = selectedOrderIds.size;
-    if (!count) return;
+    if (!count) { exitSelectingMode(); render(); return; }
     const totalVal = [...document.querySelectorAll('.order-sel-check:checked')]
       .reduce((s, cb) => s + parseFloat(cb.dataset.orderTotal || 0), 0);
     document.getElementById('confirmModalBody').textContent =
