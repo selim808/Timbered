@@ -189,7 +189,7 @@
 <!-- Confirmation modal -->
 <div class="modal-overlay" id="confirmModal">
   <div class="modal-box">
-    <div class="modal-title">Mark as Completed?</div>
+    <div class="modal-title" id="confirmModalTitle">Mark as Completed?</div>
     <div class="modal-body" id="confirmModalBody"></div>
     <div class="modal-actions">
       <button class="modal-btn no"  id="modalNo">No</button>
@@ -511,6 +511,7 @@
     const totalVal = [...document.querySelectorAll('.order-sel-check:checked')]
       .reduce((s, cb) => s + parseFloat(cb.dataset.orderTotal || 0), 0);
     const action = mode === 'complete' ? 'completed' : 'cancelled';
+    document.getElementById('confirmModalTitle').textContent = mode === 'complete' ? 'Mark as Completed?' : 'Mark as Cancelled?';
     document.getElementById('confirmModalBody').textContent =
       `Are you sure? ${count} order${count !== 1 ? 's' : ''} with value ${Math.round(totalVal / 1000)}K will be marked as ${action}.`;
     document.getElementById('confirmModal').dataset.action = action;
