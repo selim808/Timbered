@@ -103,7 +103,28 @@
   function setItemPhase(orderId, itemId, phase) {
     const all = lsLoad();
     if (!all[orderId]) all[orderId] = {};
-    all[orderId][itemId] = phase;
+    all[orderId][String(itemId)] = phase;
+    lsSave(all);
+    // Sync phase to the line item's own meta_data (fire and forget)
+    fetch(WC_PUT(orderId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
+    }).catch(() => {});
+  }
+
+  // ── Merge line item meta into localStorage (API is source of truth) ─
+  function mergeApiMeta(orders) {
+    const all = lsLoad();
+    orders.forEach(o => {
+      o.line_items.forEach(item => {
+        const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        if (meta && meta.value) {
+          if (!all[String(o.id)]) all[String(o.id)] = {};
+          all[String(o.id)][String(item.id)] = meta.value;
+        }
+      });
+    });
     lsSave(all);
   }
 
@@ -231,6 +252,7 @@
 
   // ── Init ─────────────────────────────────────────────────────────
   fetchAllOrders().then(orders => {
+    mergeApiMeta(orders); // API meta wins over stale localStorage
     document.getElementById('state').style.display = 'none';
     document.getElementById('boardWrap').style.display = 'block';
     buildBoard(orders);

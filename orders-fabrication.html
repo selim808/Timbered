@@ -137,6 +137,10 @@
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
                + "&status=processing&orderby=date&order=desc&per_page=100";
 
+  const WC_PUT = id => "https://timberedgroup.com/wp-json/wc/v3/orders/" + id
+               + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+               + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+
   const FAB_PHASES = [
     "Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
     "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
@@ -173,6 +177,27 @@
     const all = lsLoad();
     if (!all[orderId]) all[orderId] = {};
     all[orderId][String(itemId)] = phase;
+    lsSave(all);
+    // Sync phase to the line item's own meta_data (fire and forget)
+    fetch(WC_PUT(orderId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
+    }).catch(() => {});
+  }
+
+  // ── Merge line item meta into localStorage (API is source of truth) ─
+  function mergeApiMeta(orders) {
+    const all = lsLoad();
+    orders.forEach(o => {
+      o.line_items.forEach(item => {
+        const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        if (meta && meta.value) {
+          if (!all[String(o.id)]) all[String(o.id)] = {};
+          all[String(o.id)][String(item.id)] = meta.value;
+        }
+      });
+    });
     lsSave(all);
   }
 
@@ -349,6 +374,7 @@
 
   // Fetch & build
   fetchAllOrders().then(orders => {
+    mergeApiMeta(orders); // API meta wins over stale localStorage
     document.getElementById('state').style.display = 'none';
     document.getElementById('content').style.display = 'block';
 
