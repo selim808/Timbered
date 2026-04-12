@@ -104,6 +104,29 @@
     .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .order-items-inner { overflow: hidden; }
     .order-card.open .order-items { grid-template-rows: 1fr; }
+    .order-card.selected { border-color: #7A4610; background: #fef8f2; }
+    /* order checkbox */
+    .order-sel-check { width: 16px; height: 16px; accent-color: #7A4610; flex-shrink: 0; cursor: pointer; }
+
+    /* completed bar */
+    .completed-bar { display: none; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fef3e2; border-bottom: 1px solid #e8ddd4; position: sticky; top: 148px; z-index: 97; }
+    .completed-bar.visible { display: flex; }
+    .completed-bar-msg { font-size: 12px; color: #7A4610; font-weight: 600; }
+    .completed-btn { font-size: 12px; font-weight: 700; background: #27ae60; color: #fff; border: none; border-radius: 8px; padding: 5px 14px; cursor: pointer; }
+    .completed-btn:disabled { background: #ccc; cursor: default; }
+
+    /* modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 14px; padding: 24px 20px; max-width: 320px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    .modal-title { font-size: 14px; font-weight: 700; color: #222; margin-bottom: 10px; }
+    .modal-body { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-btn { font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 8px; border: none; cursor: pointer; }
+    .modal-btn.yes { background: #27ae60; color: #fff; }
+    .modal-btn.no  { background: #e8ddd4; color: #555; }
+    .modal-btn.edit { background: #7A4610; color: #fff; }
+    .modal-btn:disabled { opacity: 0.6; cursor: default; }
   </style>
 </head>
 <body>
@@ -145,8 +168,26 @@
     style="width:100%; font-size:13px; padding:6px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333;">
 </div>
 
+<div class="completed-bar" id="completedBar">
+  <span class="completed-bar-msg" id="completedMsg">Selected completed orders</span>
+  <button class="completed-btn" id="completedBtn" disabled>Completed (0)</button>
+</div>
+
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
+
+<!-- Confirmation modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-title">Mark as Completed?</div>
+    <div class="modal-body" id="confirmModalBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn no"  id="modalNo">No</button>
+      <button class="modal-btn edit" id="modalEdit">Edit</button>
+      <button class="modal-btn yes" id="modalYes">Yes</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const WC_BASE = "https://timberedgroup.com/wp-json/wc/v3/orders"
@@ -322,9 +363,10 @@
       const visibleItems = o.line_items.filter((item, idx) => phases.includes(getItemPhase(o.id, item.id)));
       if (!visibleItems.length) return '';
       const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
-      return `<div class="order-card" data-group-key="order-${o.id}">
+      return `<div class="order-card" data-group-key="order-${o.id}" data-order-id="${o.id}" data-order-total="${o.total}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
-          <input type="checkbox" class="group-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
+          <input type="checkbox" class="group-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select items">
+          <input type="checkbox" class="order-sel-check" data-order-id="${o.id}" data-order-total="${o.total}" onclick="event.stopPropagation(); updateCompletedBar()" title="Mark order complete">
           <span class="d-badge ${dc(days)}">${days}d</span>
           <span class="item-id">#${o.id}</span>
           <span class="order-name-lbl">${name}</span>
@@ -347,6 +389,7 @@
   let sortAsc = false;
   let showFab = true, showDlv = true;
   let allItems = [], allOrders = [];
+  const selectedOrderIds = new Set();
 
   function searchQuery() {
     return (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
@@ -391,6 +434,65 @@
     render();
   });
 
+  // ── Completed bar ─────────────────────────────────────────────────
+  const completedBar = document.getElementById('completedBar');
+  const completedBtn = document.getElementById('completedBtn');
+
+  function updateCompletedBar() {
+    // Sync selectedOrderIds from current checkboxes
+    document.querySelectorAll('.order-sel-check').forEach(cb => {
+      if (cb.checked) selectedOrderIds.add(String(cb.dataset.orderId));
+      else selectedOrderIds.delete(String(cb.dataset.orderId));
+    });
+    const count = selectedOrderIds.size;
+    completedBtn.textContent = `Completed (${count})`;
+    completedBtn.disabled = count === 0;
+    document.querySelectorAll('.order-card').forEach(card => {
+      card.classList.toggle('selected', selectedOrderIds.has(String(card.dataset.orderId)));
+    });
+  }
+
+  completedBtn.addEventListener('click', () => {
+    const checked = [...document.querySelectorAll('.order-sel-check:checked')];
+    if (!checked.length) return;
+    const count = checked.length;
+    const totalVal = checked.reduce((s, cb) => s + parseFloat(cb.dataset.orderTotal || 0), 0);
+    document.getElementById('confirmModalBody').textContent =
+      `Are you sure? ${count} order${count !== 1 ? 's' : ''} with value ${Math.round(totalVal / 1000)}K will be marked as completed.`;
+    document.getElementById('confirmModal').classList.add('open');
+  });
+
+  document.getElementById('modalNo').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('open');
+  });
+
+  document.getElementById('modalEdit').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('open');
+  });
+
+  document.getElementById('modalYes').addEventListener('click', async () => {
+    const checked = [...document.querySelectorAll('.order-sel-check:checked')];
+    const yesBtn = document.getElementById('modalYes');
+    yesBtn.disabled = true;
+    yesBtn.textContent = 'Saving…';
+    await Promise.all(checked.map(cb =>
+      fetch(WC_PUT(cb.dataset.orderId), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' })
+      }).catch(() => {})
+    ));
+    document.getElementById('confirmModal').classList.remove('open');
+    yesBtn.disabled = false;
+    yesBtn.textContent = 'Yes';
+    // Remove completed orders from local data and clear selection
+    const completedIds = new Set(checked.map(cb => String(cb.dataset.orderId)));
+    completedIds.forEach(id => selectedOrderIds.delete(id));
+    allOrders = allOrders.filter(o => !completedIds.has(String(o.id)));
+    allItems  = allItems.filter(({ order }) => !completedIds.has(String(order.id)));
+    render();
+  });
+
   // Populate bulk phase selector
   const bulkSel = document.getElementById('bulkPhaseSel');
   ALL_PHASES.forEach(p => bulkSel.appendChild(new Option(p, p)));
@@ -426,6 +528,14 @@
     // Restore previously open groups + auto-open destination if provided
     const toRestore = openToKey ? [...wasOpen, openToKey] : wasOpen;
     restoreOpenGroups(toRestore);
+    // Show/hide completed bar and restore checked order state
+    completedBar.classList.toggle('visible', currentView === 'order');
+    if (currentView === 'order') {
+      document.querySelectorAll('.order-sel-check').forEach(cb => {
+        cb.checked = selectedOrderIds.has(String(cb.dataset.orderId));
+      });
+      updateCompletedBar();
+    }
     attachPhaseSelListeners();
   }
 
