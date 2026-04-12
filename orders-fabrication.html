@@ -386,12 +386,19 @@
 
   bulkApplyBtn.addEventListener('click', () => {
     const phase = bulkSel.value;
-    document.querySelectorAll('.item-check:checked').forEach(cb => {
+    const checked = [...document.querySelectorAll('.item-check:checked')];
+    if (!checked.length) return;
+
+    checked.forEach(cb => {
       setItemPhase(cb.dataset.order, cb.dataset.item, phase);
+      cb.checked = false;
+      // Update phase selector in-row without collapsing groups
+      const sel = cb.closest('.item-row')?.querySelector('.phase-sel');
+      if (sel) sel.value = phase;
     });
-    render();
-    // un-check all after apply
-    document.querySelectorAll('.item-check').forEach(cb => cb.checked = false);
+
+    // Phase view: items must move to new group — full re-render needed
+    if (currentView === 'phase') render();
   });
 
   // Fetch & build
