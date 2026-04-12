@@ -114,7 +114,7 @@
     .completed-filter.visible { display: block; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
     /* selection bar */
-    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: sticky; top: 148px; z-index: 97; }
+    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: fixed; top: 150px; left: 0; right: 0; z-index: 97; }
     .completed-bar.visible { display: flex; }
     .completed-bar-msg { font-size: 12px; color: #1a7a3c; font-weight: 600; flex: 1; }
 
@@ -169,10 +169,11 @@
   </div>
 </div>
 
-<div style="padding: 8px 12px; background:#fff; border-bottom:1px solid #e8ddd4; position:sticky; top:102px; z-index:98;">
+<div style="padding: 8px 12px; background:#fff; border-bottom:1px solid #e8ddd4; position:fixed; top:102px; left:0; right:0; z-index:98;">
   <input id="searchInput" type="search" placeholder="Search by item, order ID, client name or phone…"
     style="width:100%; font-size:13px; padding:6px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333;">
 </div>
+<div style="height:48px;"></div>
 
 <div class="completed-bar" id="completedBar">
   <span class="completed-bar-msg">Select completed orders</span>
