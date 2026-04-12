@@ -22,7 +22,8 @@
     .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; display: none; line-height: 1.4; }
     .sort-btn.visible { display: inline-block; }
     /* filter buttons */
-    .filter-stack { display: flex; flex-direction: column; gap: 4px; margin-left: auto; }
+    .filter-area { position: relative; margin-left: auto; }
+    .filter-stack { display: flex; flex-direction: column; gap: 4px; }
     .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
     .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
     .tb-divider { width: 1px; background: #e8ddd4; align-self: stretch; margin: 0 2px; }
@@ -109,9 +110,9 @@
     .order-sel-check { width: 16px; height: 16px; accent-color: #1a7a3c; flex-shrink: 0; cursor: pointer; display: none; }
 
     /* completed filter button */
-    .filter-btn.completed-filter { background: #1a7a3c; color: #fff; border-color: #1a7a3c; display: none; }
-    .filter-btn.completed-filter.visible { display: block; }
-    .filter-btn.completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
+    .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; position: absolute; bottom: calc(100% + 6px); right: 0; display: none; }
+    .completed-filter.visible { display: block; }
+    .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
     /* selection bar */
     .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: sticky; top: 148px; z-index: 97; }
     .completed-bar.visible { display: flex; }
@@ -159,10 +160,12 @@
     </div>
   </div>
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
-  <div class="filter-stack">
-    <button class="filter-btn completed-filter" id="completedBtn">Completed</button>
-    <button class="filter-btn active" id="filterFab">Fabrication</button>
-    <button class="filter-btn active" id="filterDlv">Delivery</button>
+  <div class="filter-area">
+    <button class="completed-filter" id="completedBtn">Completed</button>
+    <div class="filter-stack">
+      <button class="filter-btn active" id="filterFab">Fabrication</button>
+      <button class="filter-btn active" id="filterDlv">Delivery</button>
+    </div>
   </div>
 </div>
 
