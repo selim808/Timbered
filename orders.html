@@ -12,7 +12,8 @@
     .site-header img { height: 26px; }
     .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
     .site-header .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
-    .site-header .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+    .site-header .back { font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+    .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
     #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
 
@@ -51,8 +52,10 @@
   <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
   <span class="title">Processing Orders</span>
   <span class="badge" id="orderCount">Loading…</span>
-  <a href="orders-map.html" style="font-size:12px; color:#7A4610; text-decoration:none; border:1px solid #7A4610; border-radius:20px; padding:4px 12px;">Map</a>
-  <a href="index.html" class="back">← Back</a>
+  <div class="header-actions">
+    <a href="orders-map.html" style="font-size:12px; color:#7A4610; text-decoration:none; border:1px solid #7A4610; border-radius:20px; padding:4px 12px;">Map</a>
+    <a href="index.html" class="back">← Back</a>
+  </div>
 </div>
 
 <div id="state">Fetching orders…</div>
