@@ -252,7 +252,7 @@
       const list = groups[phase];
       if (!list.length) return '';
       const total = list.reduce((s, { order, item }) => s + parseFloat(item.total || 0), 0);
-      return `<div class="phase-group">
+      return `<div class="phase-group" data-group-key="phase-${phase}">
         <div class="phase-header" onclick="this.closest('.phase-group').classList.toggle('open')">
           <span class="phase-name">${phase}</span>
           <span class="phase-meta">${list.length} item${list.length!==1?'s':''} · ${Math.round(total/1000)}K</span>
@@ -275,7 +275,8 @@
       .sort((a,b) => b[1].length - a[1].length)
       .map(([name, list]) => {
         const totalQty = list.reduce((s,{item}) => s + item.quantity, 0);
-        return `<div class="product-group">
+        const safeKey = name.replace(/"/g,'');
+        return `<div class="product-group" data-group-key="product-${safeKey}">
           <div class="product-header" onclick="this.closest('.product-group').classList.toggle('open')">
             <input type="checkbox" class="product-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
             <span class="product-name">${name}</span>
@@ -297,7 +298,7 @@
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
       const itemsHtml = o.line_items.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
-      return `<div class="order-card">
+      return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
           <span class="d-badge ${dc(days)}">${days}d</span>
           <span class="item-id">#${o.id}</span>
@@ -327,8 +328,20 @@
 
   const sortBtn = document.getElementById('sortBtn');
 
-  function render() {
+  function getOpenGroups() {
+    return [...document.querySelectorAll('.phase-group.open, .product-group.open, .order-card.open')]
+      .map(el => el.dataset.groupKey);
+  }
+  function restoreOpenGroups(keys) {
+    if (!keys.length) return;
+    document.querySelectorAll('[data-group-key]').forEach(el => {
+      if (keys.includes(el.dataset.groupKey)) el.classList.add('open');
+    });
+  }
+
+  function render(openToKey) {
     const content = document.getElementById('content');
+    const wasOpen = getOpenGroups();
     sortBtn.classList.toggle('visible', currentView === 'order');
     if (currentView === 'phase') {
       content.innerHTML = renderPhaseView(allItems);
@@ -341,6 +354,9 @@
       });
       content.innerHTML = renderOrderView(sorted);
     }
+    // Restore previously open groups + auto-open destination if provided
+    const toRestore = openToKey ? [...wasOpen, openToKey] : wasOpen;
+    restoreOpenGroups(toRestore);
     attachPhaseSelListeners();
   }
 
@@ -358,8 +374,9 @@
   function attachPhaseSelListeners() {
     document.querySelectorAll('.phase-sel').forEach(sel => {
       sel.addEventListener('change', () => {
-        setItemPhase(sel.dataset.order, sel.dataset.item, sel.value);
-        if (currentView === 'phase') render(); // re-sort by phase
+        const newPhase = sel.value;
+        setItemPhase(sel.dataset.order, sel.dataset.item, newPhase);
+        if (currentView === 'phase') render('phase-' + newPhase); // re-sort, auto-open destination
       });
     });
   }
