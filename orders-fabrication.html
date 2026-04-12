@@ -141,7 +141,7 @@
 </div>
 
 <div style="padding: 8px 12px; background:#fff; border-bottom:1px solid #e8ddd4; position:sticky; top:102px; z-index:98;">
-  <input id="searchInput" type="search" placeholder="Search by item name or order ID…"
+  <input id="searchInput" type="search" placeholder="Search by item, order ID, client name or phone…"
     style="width:100%; font-size:13px; padding:6px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333;">
 </div>
 
@@ -351,18 +351,22 @@
   function searchQuery() {
     return (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
   }
+  function orderMatches(o, q) {
+    const name = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+    const phone = (o.billing.phone || '').toLowerCase();
+    return String(o.id).includes(q) || phone.includes(q) || name.includes(q);
+  }
   function filteredItems() {
     const q = searchQuery();
     if (!q) return allItems;
     return allItems.filter(({ order, item }) =>
-      item.name.toLowerCase().includes(q) || String(order.id).includes(q));
+      item.name.toLowerCase().includes(q) || orderMatches(order, q));
   }
   function filteredOrders() {
     const q = searchQuery();
     if (!q) return allOrders;
     return allOrders.filter(o =>
-      String(o.id).includes(q) ||
-      o.line_items.some(item => item.name.toLowerCase().includes(q)));
+      orderMatches(o, q) || o.line_items.some(item => item.name.toLowerCase().includes(q)));
   }
 
   function activePhases() {
