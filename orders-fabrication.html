@@ -21,6 +21,10 @@
     .tb-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
     .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; display: none; line-height: 1.4; }
     .sort-btn.visible { display: inline-block; }
+    /* filter buttons */
+    .filter-stack { display: flex; flex-direction: column; gap: 4px; margin-left: auto; }
+    .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
+    .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
     .tb-divider { width: 1px; background: #e8ddd4; align-self: stretch; margin: 0 2px; }
     /* view buttons */
     .view-btns { display: flex; gap: 4px; }
@@ -83,6 +87,8 @@
     .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
     .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 130px; }
     .bulk-mode .phase-sel { display: none; }
+    .bulk-mode .item-row { cursor: pointer; }
+    .bulk-mode .item-row:hover { background: #fef3e2; }
 
     /* ── BY ORDER VIEW ── */
     .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
@@ -129,6 +135,10 @@
     </div>
   </div>
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
+  <div class="filter-stack">
+    <button class="filter-btn active" id="filterFab">Fabrication</button>
+    <button class="filter-btn active" id="filterDlv">Delivery</button>
+  </div>
 </div>
 
 <div id="state">Loading fabrication items…</div>
@@ -158,6 +168,8 @@
     "WH-Postponed","WH-Returned","WH-Ready","DLV-Bareed-Cairo","DLV-Bareed-Tanta",
     "DLV-Bosta","DLV-Private","Partial - Delivered"
   ];
+
+  const DLV_PHASES = ALL_PHASES.filter(p => !FAB_PHASES.includes(p));
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -241,14 +253,15 @@
 
   // ── Views ─────────────────────────────────────────────────────────
   function renderPhaseView(items) {
+    const phases = activePhases();
     const groups = {};
-    ALL_PHASES.forEach(p => groups[p] = []);
+    phases.forEach(p => groups[p] = []);
     items.forEach(({ order, item, idx, days }) => {
       const phase = getItemPhase(order.id, item.id);
       if (groups[phase]) groups[phase].push({ order, item, idx, days });
     });
 
-    return ALL_PHASES.map(phase => {
+    return phases.map(phase => {
       const list = groups[phase];
       if (!list.length) return '';
       const total = list.reduce((s, { order, item }) => s + parseFloat(item.total || 0), 0);
@@ -266,8 +279,11 @@
   }
 
   function renderProductView(items) {
+    const phases = activePhases();
     const groups = {};
     items.forEach(({ order, item, idx, days }) => {
+      const phase = getItemPhase(order.id, item.id);
+      if (!phases.includes(phase)) return;
       if (!groups[item.name]) groups[item.name] = [];
       groups[item.name].push({ order, item, idx, days });
     });
@@ -291,13 +307,16 @@
   }
 
   function renderOrderView(orders_raw) {
+    const phases = activePhases();
     return orders_raw.map(o => {
       const days = daysSince(o.date_created);
       const name = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
       const addr1 = o.billing.address_1 || '';
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
-      const itemsHtml = o.line_items.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
+      const visibleItems = o.line_items.filter((item, idx) => phases.includes(getItemPhase(o.id, item.id)));
+      if (!visibleItems.length) return '';
+      const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
       return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
           <span class="d-badge ${dc(days)}">${days}d</span>
@@ -319,8 +338,28 @@
 
   // ── Init ──────────────────────────────────────────────────────────
   let currentView = 'phase';
-  let sortAsc = false; // false = newest first (↓), true = oldest first (↑)
+  let sortAsc = false;
+  let showFab = true, showDlv = true;
   let allItems = [], allOrders = [];
+
+  function activePhases() {
+    const phases = [];
+    if (showFab) phases.push(...FAB_PHASES);
+    if (showDlv) phases.push(...DLV_PHASES);
+    return phases;
+  }
+
+  // Filter buttons
+  document.getElementById('filterFab').addEventListener('click', function() {
+    showFab = !showFab;
+    this.classList.toggle('active', showFab);
+    render();
+  });
+  document.getElementById('filterDlv').addEventListener('click', function() {
+    showDlv = !showDlv;
+    this.classList.toggle('active', showDlv);
+    render();
+  });
 
   // Populate bulk phase selector
   const bulkSel = document.getElementById('bulkPhaseSel');
@@ -395,6 +434,17 @@
   // Bulk mode toggle
   const bulkToggle   = document.getElementById('bulkToggle');
   const bulkApplyBtn = document.getElementById('bulkApplyBtn');
+
+  // Click anywhere on item row toggles checkbox in bulk mode
+  document.getElementById('content').addEventListener('click', e => {
+    if (!bulkToggle.checked) return;
+    const row = e.target.closest('.item-row');
+    if (!row) return;
+    // Don't double-toggle if user clicked directly on the checkbox
+    if (e.target.classList.contains('item-check')) return;
+    const cb = row.querySelector('.item-check');
+    if (cb) cb.checked = !cb.checked;
+  });
   bulkToggle.addEventListener('change', () => {
     const on = bulkToggle.checked;
     document.getElementById('content').classList.toggle('bulk-mode', on);
