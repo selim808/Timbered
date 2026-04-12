@@ -65,8 +65,8 @@
     .product-group { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
     .product-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
     .product-header:hover { background: #fdf8f4; }
-    .product-select-all { width: 16px; height: 16px; accent-color: #7A4610; flex-shrink: 0; display: none; cursor: pointer; }
-    .bulk-mode .product-select-all { display: block; }
+    .product-select-all, .group-select-all { width: 16px; height: 16px; accent-color: #7A4610; flex-shrink: 0; display: none; cursor: pointer; }
+    .bulk-mode .product-select-all, .bulk-mode .group-select-all { display: block; }
     .product-name { font-size: 13px; font-weight: 700; color: #333; flex: 1; }
     .product-meta { font-size: 11px; color: #aaa; }
     .product-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
@@ -86,7 +86,6 @@
     .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
     .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 130px; }
-    .bulk-mode .phase-sel { display: none; }
     .bulk-mode .item-row { cursor: pointer; }
     .bulk-mode .item-row:hover { background: #fef3e2; }
 
@@ -267,6 +266,7 @@
       const total = list.reduce((s, { order, item }) => s + parseFloat(item.total || 0), 0);
       return `<div class="phase-group" data-group-key="phase-${phase}">
         <div class="phase-header" onclick="this.closest('.phase-group').classList.toggle('open')">
+          <input type="checkbox" class="group-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
           <span class="phase-name">${phase}</span>
           <span class="phase-meta">${list.length} item${list.length!==1?'s':''} · ${Math.round(total/1000)}K</span>
           <span class="phase-chevron">▼</span>
@@ -319,6 +319,7 @@
       const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
       return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <input type="checkbox" class="group-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
           <span class="d-badge ${dc(days)}">${days}d</span>
           <span class="item-id">#${o.id}</span>
           <span class="order-name-lbl">${name}</span>
@@ -406,8 +407,8 @@
   });
 
   function selectAllInGroup(cb) {
-    const group = cb.closest('.product-group');
-    group.querySelectorAll('.item-check').forEach(c => c.checked = cb.checked);
+    const group = cb.closest('.phase-group, .product-group, .order-card');
+    if (group) group.querySelectorAll('.item-check').forEach(c => c.checked = cb.checked);
   }
 
   function attachPhaseSelListeners() {
