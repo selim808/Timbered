@@ -140,6 +140,11 @@
   </div>
 </div>
 
+<div style="padding: 8px 12px; background:#fff; border-bottom:1px solid #e8ddd4; position:sticky; top:102px; z-index:98;">
+  <input id="searchInput" type="search" placeholder="Search by item name or order ID…"
+    style="width:100%; font-size:13px; padding:6px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333;">
+</div>
+
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
 
@@ -343,12 +348,32 @@
   let showFab = true, showDlv = true;
   let allItems = [], allOrders = [];
 
+  function searchQuery() {
+    return (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+  }
+  function filteredItems() {
+    const q = searchQuery();
+    if (!q) return allItems;
+    return allItems.filter(({ order, item }) =>
+      item.name.toLowerCase().includes(q) || String(order.id).includes(q));
+  }
+  function filteredOrders() {
+    const q = searchQuery();
+    if (!q) return allOrders;
+    return allOrders.filter(o =>
+      String(o.id).includes(q) ||
+      o.line_items.some(item => item.name.toLowerCase().includes(q)));
+  }
+
   function activePhases() {
     const phases = [];
     if (showFab) phases.push(...FAB_PHASES);
     if (showDlv) phases.push(...DLV_PHASES);
     return phases;
   }
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', () => render());
 
   // Filter buttons
   document.getElementById('filterFab').addEventListener('click', function() {
@@ -384,11 +409,11 @@
     const wasOpen = getOpenGroups();
     sortBtn.classList.toggle('visible', currentView === 'order');
     if (currentView === 'phase') {
-      content.innerHTML = renderPhaseView(allItems);
+      content.innerHTML = renderPhaseView(filteredItems());
     } else if (currentView === 'product') {
-      content.innerHTML = renderProductView(allItems);
+      content.innerHTML = renderProductView(filteredItems());
     } else {
-      const sorted = [...allOrders].sort((a, b) => {
+      const sorted = [...filteredOrders()].sort((a, b) => {
         const da = daysSince(a.date_created), db = daysSince(b.date_created);
         return sortAsc ? da - db : db - da;
       });
