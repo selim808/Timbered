@@ -78,16 +78,14 @@
 
   // ── Fetch all processing orders ──────────────────────────────────
   async function fetchAllOrders() {
-    let all = [], page = 1;
-    while (true) {
-      const res  = await fetch(WC_BASE + '&page=' + page);
-      const rows = await res.json();
-      if (!rows.length) break;
-      all = all.concat(rows);
-      if (rows.length < 100) break;
-      page++;
-    }
-    return all;
+    const first      = await fetch(WC_BASE + '&page=1');
+    const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+    const firstRows  = await first.json();
+    const rest = totalPages > 1
+        ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, i) =>
+            fetch(WC_BASE + '&page=' + (i + 2)).then(r => r.json())))
+        : [];
+    return [firstRows, ...rest].flat();
   }
 
   // ── localStorage helpers (primary storage) ───────────────────────

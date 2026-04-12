@@ -1115,22 +1115,32 @@
   // ================================================================
   const WC_BASE = "https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de&orderby=date&order=desc&per_page=100";
 
+  function normalizeOrder(o) {
+      return {
+          Status:             o.status,
+          Order_Value:        parseFloat(o.total) || 0,
+          Created_Date:       o.date_created   || '',
+          Completed_Date:     o.date_completed || '',
+          Last_Modified_Date: o.date_modified  || ''
+      };
+  }
+
   async function fetchAllOrders() {
-      let all = [], page = 1;
-      while (true) {
-          const res  = await fetch(WC_BASE + '&page=' + page);
-          const rows = await res.json();
-          if (!rows.length) break;
-          rows.forEach(o => all.push({
-              Status:             o.status,
-              Order_Value:        parseFloat(o.total) || 0,
-              Created_Date:       o.date_created  || '',
-              Completed_Date:     o.date_completed || '',
-              Last_Modified_Date: o.date_modified  || ''
-          }));
-          if (rows.length < 100) break;
-          page++;
-      }
+      // Fetch page 1 to get total pages from header
+      const first     = await fetch(WC_BASE + '&page=1');
+      const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+      const firstRows  = await first.json();
+
+      // Fetch remaining pages in parallel
+      const rest = totalPages > 1
+          ? await Promise.all(
+              Array.from({ length: totalPages - 1 }, (_, i) =>
+                  fetch(WC_BASE + '&page=' + (i + 2)).then(r => r.json())
+              )
+            )
+          : [];
+
+      const all = [firstRows, ...rest].flat().map(normalizeOrder);
       return all;
   }
 
