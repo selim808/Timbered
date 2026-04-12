@@ -16,20 +16,25 @@
     .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
     /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; gap: 8px; flex-wrap: wrap; }
+    .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; flex-wrap: wrap; }
+    .tb-group { display: flex; align-items: center; gap: 6px; }
+    .tb-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+    .tb-divider { width: 1px; background: #e8ddd4; align-self: stretch; margin: 0 2px; }
+    /* view buttons */
     .view-btns { display: flex; gap: 4px; }
-    .view-btn { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; }
+    .view-btn { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; }
     .view-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
-    .bulk-wrap { display: flex; align-items: center; gap: 8px; }
-    .bulk-label { font-size: 11px; color: #888; font-weight: 600; }
+    /* toggle */
     .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-slider { position: absolute; inset: 0; background: #ddd; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
     .toggle input:checked + .toggle-slider { background: #7A4610; }
     .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
     .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
-    .bulk-phase-sel { font-size: 12px; border: 1.5px solid #7A4610; border-radius: 8px; padding: 3px 6px; color: #7A4610; display: none; max-width: 140px; }
-    .bulk-apply-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; display: none; white-space: nowrap; }
+    /* bulk controls */
+    .bulk-phase-sel { font-size: 11px; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 3px 6px; color: #555; max-width: 130px; }
+    .bulk-apply-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+    .bulk-apply-btn:disabled { background: #ccc; cursor: default; }
 
     /* STATE */
     #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
@@ -48,11 +53,14 @@
     .phase-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .phase-items-inner { overflow: hidden; }
     .phase-group.open .phase-items { grid-template-rows: 1fr; }
+    .phase-group.open .phase-items-inner { overflow-y: auto; max-height: 260px; }
 
     /* ── BY PRODUCT VIEW ── */
     .product-group { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
     .product-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
     .product-header:hover { background: #fdf8f4; }
+    .product-select-all { width: 16px; height: 16px; accent-color: #7A4610; flex-shrink: 0; display: none; cursor: pointer; }
+    .bulk-mode .product-select-all { display: block; }
     .product-name { font-size: 13px; font-weight: 700; color: #333; flex: 1; }
     .product-meta { font-size: 11px; color: #aaa; }
     .product-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
@@ -101,19 +109,22 @@
 </div>
 
 <div class="toolbar">
-  <div class="view-btns">
-    <button class="view-btn active" data-view="phase">Phase</button>
-    <button class="view-btn" data-view="product">Product</button>
-    <button class="view-btn" data-view="order">Order</button>
-  </div>
-  <div class="bulk-wrap">
-    <select class="bulk-phase-sel" id="bulkPhaseSel"></select>
-    <button class="bulk-apply-btn" id="bulkApplyBtn">Apply</button>
-    <span class="bulk-label">Bulk</span>
+  <div class="tb-group">
+    <span class="tb-label">Bulk</span>
     <label class="toggle">
       <input type="checkbox" id="bulkToggle">
       <span class="toggle-slider"></span>
     </label>
+    <select class="bulk-phase-sel" id="bulkPhaseSel"></select>
+    <button class="bulk-apply-btn" id="bulkApplyBtn" disabled>Apply</button>
+  </div>
+<div class="tb-group">
+    <span class="tb-label">Group by</span>
+    <div class="view-btns">
+      <button class="view-btn active" data-view="phase">Phase</button>
+      <button class="view-btn" data-view="product">Product</button>
+      <button class="view-btn" data-view="order">Order</button>
+    </div>
   </div>
 </div>
 
@@ -238,6 +249,7 @@
         const totalQty = list.reduce((s,{item}) => s + item.quantity, 0);
         return `<div class="product-group">
           <div class="product-header" onclick="this.closest('.product-group').classList.toggle('open')">
+            <input type="checkbox" class="product-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
             <span class="product-name">${name}</span>
             <span class="product-meta">${list.length} order${list.length!==1?'s':''} · qty ${totalQty}</span>
             <span class="product-chevron">▼</span>
@@ -292,6 +304,11 @@
     attachPhaseSelListeners();
   }
 
+  function selectAllInGroup(cb) {
+    const group = cb.closest('.product-group');
+    group.querySelectorAll('.item-check').forEach(c => c.checked = cb.checked);
+  }
+
   function attachPhaseSelListeners() {
     document.querySelectorAll('.phase-sel').forEach(sel => {
       sel.addEventListener('change', () => {
@@ -317,8 +334,7 @@
   bulkToggle.addEventListener('change', () => {
     const on = bulkToggle.checked;
     document.getElementById('content').classList.toggle('bulk-mode', on);
-    bulkSel.style.display    = on ? 'block' : 'none';
-    bulkApplyBtn.style.display = on ? 'block' : 'none';
+    bulkApplyBtn.disabled = !on;
   });
 
   bulkApplyBtn.addEventListener('click', () => {
