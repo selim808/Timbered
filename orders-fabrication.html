@@ -242,13 +242,13 @@
   // ── Views ─────────────────────────────────────────────────────────
   function renderPhaseView(items) {
     const groups = {};
-    FAB_PHASES.forEach(p => groups[p] = []);
+    ALL_PHASES.forEach(p => groups[p] = []);
     items.forEach(({ order, item, idx, days }) => {
       const phase = getItemPhase(order.id, item.id);
       if (groups[phase]) groups[phase].push({ order, item, idx, days });
     });
 
-    return FAB_PHASES.map(phase => {
+    return ALL_PHASES.map(phase => {
       const list = groups[phase];
       if (!list.length) return '';
       const total = list.reduce((s, { order, item }) => s + parseFloat(item.total || 0), 0);
