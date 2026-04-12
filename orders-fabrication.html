@@ -311,7 +311,19 @@
     return phases.map(phase => {
       const list = groups[phase];
       if (!list.length) return '';
-      const total = list.reduce((s, { order, item }) => s + parseFloat(item.total || 0), 0);
+      const total = list.reduce((s, { item }) => s + parseFloat(item.total || 0), 0);
+
+      // Total qty per product name within this phase
+      const qtyByProduct = {};
+      list.forEach(({ item }) => {
+        qtyByProduct[item.name] = (qtyByProduct[item.name] || 0) + item.quantity;
+      });
+      // Sort: highest total product qty first; ties broken by older days first
+      const sorted = [...list].sort((a, b) => {
+        const qDiff = (qtyByProduct[b.item.name] || 0) - (qtyByProduct[a.item.name] || 0);
+        return qDiff !== 0 ? qDiff : b.days - a.days;
+      });
+
       return `<div class="phase-group" data-group-key="phase-${phase}">
         <div class="phase-header" onclick="this.closest('.phase-group').classList.toggle('open')">
           <input type="checkbox" class="group-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
@@ -320,7 +332,7 @@
           <span class="phase-chevron">▼</span>
         </div>
         <div class="phase-items"><div class="phase-items-inner">
-          ${list.map(({ order, item, idx, days }) => itemRowHtml(order, item, idx, days)).join('')}
+          ${sorted.map(({ order, item, idx, days }) => itemRowHtml(order, item, idx, days)).join('')}
         </div></div>
       </div>`;
     }).join('');
