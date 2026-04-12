@@ -39,7 +39,7 @@
     .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
     .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
     /* bulk controls */
-    .bulk-phase-sel { font-size: 11px; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 3px 6px; color: #555; max-width: 130px; }
+    .bulk-phase-sel { font-size: 11px; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 3px 4px; color: #555; max-width: 90px; }
     .bulk-apply-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
     .bulk-apply-btn:disabled { background: #ccc; cursor: default; }
 
@@ -110,11 +110,13 @@
     .order-sel-check { width: 16px; height: 16px; accent-color: #1a7a3c; flex-shrink: 0; cursor: pointer; display: none; }
 
     /* completed filter button */
-    .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; position: absolute; bottom: calc(100% + 6px); right: 0; display: none; }
-    .completed-filter.visible { display: block; }
+    .completed-row { display: none; position: absolute; bottom: calc(100% + 6px); right: 0; gap: 4px; flex-direction: row; }
+    .completed-row.visible { display: flex; }
+    .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
+    .completed-cancel { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #aaa; background: #fff; color: #666; cursor: pointer; white-space: nowrap; }
     /* selection bar */
-    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: fixed; top: 150px; left: 0; right: 0; z-index: 97; }
+    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: #e8f5ee; border-bottom: 1px solid #b7dfc8; position: sticky; top: 51px; z-index: 97; }
     .completed-bar.visible { display: flex; }
     .completed-bar-msg { font-size: 12px; color: #1a7a3c; font-weight: 600; flex: 1; }
 
@@ -161,19 +163,18 @@
   </div>
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
   <div class="filter-area">
-    <button class="completed-filter" id="completedBtn">Completed</button>
+    <div class="completed-row" id="completedRow">
+      <button class="completed-cancel" id="completedCancel">Cancel</button>
+      <button class="completed-filter" id="completedBtn">Complete</button>
+    </div>
     <div class="filter-stack">
       <button class="filter-btn active" id="filterFab">Fabrication</button>
       <button class="filter-btn active" id="filterDlv">Delivery</button>
     </div>
   </div>
+  <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
+    style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
 </div>
-
-<div style="padding: 8px 12px; background:#fff; border-bottom:1px solid #e8ddd4; position:fixed; top:102px; left:0; right:0; z-index:98;">
-  <input id="searchInput" type="search" placeholder="Search by item, order ID, client name or phone…"
-    style="width:100%; font-size:13px; padding:6px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333;">
-</div>
-<div style="height:48px;"></div>
 
 <div class="completed-bar" id="completedBar">
   <span class="completed-bar-msg">Select completed orders</span>
@@ -294,7 +295,6 @@
     const phase = getItemPhase(order.id, item.id);
     return `<div class="item-row" data-order="${order.id}" data-item="${item.id}">
       <input type="checkbox" class="item-check" data-order="${order.id}" data-item="${item.id}">
-      <span class="d-badge ${dc(days)}">${days}d</span>
       <span class="item-id">${order.id}.${idx+1}</span>
       <span class="item-name">${item.name}</span>
       <span class="item-qty">×${item.quantity}</span>
@@ -455,13 +455,14 @@
   // ── Completed flow ────────────────────────────────────────────────
   const completedBar = document.getElementById('completedBar');
   const completedBtn = document.getElementById('completedBtn');
+  const completedRow = document.getElementById('completedRow');
   let selectingMode = false;
 
   function exitSelectingMode() {
     selectingMode = false;
     selectedOrderIds.clear();
     completedBtn.classList.remove('selecting');
-    completedBtn.textContent = 'Completed';
+    completedBtn.textContent = 'Complete';
     completedBar.classList.remove('visible');
     document.querySelectorAll('.order-sel-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.order-card').forEach(c => c.classList.remove('selected'));
@@ -473,7 +474,7 @@
       else selectedOrderIds.delete(String(cb.dataset.orderId));
     });
     const count = selectedOrderIds.size;
-    completedBtn.textContent = count > 0 ? `Completed (${count})` : 'Completed';
+    completedBtn.textContent = count > 0 ? `Complete (${count})` : 'Complete';
     document.querySelectorAll('.order-card').forEach(card => {
       card.classList.toggle('selected', selectedOrderIds.has(String(card.dataset.orderId)));
     });
@@ -496,6 +497,10 @@
     document.getElementById('confirmModalBody').textContent =
       `Are you sure? ${count} order${count !== 1 ? 's' : ''} with value ${Math.round(totalVal / 1000)}K will be marked as completed.`;
     document.getElementById('confirmModal').classList.add('open');
+  });
+
+  document.getElementById('completedCancel').addEventListener('click', () => {
+    exitSelectingMode(); render();
   });
 
   document.getElementById('modalNo').addEventListener('click', () => {
@@ -563,7 +568,7 @@
     const toRestore = openToKey ? [...wasOpen, openToKey] : wasOpen;
     restoreOpenGroups(toRestore);
     // Show/hide completed button (only in order view)
-    completedBtn.classList.toggle('visible', currentView === 'order');
+    completedRow.classList.toggle('visible', currentView === 'order');
     if (currentView !== 'order' && selectingMode) exitSelectingMode();
     // Show order checkboxes + restore state when in selecting mode
     if (currentView === 'order' && selectingMode) {
