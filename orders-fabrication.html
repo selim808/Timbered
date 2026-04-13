@@ -74,7 +74,11 @@
     .bulk-mode .product-select-all, .bulk-mode .group-select-all { display: block; }
     .product-name { font-size: 13px; font-weight: 700; color: #333; flex: 1; }
     .product-meta { font-size: 11px; color: #aaa; }
-    .product-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
+.product-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
+    .product-count-lbl { font-size: 11px; font-weight: 700; color: #7A4610; background: #fef3e2; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+    .prod-sort-btns { display: flex; gap: 3px; }
+    .prod-sort-btn { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
+    .prod-sort-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
     .product-group.open .product-chevron { transform: rotate(180deg); }
     .product-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .product-items-inner { overflow: hidden; }
@@ -176,7 +180,8 @@
     #kb-slider { width: 100%; accent-color: #7A4610; cursor: pointer; }
 
     /* KANBAN */
-    #kanban-wrap { display: none; overflow: auto; padding: 12px; touch-action: pan-x pan-y; }
+    #kanban-wrap { display: none; overflow: auto; padding: 12px; padding-right: 0; touch-action: pan-x pan-y; }
+    #kb-end-spacer { min-width: 12px; flex-shrink: 0; }
     .kb-board { display: flex; gap: 10px; align-items: flex-start; min-width: max-content; transform-origin: top left; transition: transform 0.05s; }
     .kb-col { width: 180px; flex-shrink: 0; background: #fff; border-radius: 10px; border: 1px solid #e8ddd4; }
     .kb-col-header { padding: 8px 10px; border-bottom: 1px solid #f0e8e0; }
@@ -232,6 +237,11 @@
       <button class="view-btn" data-view="order">Order</button>
     </div>
     <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
+    <span class="product-count-lbl" id="productCountLbl" style="display:none;"></span>
+    <div class="prod-sort-btns" id="prodSortBtns" style="display:none;">
+      <button class="prod-sort-btn active" data-sort="qty">Qty</button>
+      <button class="prod-sort-btn" data-sort="value">$</button>
+    </div>
     <div class="completed-wrap">
       <div class="completed-row" id="completedRow">
         <button class="cancel-filter" id="cancelBtn">Cancel</button>
@@ -456,16 +466,7 @@
       const list = groups[phase];
       if (!list.length) return '';
       const total = list.reduce((s, { item }) => s + parseFloat(item.total || 0), 0);
-      // Sort: highest product qty within phase first; same product grouped; then older days first
-      const qtyByProduct = {};
-      list.forEach(({ item }) => { qtyByProduct[item.name] = (qtyByProduct[item.name] || 0) + item.quantity; });
-      const sorted = [...list].sort((a, b) => {
-        const qDiff = (qtyByProduct[b.item.name] || 0) - (qtyByProduct[a.item.name] || 0);
-        if (qDiff !== 0) return qDiff;
-        if (a.item.name < b.item.name) return -1;
-        if (a.item.name > b.item.name) return 1;
-        return b.days - a.days;
-      });
+      const sorted = [...list].sort((a, b) => b.days - a.days);
 
       return `<div class="phase-group" data-group-key="phase-${phase}">
         <div class="phase-header" onclick="this.closest('.phase-group').classList.toggle('open')">
@@ -491,7 +492,11 @@
       groups[item.name].push({ order, item, idx, days });
     });
     return Object.entries(groups)
-      .sort((a,b) => b[1].length - a[1].length)
+      .sort((a,b) => {
+        if (productSort === 'qty')   return b[1].reduce((s,{item})=>s+item.quantity,0) - a[1].reduce((s,{item})=>s+item.quantity,0);
+        if (productSort === 'value') return b[1].reduce((s,{item})=>s+parseFloat(item.total||0),0) - a[1].reduce((s,{item})=>s+parseFloat(item.total||0),0);
+        return b[1].length - a[1].length; // default: orders count
+      })
       .map(([name, list]) => {
         const totalQty = list.reduce((s,{item}) => s + item.quantity, 0);
         const totalVal = list.reduce((s,{item}) => s + parseFloat(item.total || 0), 0);
@@ -775,6 +780,32 @@
   }
 
   // View toggle
+  const productCountLbl = document.getElementById('productCountLbl');
+  const prodSortBtns    = document.getElementById('prodSortBtns');
+  let productSort = 'qty'; // 'qty' | 'value'
+
+  function updateProductCountLbl() {
+    const isProduct = currentView === 'product';
+    if (isProduct) {
+      const count = new Set(filteredItems().map(({item}) => item.name)).size;
+      productCountLbl.textContent = count + ' product' + (count !== 1 ? 's' : '');
+      productCountLbl.style.display = 'inline-block';
+      prodSortBtns.style.display = 'flex';
+    } else {
+      productCountLbl.style.display = 'none';
+      prodSortBtns.style.display = 'none';
+    }
+  }
+
+  document.querySelectorAll('.prod-sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.prod-sort-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      productSort = btn.dataset.sort;
+      render();
+    });
+  });
+
   document.querySelectorAll('.view-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
@@ -782,6 +813,7 @@
       currentView = btn.dataset.view;
       sortBtn.textContent = sortAsc ? '↑' : '↓';
       render();
+      updateProductCountLbl();
     });
   });
 
@@ -863,6 +895,7 @@
       allItems.length + ' items · ' + orders.length + ' orders';
 
     render();
+    updateProductCountLbl();
   }).catch(e => {
     document.getElementById('state').textContent = 'Error: ' + e.message;
   });
@@ -917,6 +950,9 @@
     });
 
     ALL_PHASES.forEach(phase => updateKbCount(phase));
+    const spacer = document.createElement('div');
+    spacer.id = 'kb-end-spacer';
+    board.appendChild(spacer);
   }
 
   function encodeKbPhase(p) { return p.replace(/[^a-zA-Z0-9]/g, '_'); }
