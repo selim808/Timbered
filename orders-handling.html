@@ -68,7 +68,7 @@
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
 
   const PHASES = [
-    "Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
     "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
     "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
     "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
@@ -167,7 +167,7 @@
       const days        = daysSince(order.date_created);
 
       order.line_items.forEach((item, idx) => {
-        const phase = savedPhases[String(item.id)] || 'Chk Inventory';
+        const phase = savedPhases[String(item.id)] || 'Created';
         const card  = createCard(order, item, idx + 1, itemCount, days, phase);
         const col   = colMap[phase];
         if (col) col.appendChild(card);

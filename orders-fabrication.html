@@ -207,13 +207,13 @@
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
 
   const FAB_PHASES = [
-    "Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
     "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
     "Paint & inspec.","Rdy for ship"
   ];
 
   const ALL_PHASES = [
-    "Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
     "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
     "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
     "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
@@ -238,7 +238,7 @@
   function lsSave(all) { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
   function getItemPhase(orderId, itemId) {
     const all = lsLoad();
-    return (all[orderId] || {})[String(itemId)] || 'Chk Inventory';
+    return (all[orderId] || {})[String(itemId)] || 'Created';
   }
   function setItemPhase(orderId, itemId, phase) {
     const all = lsLoad();
