@@ -82,9 +82,11 @@
     .d-badge.warn   { background: #e67e22; }
     .d-badge.urgent { background: #e74c3c; }
     .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
-    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+    .item-name:hover { text-decoration: underline; color: #7A4610; }
     .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
-    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 130px; }
+    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 90px; }
     .bulk-mode .item-row { cursor: pointer; }
     .bulk-mode .item-row:hover { background: #fef3e2; }
 
@@ -111,7 +113,12 @@
     .completed-wrap { position: relative; }
     .completed-row { display: none; flex-direction: row; gap: 4px; }
     .completed-row.visible { display: flex; }
+    /* default (wrapped toolbar): cancel stacked above complete */
     .cancel-filter { position: absolute; bottom: calc(100% + 5px); right: 0; }
+    /* single-row toolbar: cancel inline with complete */
+    @media (min-width: 700px) {
+      .cancel-filter { position: static; }
+    }
     .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
     .cancel-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #c0392b; background: #c0392b; color: #fff; cursor: pointer; white-space: nowrap; }
@@ -135,6 +142,17 @@
     .modal-btn.no  { background: #e8ddd4; color: #555; }
     .modal-btn.edit { background: #7A4610; color: #fff; }
     .modal-btn:disabled { opacity: 0.6; cursor: default; }
+
+    /* item thumbnail */
+    .item-thumb { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-placeholder { width: 28px; height: 28px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+
+    /* photo popup */
+    .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-overlay.open { display: flex; }
+    .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
+    .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
   </style>
 </head>
 <body>
@@ -186,6 +204,14 @@
 
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
+
+<!-- Photo popup -->
+<div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
+  <div class="photo-popup" onclick="event.stopPropagation()">
+    <div class="photo-popup-name" id="photoName"></div>
+    <img id="photoImg" src="" alt="">
+  </div>
+</div>
 
 <!-- Confirmation modal -->
 <div class="modal-overlay" id="confirmModal">
@@ -294,14 +320,32 @@
     </select>`;
   }
 
+  // ── Photo popup ───────────────────────────────────────────────────
+  function openPhoto(src, name) {
+    document.getElementById('photoImg').src = src;
+    document.getElementById('photoName').textContent = name;
+    document.getElementById('photoOverlay').classList.add('open');
+  }
+  function closePhoto() {
+    document.getElementById('photoOverlay').classList.remove('open');
+  }
+
   // ── Item row HTML ─────────────────────────────────────────────────
   function itemRowHtml(order, item, idx, days) {
-    const phase = getItemPhase(order.id, item.id);
+    const phase   = getItemPhase(order.id, item.id);
+    const imgSrc  = item.image && item.image.src ? item.image.src : '';
+    const prodUrl = `https://timberedgroup.com/?p=${item.product_id}`;
+    const thumb   = imgSrc
+      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto('${imgSrc}','${item.name.replace(/'/g,'\\\'')}')">`
+      : `<span class="item-thumb-placeholder"></span>`;
     return `<div class="item-row" data-order="${order.id}" data-item="${item.id}">
       <input type="checkbox" class="item-check" data-order="${order.id}" data-item="${item.id}">
+      ${thumb}
+      <span class="d-badge ${dc(days)}">${days}d</span>
       <span class="item-id">${order.id}.${idx+1}</span>
-      <span class="item-name">${item.name}</span>
+      <a class="item-name" href="${prodUrl}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
       <span class="item-qty">×${item.quantity}</span>
+      <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
       ${phaseSelHtml(phase, order.id, item.id)}
     </div>`;
   }
@@ -320,16 +364,15 @@
       const list = groups[phase];
       if (!list.length) return '';
       const total = list.reduce((s, { item }) => s + parseFloat(item.total || 0), 0);
-
-      // Total qty per product name within this phase
+      // Sort: highest product qty within phase first; same product grouped; then older days first
       const qtyByProduct = {};
-      list.forEach(({ item }) => {
-        qtyByProduct[item.name] = (qtyByProduct[item.name] || 0) + item.quantity;
-      });
-      // Sort: highest total product qty first; ties broken by older days first
+      list.forEach(({ item }) => { qtyByProduct[item.name] = (qtyByProduct[item.name] || 0) + item.quantity; });
       const sorted = [...list].sort((a, b) => {
         const qDiff = (qtyByProduct[b.item.name] || 0) - (qtyByProduct[a.item.name] || 0);
-        return qDiff !== 0 ? qDiff : b.days - a.days;
+        if (qDiff !== 0) return qDiff;
+        if (a.item.name < b.item.name) return -1;
+        if (a.item.name > b.item.name) return 1;
+        return b.days - a.days;
       });
 
       return `<div class="phase-group" data-group-key="phase-${phase}">
@@ -359,16 +402,20 @@
       .sort((a,b) => b[1].length - a[1].length)
       .map(([name, list]) => {
         const totalQty = list.reduce((s,{item}) => s + item.quantity, 0);
+        const totalVal = list.reduce((s,{item}) => s + parseFloat(item.total || 0), 0);
         const safeKey = name.replace(/"/g,'');
         return `<div class="product-group" data-group-key="product-${safeKey}">
           <div class="product-header" onclick="this.closest('.product-group').classList.toggle('open')">
             <input type="checkbox" class="product-select-all" onclick="event.stopPropagation(); selectAllInGroup(this)" title="Select all">
             <span class="product-name">${name}</span>
-            <span class="product-meta">${list.length} order${list.length!==1?'s':''} · qty ${totalQty}</span>
+            <span class="product-meta">${list.length} order${list.length!==1?'s':''} · qty ${totalQty} · ${Math.round(totalVal/1000)}K</span>
             <span class="product-chevron">▼</span>
           </div>
           <div class="product-items"><div class="product-items-inner">
-            ${list.map(({ order, item, idx, days }) => itemRowHtml(order, item, idx, days)).join('')}
+            ${[...list].sort((a,b) => {
+                const pi = x => ALL_PHASES.indexOf(getItemPhase(x.order.id, x.item.id));
+                return pi(a) - pi(b);
+              }).map(({ order, item, idx, days }) => itemRowHtml(order, item, idx, days)).join('')}
           </div></div>
         </div>`;
       }).join('');
@@ -656,6 +703,7 @@
     document.getElementById('content').classList.toggle('bulk-mode', on);
     bulkApplyBtn.disabled = !on;
   });
+
 
   bulkApplyBtn.addEventListener('click', () => {
     const phase = bulkSel.value;

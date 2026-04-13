@@ -701,9 +701,25 @@
   }
 
   // ================================================================
-  // GOALS — fetch + render
+  // GOALS — hardcoded targets + live actuals
   // ================================================================
-  const GOALS_URL = 'https://script.google.com/macros/s/AKfycbwMKGGTMPtbI0bcTekr-qb1Z1W9eqv-YfmsGBgEsJZdlLKj8PLA-6TGQvx8OhyZebK1Hg/exec';
+
+  // Edit targets here. salesAct/mktAct for past months are fixed;
+  // current month actuals are overridden at runtime by WC + Meta APIs.
+  const GOALS_DATA = [
+    { month: 'Jan',  salesTgt: 200000,    salesAct: 120710,  mktTgt: 20000,   mktAct: 17635 },
+    { month: 'Feb',  salesTgt: 300000,    salesAct: 385642,  mktTgt: 30000,   mktAct: 94029 },
+    { month: 'Mar',  salesTgt: 400000,    salesAct: 249270,  mktTgt: 40000,   mktAct: 25414 },
+    { month: 'Apr',  salesTgt: 500000,    salesAct: null,    mktTgt: 50000,   mktAct: null  },
+    { month: 'May',  salesTgt: 600000,    salesAct: null,    mktTgt: 60000,   mktAct: null  },
+    { month: 'Jun',  salesTgt: 700000,    salesAct: null,    mktTgt: 70000,   mktAct: null  },
+    { month: 'Jul',  salesTgt: 900000,    salesAct: null,    mktTgt: 90000,   mktAct: null  },
+    { month: 'Aug',  salesTgt: 1100000,   salesAct: null,    mktTgt: 110000,  mktAct: null  },
+    { month: 'Sep',  salesTgt: 1300000,   salesAct: null,    mktTgt: 130000,  mktAct: null  },
+    { month: 'Oct',  salesTgt: 1500000,   salesAct: null,    mktTgt: 150000,  mktAct: null  },
+    { month: 'Nov',  salesTgt: 2500000,   salesAct: null,    mktTgt: 250000,  mktAct: null  },
+    { month: 'Dec',  salesTgt: 5000000,   salesAct: null,    mktTgt: 500000,  mktAct: null  },
+  ];
 
   function fmtNum(val) {
     if (val === '' || val === null || val === undefined) return '';
@@ -728,36 +744,114 @@
     if (t === null) return '';
     return a > t ? 'bad' : 'good';
   }
-  function normaliseRow(row) {
-    if (Array.isArray(row)) return { month: row[0], salesTgt: row[1], salesAct: row[2], mktTgt: row[3], mktAct: row[4] };
-    const keys = Object.keys(row);
-    return { month: row[keys[0]], salesTgt: row[keys[1]], salesAct: row[keys[2]], mktTgt: row[keys[3]], mktAct: row[keys[4]] };
+
+  // Fetch current-month FB/Meta Ads spend
+  const META_TOKEN    = "EAARVufZCVWrcBQuTSOsCTusrq1PuUvAVFY4sIZBjEXvIQnSo3EgejGzFuxFhVVcn9v6UqfZBhQcyhvXbvJHLCGE6GEDxINYp6qyXnkLyVYBcp3SME8yXoZAcXOqz9nU7ZCeQhy0zvN09XxWHZBnqu8D9mQZAW4aYuFd55xf9ZBiIfhb1aRoPFktZCpi0dUhEadgZDZD";
+  const META_ACCOUNTS = ["act_1588955761747812", "act_766832262542894"]; // known accounts — always included
+
+  async function fetchAccountSpend(accountId, timeRange) {
+    let spend = 0;
+    let nextUrl = `https://graph.facebook.com/v24.0/${accountId}/insights`
+                + `?level=ad&fields=spend`
+                + `&time_range=${encodeURIComponent(timeRange)}`
+                + `&limit=500`
+                + `&access_token=${META_TOKEN}`;
+    while (nextUrl) {
+      const res  = await fetch(nextUrl);
+      const json = await res.json();
+      if (json.error) { console.warn(`Meta [${accountId}]:`, json.error.message); return 0; }
+      (json.data || []).forEach(d => { spend += parseFloat(d.spend) || 0; });
+      nextUrl = json.paging && json.paging.next ? json.paging.next : null;
+    }
+    console.log(`Meta [${accountId}]: ${spend}`);
+    return spend;
   }
-  const LABEL_WORDS = ['target', 'actual', 'month', 'sales', 'marketing'];
-  function isLabelRow(r) { return LABEL_WORDS.some(w => String(r.month || '').toLowerCase().includes(w)); }
+
+  async function fetchMetaMonthSpend() {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day   = String(now.getDate()).padStart(2, '0');
+    const timeRange = JSON.stringify({ since: `${year}-${month}-01`, until: `${year}-${month}-${day}` });
+
+    // Fetch spend for all known accounts in parallel
+    const spends = await Promise.all(META_ACCOUNTS.map(id => fetchAccountSpend(id, timeRange)));
+    const total = spends.reduce((a, b) => a + b, 0);
+    console.log(`Meta total (pre-tax): ${total}, after 1.14: ${Math.round(total * 1.14)}`);
+    return Math.round(total * 1.14);
+  }
+
+  // Fetch current-month actual sales from WooCommerce
+  async function fetchMonthActual() {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const after  = `${year}-${month}-01T00:00:00`;
+    const before = `${year}-${month}-31T23:59:59`;
+    const base = "https://timberedgroup.com/wp-json/wc/v3/orders"
+               + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+               + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
+               + "&per_page=100"
+               + `&after=${after}&before=${before}`;
+
+    let total = 0;
+    for (const status of ['pending', 'processing', 'on-hold', 'completed']) {
+      const first = await fetch(base + `&status=${status}&page=1`);
+      const pages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+      const rows  = await first.json();
+      const rest  = pages > 1
+        ? await Promise.all(Array.from({ length: pages - 1 }, (_, i) =>
+            fetch(base + `&status=${status}&page=${i + 2}`).then(r => r.json())))
+        : [];
+      [rows, ...rest].flat().forEach(o => { total += parseFloat(o.total) || 0; });
+    }
+    return Math.round(total);
+  }
 
   async function loadGoals() {
     const stateEl = document.getElementById('goals-state');
     const wrapEl  = document.getElementById('goals-wrap');
     const tbody   = document.getElementById('goals-tbody');
     try {
-      const res  = await fetch(GOALS_URL);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      if (!json.data) throw new Error('No data returned');
-      json.data.forEach(rawRow => {
-        const r = normaliseRow(rawRow);
-        if (!r.month || isLabelRow(r)) return;
-        const isTotal = String(r.month).toLowerCase() === 'total';
+      const curMonthIdx = new Date().getMonth(); // 0-based
+      const [wcActual, metaSpend] = await Promise.all([
+        fetchMonthActual(),
+        fetchMetaMonthSpend()
+      ]);
+
+      let totalSalesTgt = 0, totalSalesAct = 0, totalMktTgt = 0, totalMktAct = 0;
+
+      GOALS_DATA.forEach((r, idx) => {
+        // Override current month actuals with live data
+        if (idx === curMonthIdx) {
+          r = { ...r, salesAct: wcActual, mktAct: metaSpend };
+        }
+        totalSalesTgt += r.salesTgt || 0;
+        totalSalesAct += r.salesAct || 0;
+        totalMktTgt   += r.mktTgt   || 0;
+        totalMktAct   += r.mktAct   || 0;
+
         const tr = document.createElement('tr');
-        if (isTotal) tr.classList.add('total-row');
-        const tdMonth    = document.createElement('td'); tdMonth.textContent    = r.month;             tr.appendChild(tdMonth);
-        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt);  tr.appendChild(tdSalesTgt);
-        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct);  if (!isTotal) tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
-        const tdMktTgt   = document.createElement('td'); tdMktTgt.textContent   = fmtNum(r.mktTgt);    tr.appendChild(tdMktTgt);
-        const tdMktAct   = document.createElement('td'); tdMktAct.textContent   = fmtNum(r.mktAct);    if (!isTotal) tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
+        const tdMonth    = document.createElement('td'); tdMonth.textContent    = r.month;              tr.appendChild(tdMonth);
+        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt);   tr.appendChild(tdSalesTgt);
+        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct);   tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
+        const tdMktTgt   = document.createElement('td'); tdMktTgt.textContent   = fmtNum(r.mktTgt);     tr.appendChild(tdMktTgt);
+        const tdMktAct   = document.createElement('td'); tdMktAct.textContent   = fmtNum(r.mktAct);     tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
         tbody.appendChild(tr);
       });
+
+      // Total row
+      const trTotal = document.createElement('tr');
+      trTotal.classList.add('total-row');
+      [
+        'Total',
+        fmtNum(totalSalesTgt),
+        fmtNum(totalSalesAct),
+        fmtNum(totalMktTgt),
+        fmtNum(totalMktAct)
+      ].forEach(v => { const td = document.createElement('td'); td.textContent = v; trTotal.appendChild(td); });
+      tbody.appendChild(trTotal);
+
       stateEl.style.display = 'none';
       wrapEl.style.display  = 'block';
     } catch (err) {
