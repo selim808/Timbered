@@ -23,7 +23,6 @@
     .sort-btn.visible { display: inline-block; }
     /* filter buttons */
     .filter-area { position: relative; margin-left: auto; }
-    .filter-stack { display: flex; flex-direction: column; gap: 4px; }
     .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
     .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
     .tb-divider { width: 1px; background: #e8ddd4; align-self: stretch; margin: 0 2px; }
@@ -148,6 +147,11 @@
 
 <div class="toolbar">
   <div class="tb-group">
+    <span class="tb-label">Phases</span>
+    <button class="filter-btn active" id="filterFab">Fabrication</button>
+    <button class="filter-btn active" id="filterDlv">Delivery</button>
+  </div>
+  <div class="tb-group">
     <span class="tb-label">Bulk</span>
     <label class="toggle">
       <input type="checkbox" id="bulkToggle">
@@ -156,7 +160,7 @@
     <select class="bulk-phase-sel" id="bulkPhaseSel"></select>
     <button class="bulk-apply-btn" id="bulkApplyBtn" disabled>Apply</button>
   </div>
-<div class="tb-group">
+  <div class="tb-group">
     <span class="tb-label">Group by</span>
     <div class="view-btns">
       <button class="view-btn active" data-view="phase">Phase</button>
@@ -169,10 +173,6 @@
     <div class="completed-row" id="completedRow">
       <button class="cancel-filter" id="cancelBtn">Cancel</button>
       <button class="completed-filter" id="completedBtn">Complete</button>
-    </div>
-    <div class="filter-stack">
-      <button class="filter-btn active" id="filterFab">Fabrication</button>
-      <button class="filter-btn active" id="filterDlv">Delivery</button>
     </div>
   </div>
   <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
