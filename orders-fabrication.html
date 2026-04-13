@@ -22,7 +22,7 @@
     .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; display: none; line-height: 1.4; }
     .sort-btn.visible { display: inline-block; }
     /* filter buttons */
-    .filter-area { position: relative; margin-left: auto; }
+    .filter-area { margin-left: auto; }
     .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
     .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
     .tb-divider { width: 1px; background: #e8ddd4; align-self: stretch; margin: 0 2px; }
@@ -109,7 +109,7 @@
     .order-sel-check { width: 16px; height: 16px; accent-color: #1a7a3c; flex-shrink: 0; cursor: pointer; display: none; }
 
     /* completed filter button */
-    .completed-row { display: none; position: absolute; bottom: calc(100% + 6px); right: 0; gap: 4px; flex-direction: row; }
+    .completed-row { display: none; flex-direction: column; gap: 4px; }
     .completed-row.visible { display: flex; }
     .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
