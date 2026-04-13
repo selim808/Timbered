@@ -108,7 +108,7 @@
     .order-sel-check { width: 16px; height: 16px; accent-color: #1a7a3c; flex-shrink: 0; cursor: pointer; display: none; }
 
     /* completed filter button */
-    .completed-row { display: none; flex-direction: row; gap: 4px; align-items: center; }
+    .completed-row { display: none; flex-direction: column; gap: 4px; }
     .completed-row.visible { display: flex; }
     .completed-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #1a7a3c; background: #1a7a3c; color: #fff; cursor: pointer; white-space: nowrap; }
     .completed-filter.selecting { background: #145e2d; border-color: #145e2d; }
@@ -166,12 +166,12 @@
       <button class="view-btn" data-view="product">Product</button>
       <button class="view-btn" data-view="order">Order</button>
     </div>
+    <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
     <div class="completed-row" id="completedRow">
       <button class="completed-filter" id="completedBtn">Complete</button>
       <button class="cancel-filter" id="cancelBtn">Cancel</button>
     </div>
   </div>
-  <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
   <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
 </div>
