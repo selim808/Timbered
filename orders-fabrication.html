@@ -15,8 +15,14 @@
     .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
     .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
+    /* SUB-NAV */
+    .sub-nav { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 100; }
+    .sub-nav-btn { font-size: 12px; font-weight: 700; color: #aaa; text-decoration: none; padding: 8px 18px; border-bottom: 2px solid transparent; }
+    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .sub-nav-btn:hover { color: #7A4610; }
+
     /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; flex-wrap: wrap; }
+    .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 83px; z-index: 99; flex-wrap: wrap; }
     .tb-group { display: flex; align-items: center; gap: 6px; }
     .tb-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
     .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; display: none; line-height: 1.4; }
@@ -95,7 +101,12 @@
     .order-top { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; }
     .order-name-lbl { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .order-total-lbl { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
-    .order-phone-lbl { font-size: 11px; color: #888; white-space: nowrap; flex-shrink: 0; }
+    .order-phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .order-phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
+    .order-phone-lbl  { display: flex; align-items: center; text-decoration: none; }
+    .order-phone-lbl:hover svg { opacity: 0.75; }
+    .order-phone-call { display: flex; align-items: center; text-decoration: none; }
+    .order-phone-call:hover svg { opacity: 0.6; }
     .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
     .order-card.open .order-chevron { transform: rotate(180deg); }
     .order-addr-lbl { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; }
@@ -124,7 +135,7 @@
     .cancel-filter { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #c0392b; background: #c0392b; color: #fff; cursor: pointer; white-space: nowrap; }
     .cancel-filter.selecting { background: #922b21; border-color: #922b21; }
     /* selection bar */
-    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid; position: sticky; top: 51px; z-index: 97; }
+    .completed-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid; position: sticky; top: 83px; z-index: 97; }
     .completed-bar.complete-mode { background: #e8f5ee; border-color: #b7dfc8; }
     .completed-bar.cancel-mode  { background: #fdecea; border-color: #f1a9a0; }
     .completed-bar.visible { display: flex; }
@@ -153,15 +164,49 @@
     .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; gap: 10px; cursor: default; }
     .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
     .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
+    .photo-popup-meta { display: flex; flex-direction: column; gap: 4px; }
+    .photo-popup-meta span { font-size: 12px; color: #666; text-align: center; }
+    .photo-popup-meta strong { color: #333; }
+
+    /* SUB-NAV buttons */
+    .sub-nav-btn { background: none; border: none; cursor: pointer; }
+
+    /* KANBAN SLIDER */
+    #kb-slider-wrap { display: none; padding: 4px 12px 10px; background: #f5f0eb; }
+    #kb-slider { width: 100%; accent-color: #7A4610; cursor: pointer; }
+
+    /* KANBAN */
+    #kanban-wrap { display: none; overflow: auto; padding: 12px; touch-action: pan-x pan-y; }
+    .kb-board { display: flex; gap: 10px; align-items: flex-start; min-width: max-content; transform-origin: top left; transition: transform 0.05s; }
+    .kb-col { width: 180px; flex-shrink: 0; background: #fff; border-radius: 10px; border: 1px solid #e8ddd4; }
+    .kb-col-header { padding: 8px 10px; border-bottom: 1px solid #f0e8e0; }
+    .kb-col-title { font-size: 10px; font-weight: 700; color: #7A4610; text-transform: uppercase; letter-spacing: 0.4px; }
+    .kb-col-count { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .kb-col-body { padding: 6px; min-height: 60px; display: flex; flex-direction: column; gap: 5px; }
+    .kb-col-body.drag-over { background: #fef3e2; border-radius: 0 0 10px 10px; }
+    .kb-card { background: #fafafa; border: 1px solid #e8ddd4; border-radius: 7px; padding: 7px 9px; cursor: grab; user-select: none; }
+    .kb-card:active { cursor: grabbing; }
+    .kb-card.dragging { opacity: 0.4; }
+    .kb-card-days { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; display: inline-block; padding: 1px 5px; margin-bottom: 4px; }
+    .kb-card-days.warn { background: #e67e22; }
+    .kb-card-days.urgent { background: #e74c3c; }
+    .kb-card-id   { font-size: 10px; color: #aaa; margin-bottom: 2px; }
+    .kb-card-name { font-size: 11px; font-weight: 600; color: #333; line-height: 1.3; }
+    .kb-card-qty  { font-size: 10px; color: #888; margin-top: 3px; }
   </style>
 </head>
 <body>
 
 <div class="site-header">
   <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered" style="display:block;"></a>
-  <span class="title">Fabrication</span>
+  <span class="title">Orders</span>
   <span class="badge" id="itemCount">Loading…</span>
-  <a href="orders.html" class="back">← Back</a>
+  <a href="index.html" class="back">← Back</a>
+</div>
+
+<div class="sub-nav">
+  <button class="sub-nav-btn active" id="tabFab">Fabrication</button>
+  <button class="sub-nav-btn" id="tabKanban">Kanban</button>
 </div>
 
 <div class="toolbar">
@@ -204,12 +249,17 @@
 
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
+<div id="kanban-wrap"><div class="kb-board" id="kb-board"></div></div>
+<div id="kb-slider-wrap">
+  <input type="range" id="kb-slider" min="0" max="100" value="0">
+</div>
 
 <!-- Photo popup -->
 <div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
   <div class="photo-popup" onclick="event.stopPropagation()">
     <div class="photo-popup-name" id="photoName"></div>
     <img id="photoImg" src="" alt="">
+    <div class="photo-popup-meta" id="photoMeta"></div>
   </div>
 </div>
 
@@ -321,10 +371,51 @@
   }
 
   // ── Photo popup ───────────────────────────────────────────────────
-  function openPhoto(src, name) {
-    document.getElementById('photoImg').src = src;
-    document.getElementById('photoName').textContent = name;
+  const _photoItems   = {}; // itemId → item object
+  const _productCache = {}; // productId → fetched product data
+
+  const WC_PRODUCT = id =>
+    `https://timberedgroup.com/wp-json/wc/v3/products/${id}`
+    + `?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362`
+    + `&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de`;
+
+  async function openPhoto(itemId) {
+    const item = _photoItems[itemId];
+    if (!item) return;
+
+    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoName').textContent = item.name;
+    document.getElementById('photoMeta').innerHTML = '<span style="color:#aaa">Loading…</span>';
     document.getElementById('photoOverlay').classList.add('open');
+
+    try {
+      await ensureProductsCached(); // first click fetches all; subsequent clicks return instantly
+      const p = _productCache[item.product_id];
+
+      // Dimensions
+      const d = p.dimensions || {};
+      const dimParts = [
+        d.length ? `L: ${d.length}` : '',
+        d.width  ? `W: ${d.width}`  : '',
+        d.height ? `H: ${d.height}` : '',
+      ].filter(Boolean);
+      const dimensions = dimParts.length ? dimParts.join(' · ') : null;
+
+      // Material — from attributes
+      const material = (p.attributes || []).find(a =>
+        a.name.toLowerCase().includes('material') ||
+        a.name.toLowerCase().includes('خامة') ||
+        a.name.toLowerCase().includes('wood')
+      )?.options?.join(', ') || null;
+
+      document.getElementById('photoMeta').innerHTML = [
+        dimensions ? `<span><strong>Dimensions:</strong> ${dimensions}</span>` : '',
+        material   ? `<span><strong>Material:</strong> ${material}</span>`     : '',
+      ].filter(Boolean).join('') || '';
+
+    } catch {
+      document.getElementById('photoMeta').innerHTML = '';
+    }
   }
   function closePhoto() {
     document.getElementById('photoOverlay').classList.remove('open');
@@ -335,8 +426,9 @@
     const phase   = getItemPhase(order.id, item.id);
     const imgSrc  = item.image && item.image.src ? item.image.src : '';
     const prodUrl = `https://timberedgroup.com/?p=${item.product_id}`;
+    _photoItems[item.id] = item;
     const thumb   = imgSrc
-      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto('${imgSrc}','${item.name.replace(/'/g,'\\\'')}')">`
+      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
       : `<span class="item-thumb-placeholder"></span>`;
     return `<div class="item-row" data-order="${order.id}" data-item="${item.id}">
       <input type="checkbox" class="item-check" data-order="${order.id}" data-item="${item.id}">
@@ -440,7 +532,16 @@
           <span class="item-id">#${o.id}</span>
           <span class="order-name-lbl">${name}</span>
           <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
-          <span class="order-phone-lbl">${o.billing.phone||'—'}</span>
+          ${o.billing.phone ? `
+            <span class="order-phone-wrap" onclick="event.stopPropagation()">
+              <a class="order-phone-lbl" href="https://wa.me/${o.billing.phone.replace(/\D/g,'').replace(/^0/,'20')}" target="_blank" title="WhatsApp">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
+              </a>
+              <span class="order-phone-num">${o.billing.phone}</span>
+              <a class="order-phone-call" href="tel:${o.billing.phone}" title="Call">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              </a>
+            </span>` : '<span class="order-phone-num">—</span>'}
           <span class="order-chevron">▼</span>
         </div>
         <div class="order-addr-lbl">
@@ -722,6 +823,28 @@
     if (currentView === 'phase') render();
   });
 
+  // Fetch all unique products in one request using ?include=id1,id2,...
+  let _productsFetchPromise = null;
+  function ensureProductsCached() {
+    if (_productsFetchPromise) return _productsFetchPromise;
+    const ids = [...new Set(allOrders.flatMap(o => o.line_items.map(i => i.product_id)).filter(Boolean))];
+    if (!ids.length) return (_productsFetchPromise = Promise.resolve());
+    const base = "https://timberedgroup.com/wp-json/wc/v3/products"
+               + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+               + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
+               + "&per_page=100";
+    // Chunk into groups of 100 (API limit) and fetch in parallel
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+    _productsFetchPromise = Promise.all(chunks.map(chunk =>
+      fetch(base + `&include=${chunk.join(',')}`)
+        .then(r => r.json())
+        .then(products => products.forEach(p => { _productCache[p.id] = p; }))
+        .catch(() => {})
+    ));
+    return _productsFetchPromise;
+  }
+
   // Fetch & build
   fetchAllOrders().then(orders => {
     mergeApiMeta(orders); // API meta wins over stale localStorage
@@ -742,6 +865,135 @@
     render();
   }).catch(e => {
     document.getElementById('state').textContent = 'Error: ' + e.message;
+  });
+
+  // ── Kanban board ──────────────────────────────────────────────────
+  let kanbanBuilt = false;
+
+  function buildKanban() {
+    if (kanbanBuilt) return;
+    kanbanBuilt = true;
+    const board = document.getElementById('kb-board');
+    board.innerHTML = '';
+    const colMap = {};
+
+    ALL_PHASES.forEach(phase => {
+      const col = document.createElement('div');
+      col.className = 'kb-col';
+      col.innerHTML = `<div class="kb-col-header"><div class="kb-col-title">${phase}</div><div class="kb-col-count" id="kbcnt-${encodeKbPhase(phase)}">0</div></div><div class="kb-col-body" data-phase="${phase}"></div>`;
+      board.appendChild(col);
+      const body = col.querySelector('.kb-col-body');
+      colMap[phase] = body;
+      body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
+      body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+      body.addEventListener('drop', e => {
+        e.preventDefault(); body.classList.remove('drag-over');
+        const { orderId, itemId } = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const card = board.querySelector(`.kb-card[data-order-id="${orderId}"][data-item-id="${itemId}"]`);
+        if (!card) return;
+        const oldPhase = card.dataset.phase;
+        const newPhase = body.dataset.phase;
+        if (oldPhase === newPhase) return;
+        setItemPhase(orderId, itemId, newPhase);
+        body.appendChild(card);
+        card.dataset.phase = newPhase;
+        updateKbCount(oldPhase); updateKbCount(newPhase);
+      });
+    });
+
+    allOrders.forEach(order => {
+      const days = daysSince(order.date_created);
+      order.line_items.forEach((item, idx) => {
+        const phase = getItemPhase(order.id, item.id);
+        const col = colMap[phase]; if (!col) return;
+        const card = document.createElement('div');
+        card.className = 'kb-card'; card.draggable = true;
+        card.dataset.orderId = order.id; card.dataset.itemId = item.id; card.dataset.phase = phase;
+        card.innerHTML = `<div class="kb-card-days ${dc(days)}">${days}d</div><div class="kb-card-id">#${order.id} · ${idx+1}</div><div class="kb-card-name">${item.name}</div><div class="kb-card-qty">×${item.quantity}</div>`;
+        card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({ orderId: String(order.id), itemId: String(item.id) })); card.classList.add('dragging'); });
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        col.appendChild(card);
+      });
+    });
+
+    ALL_PHASES.forEach(phase => updateKbCount(phase));
+  }
+
+  function encodeKbPhase(p) { return p.replace(/[^a-zA-Z0-9]/g, '_'); }
+  function updateKbCount(phase) {
+    const body = document.querySelector(`.kb-col-body[data-phase="${phase}"]`);
+    const cnt  = document.getElementById('kbcnt-' + encodeKbPhase(phase));
+    if (body && cnt) cnt.textContent = body.children.length + ' item' + (body.children.length !== 1 ? 's' : '');
+  }
+
+  // ── Kanban scroll slider ──────────────────────────────────────────
+  const kbSlider     = document.getElementById('kb-slider');
+  const kbSliderWrap = document.getElementById('kb-slider-wrap');
+
+  kbSlider.addEventListener('input', () => {
+    const wrap = document.getElementById('kanban-wrap');
+    const max  = wrap.scrollWidth - wrap.clientWidth;
+    wrap.scrollLeft = (kbSlider.value / 100) * max;
+  });
+
+  document.getElementById('kanban-wrap').addEventListener('scroll', () => {
+    const wrap = document.getElementById('kanban-wrap');
+    const max  = wrap.scrollWidth - wrap.clientWidth;
+    if (max > 0) kbSlider.value = (wrap.scrollLeft / max) * 100;
+  });
+
+  // ── Pinch-to-zoom on kanban board ────────────────────────────────
+  let kbScale = 1;
+  let kbPinchStart = null;
+
+  document.getElementById('kanban-wrap').addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      kbPinchStart = { dist: Math.hypot(dx, dy), scale: kbScale };
+    }
+  }, { passive: false });
+
+  document.getElementById('kanban-wrap').addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && kbPinchStart) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      kbScale = Math.min(2, Math.max(0.4, kbPinchStart.scale * (dist / kbPinchStart.dist)));
+      document.getElementById('kb-board').style.transform = `scale(${kbScale})`;
+    }
+  }, { passive: false });
+
+  document.getElementById('kanban-wrap').addEventListener('touchend', () => { kbPinchStart = null; });
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  const tabFab    = document.getElementById('tabFab');
+  const tabKanban = document.getElementById('tabKanban');
+  const fabContent   = document.getElementById('content');
+  const fabToolbar   = document.querySelector('.toolbar');
+  const fabBar       = document.getElementById('completedBar');
+  const kanbanWrap   = document.getElementById('kanban-wrap');
+
+  tabFab.addEventListener('click', () => {
+    tabFab.classList.add('active'); tabKanban.classList.remove('active');
+    fabContent.style.display = 'block';
+    fabToolbar.style.display = '';
+    fabBar.style.display = fabBar.classList.contains('visible') ? 'flex' : 'none';
+    kanbanWrap.style.display = 'none';
+    kbSliderWrap.style.display = 'none';
+  });
+
+  tabKanban.addEventListener('click', () => {
+    tabKanban.classList.add('active'); tabFab.classList.remove('active');
+    fabContent.style.display = 'none';
+    fabToolbar.style.display = 'none';
+    fabBar.style.display = 'none';
+    kanbanWrap.style.display = 'block';
+    kbSliderWrap.style.display = 'block';
+    kbSlider.value = 0;
+    buildKanban();
   });
 </script>
 </body>
