@@ -247,7 +247,7 @@
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
-      if (activeFilter === 'instock'    && getTgStock(p) === 0)  return false;
+      if (activeFilter === 'instock'    && getTgStock(p) === 0 && getTgRepair(p) === 0)  return false;
       if (activeFilter === 'outofstock' && getTgStock(p) > 0)   return false;
       if (activeFilter === 'repair'     && getTgRepair(p) === 0) return false;
       if (activeFilter === 'ordered'    && !(orderedQtyMap[p.id] > 0)) return false;
