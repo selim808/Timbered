@@ -31,7 +31,8 @@
 
     /* TABLE */
     .tbl-wrap { padding: 0; }
-    table { width: 100%; border-collapse: collapse; background: #fff; }
+    table { width: 100%; border-collapse: collapse; background: #fff; table-layout: auto; }
+    td, thead th { width: 1px; white-space: nowrap; }
     thead th { background: #fef3e2; color: #7A4610; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: left; border-bottom: 1px solid #e8ddd4; position: sticky; top: var(--thead-top, 0px); z-index: 10; }
     .totals-row th { background: #fef3e2; font-size: 11px; font-weight: 700; color: #7A4610; padding: 6px 4px; border-bottom: 2px solid #e8ddd4; text-align: left; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
     .totals-row .t-val { font-size: 10px; font-weight: 600; color: #a07040; display: block; }
@@ -43,7 +44,7 @@
     /* COLUMNS */
     .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; }
     .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; }
-    .td-name { font-size: 12px; font-weight: 600; color: #333; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-name { font-size: 12px; font-weight: 600; color: #333; width: auto; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .td-stock { white-space: nowrap; width: 28px; text-align: left; padding-left: 4px; padding-right: 4px; }
     thead th.th-num { width: 28px; text-align: left; padding: 8px 4px; vertical-align: bottom; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 0.5px; }
     .stock-row { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -78,8 +79,6 @@
     <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
     <span class="title">Inventory</span>
     <span class="badge" id="productCount">Loading…</span>
-    <span class="badge" id="totalStock" style="display:none;"></span>
-    <span class="badge" id="totalOrdered" style="display:none;"></span>
     <a href="index.html" class="back">← Back</a>
   </div>
   <div class="toolbar">
@@ -90,10 +89,21 @@
       <button class="sf-btn active" data-filter="all">All</button>
       <button class="sf-btn" data-filter="instock">In STK</button>
       <button class="sf-btn" data-filter="outofstock">Out STK</button>
-      <span style="margin-left:auto;display:flex;gap:4px;align-items:center;">
-        <span style="font-size:10px;font-weight:700;color:#888;">QTY</span>
-        <button class="sf-btn" id="sortAsc"  onclick="setSort('asc')" title="Low to high">↑</button>
-        <button class="sf-btn" id="sortDesc" onclick="setSort('desc')" title="High to low">↓</button>
+      <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <span style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:9px;font-weight:700;color:#888;">QTY</span>
+          <span style="display:flex;gap:2px;">
+            <button class="sf-btn" id="sortQtyAsc"  onclick="setSort('qty-asc')"  title="Low to high">↑</button>
+            <button class="sf-btn" id="sortQtyDesc" onclick="setSort('qty-desc')" title="High to low">↓</button>
+          </span>
+        </span>
+        <span style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:9px;font-weight:700;color:#888;">Value</span>
+          <span style="display:flex;gap:2px;">
+            <button class="sf-btn" id="sortValAsc"  onclick="setSort('val-asc')"  title="Low to high">↑</button>
+            <button class="sf-btn" id="sortValDesc" onclick="setSort('val-desc')" title="High to low">↓</button>
+          </span>
+        </span>
       </span>
     </div>
     <div class="toolbar-row stock-filter">
@@ -188,8 +198,14 @@
 
   function setSort(dir) {
     activeSort = activeSort === dir ? null : dir;
-    document.getElementById('sortAsc').classList.toggle('active', activeSort === 'asc');
-    document.getElementById('sortDesc').classList.toggle('active', activeSort === 'desc');
+    ['sortQtyAsc','sortQtyDesc','sortValAsc','sortValDesc'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+    if (activeSort) {
+      const id = { 'qty-asc':'sortQtyAsc','qty-desc':'sortQtyDesc','val-asc':'sortValAsc','val-desc':'sortValDesc' }[activeSort];
+      if (id) document.getElementById(id).classList.add('active');
+    }
     render();
   }
 
@@ -236,8 +252,18 @@
       return true;
     });
 
-    if (activeSort === 'asc')  filtered.sort((a, b) => getTgStock(a) - getTgStock(b));
-    if (activeSort === 'desc') filtered.sort((a, b) => getTgStock(b) - getTgStock(a));
+    if (activeSort) {
+      const contextQty = p => {
+        if (activeFilter === 'repair')    return getTgRepair(p);
+        if (activeFilter === 'ordered')   return orderedQtyMap[p.id] || 0;
+        if (activeFilter === 'fabricate') return Math.max(0, (orderedQtyMap[p.id] || 0) - (getTgStock(p) - getTgRepair(p)));
+        return getTgStock(p);
+      };
+      const sortVal = p => contextQty(p) * (parseFloat(p.price) || 0);
+      const asc = activeSort.endsWith('asc');
+      if (activeSort.startsWith('qty')) filtered.sort((a, b) => asc ? contextQty(a) - contextQty(b) : contextQty(b) - contextQty(a));
+      if (activeSort.startsWith('val')) filtered.sort((a, b) => asc ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a));
+    }
 
     document.getElementById('tbody').innerHTML = filtered.map(p => {
       const img    = p.images && p.images[0]
@@ -288,11 +314,7 @@
       tFabQty    += fab;     tFabVal    += fab    * price;
     });
 
-    document.getElementById('productCount').textContent  = filtered.length + ' products';
-    document.getElementById('totalStock').textContent    = 'Stock: ' + tStockQty;
-    document.getElementById('totalOrdered').textContent  = 'Ordered: ' + tOrderedQty;
-    document.getElementById('totalStock').style.display  = '';
-    document.getElementById('totalOrdered').style.display = '';
+    document.getElementById('productCount').textContent = filtered.length + ' products';
 
     document.getElementById('totals-row').innerHTML = `
       <th></th><th></th>
@@ -406,9 +428,9 @@
   window.addEventListener('resize', updateTheadTop);
 
   document.getElementById('searchInput').addEventListener('input', render);
-  document.querySelectorAll('.sf-btn').forEach(btn => {
+  document.querySelectorAll('.sf-btn[data-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.sf-btn[data-filter]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeFilter = btn.dataset.filter;
       render();
