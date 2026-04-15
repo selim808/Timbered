@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fabrication — Timbered</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -178,6 +180,12 @@
     /* KANBAN SLIDER */
     #kb-slider-wrap { display: none; padding: 4px 12px 10px; background: #f5f0eb; }
     #kb-slider { width: 100%; accent-color: #7A4610; cursor: pointer; }
+    #wip-chart-wrap { display: none; padding: 16px 12px; }
+    #wip-chart-wrap .wip-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    #wip-chart-wrap .wip-kpi { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 120px; }
+    #wip-chart-wrap .wip-kpi-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+    #wip-chart-wrap .wip-kpi-value { font-size: 18px; font-weight: 700; color: #7A4610; margin-top: 2px; }
+    #wip-chart-box { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; height: 360px; position: relative; }
 
     /* KANBAN */
     #kanban-wrap { display: none; overflow: auto; padding: 12px; padding-right: 0; touch-action: pan-x pan-y; }
@@ -212,6 +220,7 @@
 <div class="sub-nav">
   <button class="sub-nav-btn active" id="tabFab">Fabrication</button>
   <button class="sub-nav-btn" id="tabKanban">Kanban</button>
+  <button class="sub-nav-btn" id="tabWipChart">WIP Chart</button>
 </div>
 
 <div class="toolbar">
@@ -260,6 +269,13 @@
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
 <div id="kanban-wrap"><div class="kb-board" id="kb-board"></div></div>
+<div id="wip-chart-wrap">
+  <div class="wip-summary">
+    <div class="wip-kpi"><div class="wip-kpi-label">Total WIP Value</div><div class="wip-kpi-value" id="wipTotalVal">—</div></div>
+    <div class="wip-kpi"><div class="wip-kpi-label">Total Items</div><div class="wip-kpi-value" id="wipTotalItems">—</div></div>
+  </div>
+  <div id="wip-chart-box"><canvas id="wipChart"></canvas></div>
+</div>
 <div id="kb-slider-wrap">
   <input type="range" id="kb-slider" min="0" max="100" value="0">
 </div>
@@ -1019,32 +1035,118 @@
   document.getElementById('kanban-wrap').addEventListener('touchend', () => { kbPinchStart = null; });
 
   // ── Tab switching ─────────────────────────────────────────────────
-  const tabFab    = document.getElementById('tabFab');
-  const tabKanban = document.getElementById('tabKanban');
+  const tabFab      = document.getElementById('tabFab');
+  const tabKanban   = document.getElementById('tabKanban');
+  const tabWipChart = document.getElementById('tabWipChart');
   const fabContent   = document.getElementById('content');
   const fabToolbar   = document.querySelector('.toolbar');
   const fabBar       = document.getElementById('completedBar');
   const kanbanWrap   = document.getElementById('kanban-wrap');
+  const wipChartWrap = document.getElementById('wip-chart-wrap');
 
-  tabFab.addEventListener('click', () => {
-    tabFab.classList.add('active'); tabKanban.classList.remove('active');
-    fabContent.style.display = 'block';
-    fabToolbar.style.display = '';
-    fabBar.style.display = fabBar.classList.contains('visible') ? 'flex' : 'none';
-    kanbanWrap.style.display = 'none';
-    kbSliderWrap.style.display = 'none';
-  });
+  function setTab(active) {
+    [tabFab, tabKanban, tabWipChart].forEach(t => t.classList.remove('active'));
+    active.classList.add('active');
+    fabContent.style.display   = active === tabFab ? 'block' : 'none';
+    fabToolbar.style.display   = active === tabFab ? '' : 'none';
+    fabBar.style.display       = active === tabFab && fabBar.classList.contains('visible') ? 'flex' : 'none';
+    kanbanWrap.style.display   = active === tabKanban ? 'block' : 'none';
+    kbSliderWrap.style.display = active === tabKanban ? 'block' : 'none';
+    wipChartWrap.style.display = active === tabWipChart ? 'block' : 'none';
+  }
+
+  tabFab.addEventListener('click', () => setTab(tabFab));
 
   tabKanban.addEventListener('click', () => {
-    tabKanban.classList.add('active'); tabFab.classList.remove('active');
-    fabContent.style.display = 'none';
-    fabToolbar.style.display = 'none';
-    fabBar.style.display = 'none';
-    kanbanWrap.style.display = 'block';
-    kbSliderWrap.style.display = 'block';
+    setTab(tabKanban);
     kbSlider.value = 0;
     buildKanban();
   });
+
+  tabWipChart.addEventListener('click', () => {
+    setTab(tabWipChart);
+    buildWipChart();
+  });
+
+  // ── WIP Chart ────────────────────────────────────────────────────
+  const WIP_GREEN = ['WH-Ready', 'DLV-Bosta', 'DLV-Private', 'Partial - Delivered'];
+  const WIP_RED   = ['WH-Defected', 'WH-No_Response', 'WH-Postponed', 'WH-Returned',
+                     'Not Received in WH', 'Not available in WH',
+                     'DLV-Bareed-Cairo', 'DLV-Bareed-Tanta'];
+  Chart.register(ChartDataLabels);
+  let wipChartInstance = null;
+
+  function buildWipChart() {
+    if (!allOrders || !allOrders.length) return;
+
+    // Aggregate value + item count per phase (read directly from meta_data)
+    const phaseVal   = {};
+    const phaseItems = {};
+    allOrders.forEach(order => {
+      order.line_items.forEach(item => {
+        const meta  = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        const phase = meta?.value || 'Created';
+        phaseVal[phase]   = (phaseVal[phase]   || 0) + parseFloat(item.total  || 0);
+        phaseItems[phase] = (phaseItems[phase] || 0) + (item.quantity || 1);
+      });
+    });
+
+    // Sort by ALL_PHASES order, skip phases with 0 value
+    const phases = ALL_PHASES.filter(p => (phaseVal[p] || 0) > 0);
+    const values = phases.map(p => phaseVal[p]);
+    const counts = phases.map(p => phaseItems[p] || 0);
+    const colors = phases.map(p =>
+      WIP_GREEN.includes(p) ? '#27ae60' :
+      WIP_RED.includes(p)   ? '#e74c3c' : '#3498db'
+    );
+
+    const totalVal   = values.reduce((s, v) => s + v, 0);
+    const totalItems = counts.reduce((s, v) => s + v, 0);
+    document.getElementById('wipTotalVal').textContent   = Math.round(totalVal).toLocaleString() + ' EGP';
+    document.getElementById('wipTotalItems').textContent = totalItems + ' items';
+
+    const ctx = document.getElementById('wipChart').getContext('2d');
+    if (wipChartInstance) { wipChartInstance.destroy(); wipChartInstance = null; }
+    wipChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: phases,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const i = c.dataIndex;
+                return [
+                  'Value: ' + Math.round(values[i]).toLocaleString() + ' EGP',
+                  'Items: ' + counts[i]
+                ];
+              }
+            }
+          },
+          datalabels: {
+            anchor: 'end', align: 'top',
+            color: (c) => colors[c.dataIndex],
+            font: { weight: 'bold', size: 9 },
+            formatter: v => v > 0 ? Math.round(v / 1000) + 'K' : ''
+          }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 90, font: { size: 9 } }, grid: { display: false } },
+          y: { ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
+        }
+      }
+    });
+  }
 </script>
 </body>
 </html>
