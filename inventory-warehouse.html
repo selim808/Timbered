@@ -34,6 +34,7 @@
     td, thead th { width: 1px; white-space: nowrap; }
     thead th { background: #fef3e2; color: #7A4610; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: center; border-bottom: 1px solid #e8ddd4; position: sticky; top: var(--thead-top, 0px); z-index: 10; }
     thead th.th-num { width: 28px; text-align: center; padding: 8px 6px; }
+    .totals-row th { background: #fef3e2; font-size: 12px; font-weight: 800; color: #7A4610; padding: 5px 6px; border-bottom: 2px solid #e8ddd4; text-align: center; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
     tbody tr { border-bottom: 1px solid #f5f0eb; transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fdf8f4; }
@@ -92,10 +93,14 @@
   <table>
     <thead>
       <tr>
-        <th>Img</th>
-        <th>Name</th>
+        <th rowspan="2">Img</th>
+        <th rowspan="2">Name</th>
         <th class="th-num">Stock</th>
         <th class="th-num">Repair</th>
+      </tr>
+      <tr class="totals-row" id="totals-row">
+        <th id="total-stock">—</th>
+        <th id="total-repair">—</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -192,6 +197,8 @@
     }).join('');
 
     document.getElementById('productCount').textContent = filtered.length + ' products';
+    document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getTgStock(p), 0);
+    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getTgRepair(p), 0);
   }
 
   function setLocalMeta(p, key, value) {
@@ -245,7 +252,11 @@
   function updateTheadTop() {
     const container = document.getElementById('topFixed');
     if (!container) return;
-    document.documentElement.style.setProperty('--thead-top', container.offsetHeight + 'px');
+    const theadTop = container.offsetHeight;
+    const headerRow = document.querySelector('thead tr:first-child');
+    const headerH = headerRow ? headerRow.offsetHeight : 38;
+    document.documentElement.style.setProperty('--thead-top', theadTop + 'px');
+    document.documentElement.style.setProperty('--totals-top', (theadTop + headerH) + 'px');
   }
   window.addEventListener('resize', updateTheadTop);
 
