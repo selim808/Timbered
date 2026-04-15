@@ -140,29 +140,27 @@
     "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
-  // localStorage phase (shared with orders-fabrication)
-  const LS_KEY = 'tg_kanban_phases';
-  function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
-  function lsSave(all) { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
-  function getItemPhase(orderId, itemId) {
-    const all = lsLoad();
-    return (all[String(orderId)] || {})[String(itemId)] || 'Created';
+  // ── Phase helpers (WC API meta_data only) ────────────────────────
+  function resolvePhase(order, item) {
+    const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
+    return meta?.value || 'Created';
   }
   function setItemPhase(orderId, itemId, phase) {
-    const all = lsLoad();
-    if (!all[String(orderId)]) all[String(orderId)] = {};
-    all[String(orderId)][String(itemId)] = phase;
-    lsSave(all);
+    // Update in-memory so UI stays consistent without reload
+    const order = (allOrders || []).find(o => String(o.id) === String(orderId));
+    if (order) {
+      const item = order.line_items.find(i => String(i.id) === String(itemId));
+      if (item) {
+        const existing = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        if (existing) existing.value = phase;
+        else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
+      }
+    }
     fetch(WC_PUT(orderId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
     }).catch(() => {});
-  }
-
-  function resolvePhase(order, item) {
-    const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-    return meta?.value || getItemPhase(order.id, item.id);
   }
 
   function phaseSelHtml(phase, orderId, itemId) {

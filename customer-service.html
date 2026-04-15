@@ -137,19 +137,19 @@
     "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
-  // ── localStorage phase (shared with orders-fabrication) ───────────
-  const LS_KEY = 'tg_kanban_phases';
-  function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
-  function lsSave(all) { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
-  function getItemPhase(orderId, itemId) {
-    const all = lsLoad();
-    return (all[String(orderId)] || {})[String(itemId)] || 'Created';
-  }
+  // ── Phase helpers (WC API meta_data only) ────────────────────────
   function setItemPhase(orderId, itemId, phase) {
-    const all = lsLoad();
-    if (!all[String(orderId)]) all[String(orderId)] = {};
-    all[String(orderId)][String(itemId)] = phase;
-    lsSave(all);
+    // Update in-memory so UI stays consistent without reload
+    const allOrders = [...(completedOrders || []), ...(noResponseOrders || [])];
+    const order = allOrders.find(o => String(o.id) === String(orderId));
+    if (order) {
+      const item = order.line_items.find(i => String(i.id) === String(itemId));
+      if (item) {
+        const existing = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        if (existing) existing.value = phase;
+        else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
+      }
+    }
     fetch(WC_PUT(orderId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -242,7 +242,7 @@
       ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
       : `<span class="item-thumb-placeholder"></span>`;
     const phaseMeta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-    const phase = phaseMeta?.value || getItemPhase(order.id, item.id);
+    const phase = phaseMeta?.value || 'Created';
     const phaseTag = showPhase ? phaseSelHtml(phase, order.id, item.id) : '';
     return `<div class="item-row">
       ${thumb}
@@ -308,7 +308,7 @@
       const days  = daysSince(o.date_created);
       const nrItems = o.line_items.filter((item) => {
         const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        return (meta?.value || getItemPhase(o.id, item.id)) === 'WH-No_Response';
+        return (meta?.value || 'Created') === 'WH-No_Response';
       });
       const itemsHtml = nrItems.map((item, idx) => itemRowHtml(o, item, idx, true)).join('');
       return `<div class="order-card" data-group-key="order-${o.id}">
@@ -393,15 +393,7 @@
     document.querySelectorAll('.phase-sel').forEach(sel => {
       sel.addEventListener('change', () => {
         setItemPhase(sel.dataset.order, sel.dataset.item, sel.value);
-        // If phase is no longer WH-No_Response, remove the order card if all items moved out
-        if (activeTab === 'noresponse') {
-          const order = noResponseOrders.find(o => String(o.id) === String(sel.dataset.order));
-          if (order) {
-            const meta = (order.line_items.find(i => String(i.id) === String(sel.dataset.item))?.meta_data || [])
-              .find(m => m.key === 'tg_phase');
-            if (meta) meta.value = sel.value;
-          }
-        }
+        render();
       });
     });
   }
@@ -444,10 +436,8 @@
     // Filter processing orders to only those with at least one WH-No_Response item
     noResponseOrders = processing.filter(o =>
       o.line_items.some(item => {
-        // Check API meta first, then localStorage
         const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        const phase = meta?.value || getItemPhase(o.id, item.id);
-        return phase === 'WH-No_Response';
+        return (meta?.value || 'Created') === 'WH-No_Response';
       })
     );
 

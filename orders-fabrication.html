@@ -322,40 +322,30 @@
     "26":"South Sinai","27":"Suez"
   };
 
-  // ── localStorage ─────────────────────────────────────────────────
-  const LS_KEY = 'tg_kanban_phases';
-  function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
-  function lsSave(all) { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+  // ── Phase helpers (WC API meta_data only) ────────────────────────
   function getItemPhase(orderId, itemId) {
-    const all = lsLoad();
-    return (all[orderId] || {})[String(itemId)] || 'Created';
+    const order = (allOrders || []).find(o => String(o.id) === String(orderId));
+    if (!order) return 'Created';
+    const item = order.line_items.find(i => String(i.id) === String(itemId));
+    const meta = (item?.meta_data || []).find(m => m.key === 'tg_phase');
+    return meta?.value || 'Created';
   }
   function setItemPhase(orderId, itemId, phase) {
-    const all = lsLoad();
-    if (!all[orderId]) all[orderId] = {};
-    all[orderId][String(itemId)] = phase;
-    lsSave(all);
-    // Sync phase to the line item's own meta_data (fire and forget)
+    // Update in-memory so UI stays consistent without reload
+    const order = (allOrders || []).find(o => String(o.id) === String(orderId));
+    if (order) {
+      const item = order.line_items.find(i => String(i.id) === String(itemId));
+      if (item) {
+        const existing = (item.meta_data || []).find(m => m.key === 'tg_phase');
+        if (existing) existing.value = phase;
+        else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
+      }
+    }
     fetch(WC_PUT(orderId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
     }).catch(() => {});
-  }
-
-  // ── Merge line item meta into localStorage (API is source of truth) ─
-  function mergeApiMeta(orders) {
-    const all = lsLoad();
-    orders.forEach(o => {
-      o.line_items.forEach(item => {
-        const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        if (meta && meta.value) {
-          if (!all[String(o.id)]) all[String(o.id)] = {};
-          all[String(o.id)][String(item.id)] = meta.value;
-        }
-      });
-    });
-    lsSave(all);
   }
 
   // ── Fetch ─────────────────────────────────────────────────────────
@@ -879,7 +869,6 @@
 
   // Fetch & build
   fetchAllOrders().then(orders => {
-    mergeApiMeta(orders); // API meta wins over stale localStorage
     document.getElementById('state').style.display = 'none';
     document.getElementById('content').style.display = 'block';
 
