@@ -60,7 +60,7 @@
   <div class="stock-filter">
     <button class="sf-btn active" data-filter="all">All</button>
     <button class="sf-btn" data-filter="instock">In Stock</button>
-    <button class="sf-btn" data-filter="onbackorder">Backorder</button>
+    <button class="sf-btn" data-filter="outofstock">Out of Stock</button>
   </div>
 </div>
 
@@ -96,11 +96,16 @@
     return [firstData, ...rest].flat();
   }
 
+  function getTgStock(p) {
+    const meta = (p.meta_data || []).find(m => m.key === 'tg_stock');
+    return meta ? parseInt(meta.value) || 0 : 0;
+  }
+
   async function updateStock(productId, newQty) {
     await fetch(WC_PUT(productId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stock_quantity: newQty, manage_stock: true })
+      body: JSON.stringify({ meta_data: [{ key: 'tg_stock', value: String(newQty) }] })
     });
   }
 
@@ -124,7 +129,8 @@
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
-      if (activeFilter !== 'all' && p.stock_status !== activeFilter) return false;
+      if (activeFilter === 'instock'    && getTgStock(p) === 0) return false;
+      if (activeFilter === 'outofstock' && getTgStock(p) > 0)  return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
       return true;
     });
@@ -133,7 +139,7 @@
       const img    = p.images && p.images[0]
         ? `<img src="${p.images[0].src}" alt="">`
         : `<div class="no-img">📦</div>`;
-      const qty = p.manage_stock && p.stock_quantity !== null ? p.stock_quantity : '—';
+      const qty = getTgStock(p);
       return `<tr>
         <td class="td-img">${img}</td>
         <td class="td-id">#${p.id}</td>
@@ -153,10 +159,13 @@
 
   async function changeQty(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
-    if (!p || !p.manage_stock) return;
-    const newQty = Math.max(0, (p.stock_quantity || 0) + delta);
-    p.stock_quantity = newQty;
-    p.stock_status   = newQty > 0 ? 'instock' : 'outofstock';
+    if (!p) return;
+    const newQty = Math.max(0, getTgStock(p) + delta);
+    // Update local meta_data
+    const meta = p.meta_data || (p.meta_data = []);
+    const entry = meta.find(m => m.key === 'tg_stock');
+    if (entry) entry.value = String(newQty);
+    else meta.push({ key: 'tg_stock', value: String(newQty) });
     const el = document.getElementById('stock-' + productId);
     if (el) el.textContent = newQty;
     updateStock(productId, newQty);
