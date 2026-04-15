@@ -455,6 +455,7 @@
                   <th style="text-align:right;">Cash In</th>
                   <th style="text-align:right;">Completed</th>
                   <th style="text-align:right;">Difference</th>
+                  <th style="text-align:right;">Partial Dlv</th>
                 </tr>
               </thead>
               <tbody>
@@ -463,12 +464,14 @@
                   <td id="ciCashVal" style="text-align:right;">--</td>
                   <td id="ciCompVal" style="text-align:right;">--</td>
                   <td id="ciDiffVal" style="text-align:right;font-weight:700;">--</td>
+                  <td id="ciPartialVal" style="text-align:right;font-weight:700;color:#2980b9;">--</td>
                 </tr>
                 <tr>
                   <td>No.</td>
                   <td id="ciCashNo" style="text-align:right;">--</td>
                   <td id="ciCompNo" style="text-align:right;">--</td>
                   <td id="ciDiffNo" style="text-align:right;font-weight:700;">--</td>
+                  <td style="text-align:right;color:#ccc;">—</td>
                 </tr>
               </tbody>
             </table>
@@ -808,7 +811,7 @@
     return Math.round(total);
   }
 
-  async function loadGoals() {
+async function loadGoals() {
     const stateEl = document.getElementById('goals-state');
     const wrapEl  = document.getElementById('goals-wrap');
     const tbody   = document.getElementById('goals-tbody');
@@ -1161,6 +1164,10 @@
           document.getElementById("prodLblDlv").style.left    = (fabPct + dlvPct / 2) + "%";
           document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
           document.getElementById("prodLblDlv").style.opacity = dlvPct > 8 ? 1 : 0;
+
+          const partialEntry = data.find(d => d.Phases === "Partial - Delivered");
+          const partialEl = document.getElementById("ciPartialVal");
+          if (partialEl) partialEl.innerText = fmt(partialEntry ? (partialEntry["WIP Value"] || 0) : 0);
 
           checkWipMatch();
           const filtered = data.filter(d => (d["WIP Value"] || 0) > 0);
