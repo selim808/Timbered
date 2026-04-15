@@ -653,13 +653,13 @@
   </div>
 
   <!-- ============================================================
-       5. INVENTORY
+       5. MONTHLY PERFORMANCE
   ============================================================ -->
-  <div class="section collapsed" id="section-inventory">
-    <div class="section-header" onclick="toggleSection('section-inventory')">
+  <div class="section collapsed" id="section-monthly">
+    <div class="section-header" onclick="toggleSection('section-monthly')">
       <div class="section-header-left">
         <div class="section-num">5</div>
-        <span class="section-title">Inventory</span>
+        <span class="section-title">Monthly Performance</span>
       </div>
       <div class="chevron">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
@@ -667,11 +667,55 @@
     </div>
     <div class="section-body-wrap">
       <div class="section-body-inner">
-        <div class="section-body">
-          <div class="frame-scroll">
-            <iframe style="width:221px; height:78px;"
-              src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQHMG4r2Ok4zArw645I-HulRATHXFwRnq87VVwyDqP24vRH6w46N6F-AK7R3rxD5dos3YBTy2verdaJ/pubhtml?gid=1288259104&single=true&widget=false&chrome=false&headers=false">
-            </iframe>
+        <div class="section-body" style="padding:12px;">
+          <div id="mperf-state" class="gviz-state">Loading…</div>
+          <div style="margin-bottom:8px;">
+            <label class="bi-label">Month</label>
+            <select id="monthPickerSel" class="bi-select" style="width:100%;"></select>
+          </div>
+          <div id="currentMonthBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Completed</div>
+              <div class="bi-kpi bi-good" id="cmCompleted" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Cancelled</div>
+              <div class="bi-kpi bi-bad" id="cmCancelled" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Created</div>
+              <div class="bi-kpi" id="cmCreated" style="font-size:18px; color:#2563EB;">—</div>
+            </div>
+          </div>
+          <div class="bi-card" style="padding:10px 12px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <table class="bi-funnel-table" style="width:100%; border-collapse:collapse;" id="monthWeeklyTable">
+              <thead><tr id="monthWeeklyHead"></tr></thead>
+              <tbody>
+                <tr id="monthWeeklyRowComp"></tr>
+                <tr id="monthWeeklyRowCanc"></tr>
+                <tr id="monthWeeklyRowCrea"></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
+            <div>
+              <div class="bi-label">Year</div>
+              <div id="monthYearBtns" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
+            </div>
+            <div>
+              <label class="bi-label">Start</label>
+              <select id="monthStart" class="bi-select"></select>
+            </div>
+            <div>
+              <label class="bi-label">End</label>
+              <select id="monthEnd" class="bi-select"></select>
+            </div>
+          </div>
+          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <div id="monthlyChartWrap" style="height:320px;">
+              <canvas id="monthlyChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1275,7 +1319,7 @@ async function loadGoals() {
 
   async function loadWeeklyChart() {
       try {
-          const data = await fetchAllOrders();
+          const data = await getAllOrdersCached();
           document.getElementById('perf-state').style.display = 'none';
 
           const localDs  = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -1563,12 +1607,283 @@ async function loadGoals() {
   }
 
   // ================================================================
+  // MONTHLY PERFORMANCE CHART
+  // ================================================================
+  let _allOrdersCache = null;
+  async function getAllOrdersCached() {
+      if (!_allOrdersCache) _allOrdersCache = await fetchAllOrders();
+      return _allOrdersCache;
+  }
+
+  async function loadMonthlyChart() {
+      try {
+          const data = await getAllOrdersCached();
+          document.getElementById('mperf-state').style.display = 'none';
+
+          const today    = new Date();
+          const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+          const curMonthKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+
+          // Build map of all months from data
+          const monthStarts = new Map();
+          data.forEach(o => {
+              const ds = (o.Completed_Date || o.Created_Date || o.Last_Modified_Date || '').slice(0,7); // YYYY-MM
+              if (!ds) return;
+              if (!monthStarts.has(ds)) monthStarts.set(ds, ds);
+          });
+          monthStarts.set(curMonthKey, curMonthKey);
+
+          const sortedMonths = [...monthStarts.keys()].sort((a,b) => b.localeCompare(a));
+
+          // Populate month picker
+          const sel = document.getElementById('monthPickerSel');
+          sel.innerHTML = '';
+          sortedMonths.forEach(key => {
+              const d = new Date(key + '-01');
+              const lbl = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+              sel.appendChild(new Option(lbl, key));
+          });
+          sel.value = curMonthKey;
+
+          // Render banner + cards + weekly breakdown table for selected month
+          function renderMonthBlock(monthKey) {
+              const [yr, mo]  = monthKey.split('-').map(Number);
+              const firstDay  = new Date(yr, mo - 1, 1);
+              const lastDay   = new Date(yr, mo, 0);
+              const fmtD      = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+              const isCurMonth = monthKey === curMonthKey;
+
+              // Banner
+              const banner = document.getElementById('currentMonthBanner');
+              banner.innerHTML = `
+                <div><span class="bi-label">Month</span><div class="bi-header-val">${firstDay.toLocaleDateString('en-GB', { month:'long', year:'numeric' })}</div></div>
+                <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(firstDay)}</div></div>
+                <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(lastDay)}</div></div>
+                ${isCurMonth ? `<div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(today)} <span style="font-size:12px;color:#888;">(${today.getDate()}/${lastDay.getDate()})</span></div></div>` : ''}`;
+
+              // Build weeks within the month (Sun–Sat)
+              const weeks = [];
+              let cur = new Date(firstDay);
+              cur.setDate(cur.getDate() - cur.getDay()); // back to Sunday
+              while (cur <= lastDay) {
+                  const wStart = new Date(Math.max(cur, firstDay));
+                  const wEnd   = new Date(cur); wEnd.setDate(cur.getDate() + 6);
+                  const wEndCapped = new Date(Math.min(wEnd, lastDay));
+                  weeks.push({ start: wStart, end: wEndCapped });
+                  cur.setDate(cur.getDate() + 7);
+              }
+
+              const head    = document.getElementById('monthWeeklyHead');
+              const rowComp = document.getElementById('monthWeeklyRowComp');
+              const rowCanc = document.getElementById('monthWeeklyRowCanc');
+              const rowCrea = document.getElementById('monthWeeklyRowCrea');
+
+              const thStyle    = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
+              const tdStyle    = 'text-align:center; font-size:12px; padding:3px 6px;';
+              const labelStyle = 'text-align:left; font-size:11px; font-weight:600; color:#888; padding:3px 6px; white-space:nowrap;';
+
+              head.innerHTML = `<th style="${labelStyle}"></th>`;
+              weeks.forEach((w, i) => {
+                  head.innerHTML += `<th style="${thStyle}">W${i+1}<br><span style="font-size:9px;font-weight:400;">${fmtD(w.start)}–${fmtD(w.end)}</span></th>`;
+              });
+
+              const localDs = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+
+              function weekTotal(w, filterFn) {
+                  const s = localDs(w.start), e = localDs(w.end);
+                  return data.filter(o => filterFn(o, s, e)).reduce((sum, o) => sum + (o.Order_Value || 0), 0);
+              }
+
+              const rows = [
+                  { el: rowComp, label: 'Completed', color: COLORS.positive, fn: (o,s,e) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=s && o.Completed_Date.slice(0,10)<=e },
+                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative, fn: (o,s,e) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=s && o.Last_Modified_Date.slice(0,10)<=e },
+                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,  fn: (o,s,e) => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)>=s && o.Created_Date.slice(0,10)<=e },
+              ];
+              rows.forEach(({ el, label, color, fn }) => {
+                  el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
+                  weeks.forEach(w => {
+                      const val = weekTotal(w, fn);
+                      el.innerHTML += `<td style="${tdStyle} color:${val>0?'#333':'#ccc'};">${val>0?Math.round(val/1000)+'K':'—'}</td>`;
+                  });
+              });
+
+              // KPI cards
+              const mStart = monthKey + '-01';
+              const mEnd   = monthKey + '-' + String(lastDay.getDate()).padStart(2,'0');
+              const totalComp = data.filter(o => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=mStart && o.Completed_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCanc = data.filter(o => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=mStart && o.Last_Modified_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCrea = data.filter(o => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)>=mStart && o.Created_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              document.getElementById('cmCompleted').innerText = fmt(totalComp);
+              document.getElementById('cmCancelled').innerText = fmt(totalCanc);
+              document.getElementById('cmCreated').innerText   = fmt(totalCrea);
+          }
+
+          sel.addEventListener('change', () => renderMonthBlock(sel.value));
+          renderMonthBlock(curMonthKey);
+
+          // Build monthly chart data
+          function getMonthLabel(dateStr) {
+              if (!dateStr) return null;
+              return dateStr.slice(0, 7); // YYYY-MM
+          }
+
+          const monthMap = {};
+          const years    = new Set();
+
+          function ensureM(lbl) {
+              if (!monthMap[lbl]) monthMap[lbl] = { created: 0, completed: 0, cancelled: 0 };
+          }
+
+          data.forEach(o => {
+              if (['completed','cancelled','processing'].includes(o.Status)) {
+                  const lbl = getMonthLabel(o.Created_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].created += o.Order_Value || 0; }
+              }
+              if (o.Status === 'completed' && o.Completed_Date) {
+                  const lbl = getMonthLabel(o.Completed_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].completed += o.Order_Value || 0; }
+              }
+              if (o.Status === 'cancelled' && o.Last_Modified_Date) {
+                  const lbl = getMonthLabel(o.Last_Modified_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].cancelled += o.Order_Value || 0; }
+              }
+          });
+
+          const allMonthLabels = Object.keys(monthMap)
+              .filter(l => monthMap[l].created > 0 || monthMap[l].completed > 0 || monthMap[l].cancelled > 0)
+              .sort();
+
+          // Year buttons
+          const btnWrap  = document.getElementById('monthYearBtns');
+          const curYearN = new Date().getFullYear();
+          const allYears = [...new Set(allMonthLabels.map(l => l.slice(0,4)))].sort().reverse();
+          let selectedYearsM = new Set([String(curYearN)]);
+
+          function buildMonthYearBtns() {
+              btnWrap.innerHTML = '';
+              const allBtn = document.createElement('button');
+              allBtn.textContent = 'All';
+              allBtn.className   = 'yr-btn' + (selectedYearsM.size === allYears.length ? ' active' : '');
+              allBtn.onclick = () => {
+                  selectedYearsM = selectedYearsM.size === allYears.length ? new Set([String(curYearN)]) : new Set(allYears);
+                  buildMonthYearBtns(); refreshMonthStartEnd();
+              };
+              btnWrap.appendChild(allBtn);
+              allYears.forEach(yr => {
+                  const btn = document.createElement('button');
+                  btn.textContent = yr;
+                  btn.className   = 'yr-btn' + (selectedYearsM.has(yr) ? ' active' : '');
+                  btn.onclick = () => {
+                      if (selectedYearsM.has(yr)) { if (selectedYearsM.size > 1) selectedYearsM.delete(yr); }
+                      else selectedYearsM.add(yr);
+                      buildMonthYearBtns(); refreshMonthStartEnd();
+                  };
+                  btnWrap.appendChild(btn);
+              });
+          }
+
+          const mStartSel = document.getElementById('monthStart');
+          const mEndSel   = document.getElementById('monthEnd');
+
+          function refreshMonthStartEnd() {
+              const filtered = allMonthLabels.filter(l => selectedYearsM.has(l.slice(0,4)));
+              mStartSel.innerHTML = '';
+              mEndSel.innerHTML   = '';
+              filtered.forEach(l => {
+                  const d = new Date(l + '-01');
+                  const lbl = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+                  mStartSel.appendChild(new Option(lbl, l));
+                  mEndSel.appendChild(new Option(lbl, l));
+              });
+              if (filtered.length) {
+                  mStartSel.value = filtered[0];
+                  mEndSel.value   = filtered[filtered.length - 1];
+              }
+              renderMonthly();
+          }
+
+          const mCtx = document.getElementById('monthlyChart').getContext('2d');
+          let monthlyChart = null;
+
+          function renderMonthly() {
+              const s = mStartSel.value;
+              const e = mEndSel.value;
+              const filtered   = allMonthLabels.filter(l => l >= s && l <= e);
+              const dCreated   = filtered.map(l => monthMap[l]?.created   || 0);
+              const dCompleted = filtered.map(l => monthMap[l]?.completed || 0);
+              const dCancelled = filtered.map(l => monthMap[l]?.cancelled || 0);
+              const yMax = Math.ceil((Math.max(...dCreated, ...dCompleted, ...dCancelled) + 20000) / 10000) * 10000;
+
+              const labels = filtered.map(l => {
+                  const d = new Date(l + '-01');
+                  return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+              });
+
+              const wrap = document.getElementById('monthlyChartWrap');
+              wrap.style.minWidth = Math.max(filtered.length * 40, 300) + 'px';
+
+              if (monthlyChart) {
+                  monthlyChart.data.labels = labels;
+                  monthlyChart.data.datasets[0].data = dCreated;
+                  monthlyChart.data.datasets[1].data = dCompleted;
+                  monthlyChart.data.datasets[2].data = dCancelled;
+                  monthlyChart.options.scales.y.max  = yMax;
+                  monthlyChart.update();
+                  return;
+              }
+
+              monthlyChart = new Chart(mCtx, {
+                  type: 'bar',
+                  data: {
+                      labels,
+                      datasets: [
+                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db' },
+                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60' },
+                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c' }
+                      ]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                          legend: { display: true, position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 20 } },
+                          title : { display: true, text: 'Monthly', font: { size: 14, weight: 'bold' } },
+                          datalabels: {
+                              anchor   : 'end',
+                              align    : 'top',
+                              rotation : -90,
+                              font     : { size: 8, weight: 'bold' },
+                              color    : (c) => ['#3498db','#27ae60','#e74c3c'][c.datasetIndex],
+                              formatter: (v) => v > 0 ? Math.round(v / 1000) : ''
+                          }
+                      },
+                      scales: {
+                          x: { ticks: { maxRotation: 45, font: { size: 9 } }, grid: { display: false } },
+                          y: { max: yMax, ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
+                      }
+                  }
+              });
+          }
+
+          mStartSel.addEventListener('change', renderMonthly);
+          mEndSel.addEventListener('change', renderMonthly);
+          buildMonthYearBtns();
+          refreshMonthStartEnd();
+      } catch(e) {
+          const s = document.getElementById('mperf-state');
+          s.textContent = 'Could not load Monthly Performance — ' + e.message;
+          s.classList.add('error');
+      }
+  }
+
+  // ================================================================
   // INIT
   // ================================================================
   loadGoals();
   fetchBiData();
   loadProductionChart();
   loadWeeklyChart();
+  loadMonthlyChart();
   loadProcessingItemCount();
 
 </script>
