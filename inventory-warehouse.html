@@ -69,11 +69,9 @@
 <body>
 
 <div class="top-fixed" id="topFixed">
-  <div class="site-header">
+  <div class="site-header" style="justify-content:center;">
     <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
     <span class="title">Warehouse</span>
-    <span class="badge" id="productCount">Loading…</span>
-    <a href="index.html" class="back">← Back</a>
   </div>
   <div class="toolbar">
     <div class="toolbar-row">
@@ -196,7 +194,6 @@
       </tr>`;
     }).join('');
 
-    document.getElementById('productCount').textContent = filtered.length + ' products';
     document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getTgStock(p), 0);
     document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getTgRepair(p), 0);
   }
