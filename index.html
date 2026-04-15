@@ -547,6 +547,14 @@
           <div id="prod-state" class="gviz-state">Loading…</div>
           <div class="bi-kpi-grid" style="width:100%; grid-template-columns: repeat(2, 1fr);">
             <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Processing Orders</div>
+              <div id="prodOrdersNo" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Total Items</div>
+              <div id="prodItemsNo" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card" style="text-align:center;">
               <div class="bi-label">Total WIP Value</div>
               <div id="prodTotalWip" class="bi-kpi">--</div>
             </div>
@@ -998,9 +1006,11 @@ async function loadGoals() {
       gapEl.innerText   = fmt(gap);
       gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
 
-      // -- Production: sync processing value --
+      // -- Production: sync processing value + order count --
       const procValEl = document.getElementById("prodProcessingVal");
       if (procValEl) { procValEl.innerText = fmt(d.Processing_Value || 0); checkWipMatch(); }
+      const procNoEl = document.getElementById("prodOrdersNo");
+      if (procNoEl) procNoEl.innerText = Math.round(d.Processing_No || 0);
 
       // -- Cash In vs Completed --
       document.getElementById("ciCashVal").innerText = fmt(d.CashIn_Value   || 0);
@@ -1135,6 +1145,24 @@ async function loadGoals() {
   // PRODUCTION — WIP Breakdown chart
   // ================================================================
   const PROD_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMX42x3UF750oImkO1L4VzlPR7IdfBDchfunY_l7lSAct2YUF3vdALKQMktqwT6W9--oNMyqTUZLOltI4iJaVWHfW-4G5NQNfLnk3lC4EvIAZxHgM-ED5q2ms4-CCpwBONJYGLkrUtsJhvyCLjmEoJK-EptanA0jaYJ7udgV3TVWaeKqvqdl-DEdlW4p2o4gTBCf-t__dl6N_wJJRVAOFisC3-blsjEUKosfPewTMS5dCgy4Lzjgw6l8cQX0I7pDQdhfmQeovA1q1C2XemPcg4Je5b_mjg&lib=MGmF2JFxrWed-6EV_EKU_rUeDcafZ4rz6";
+
+  async function loadProcessingItemCount() {
+      const base = "https://timberedgroup.com/wp-json/wc/v3/orders"
+                 + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+                 + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
+                 + "&status=processing&per_page=100";
+      let page = 1, totalItems = 0;
+      while (true) {
+          const res   = await fetch(base + "&page=" + page);
+          const batch = await res.json();
+          if (!batch.length) break;
+          batch.forEach(o => { (o.line_items || []).forEach(i => { totalItems += i.quantity || 1; }); });
+          if (batch.length < 100) break;
+          page++;
+      }
+      const el = document.getElementById("prodItemsNo");
+      if (el) el.innerText = totalItems;
+  }
 
   const PROD_GREEN = ["WH-Ready", "DLV-Bosta", "DLV-Private", "Partial - Delivered"];
   const PROD_RED   = ["WH-Defected", "WH-No_Response", "WH-Postponed", "WH-Returned",
@@ -1541,6 +1569,7 @@ async function loadGoals() {
   fetchBiData();
   loadProductionChart();
   loadWeeklyChart();
+  loadProcessingItemCount();
 
 </script>
 
