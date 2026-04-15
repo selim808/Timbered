@@ -71,6 +71,8 @@
   <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
   <span class="title">Inventory</span>
   <span class="badge" id="productCount">Loading…</span>
+  <span class="badge" id="totalStock" style="display:none;"></span>
+  <span class="badge" id="totalOrdered" style="display:none;"></span>
   <a href="index.html" class="back">← Back</a>
 </div>
 
@@ -239,7 +241,13 @@
       </tr>`;
     }).join('');
 
+    const totalStock   = filtered.reduce((s, p) => s + getTgStock(p), 0);
+    const totalOrdered = filtered.reduce((s, p) => s + (orderedQtyMap[p.id] || 0), 0);
     document.getElementById('productCount').textContent = filtered.length + ' products';
+    document.getElementById('totalStock').textContent   = 'Stock: ' + totalStock;
+    document.getElementById('totalOrdered').textContent = 'Ordered: ' + totalOrdered;
+    document.getElementById('totalStock').style.display   = '';
+    document.getElementById('totalOrdered').style.display = '';
   }
 
   function setLocalMeta(p, key, value) {
