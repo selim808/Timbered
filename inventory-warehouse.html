@@ -218,7 +218,7 @@
   async function changeRepair(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
-    const newVal = Math.max(0, getTgRepair(p) + delta);
+    const newVal = Math.min(getTgStock(p), Math.max(0, getTgRepair(p) + delta));
     setLocalMeta(p, 'tg_repair', newVal);
     const el = document.getElementById('repair-' + productId);
     if (el) el.textContent = newVal;
