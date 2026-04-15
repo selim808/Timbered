@@ -934,11 +934,36 @@
       });
     });
 
+    // Collect items per phase
+    const phaseItems = {};
     allOrders.forEach(order => {
-      const days = daysSince(order.date_created);
       order.line_items.forEach((item, idx) => {
         const phase = getItemPhase(order.id, item.id);
-        const col = colMap[phase]; if (!col) return;
+        if (!colMap[phase]) return;
+        if (!phaseItems[phase]) phaseItems[phase] = [];
+        phaseItems[phase].push({ order, item, idx });
+      });
+    });
+
+    // Sort each phase: group by product name, highest total QTY first, then highest total value
+    ALL_PHASES.forEach(phase => {
+      const items = phaseItems[phase] || [];
+      const productQty = {};
+      const productVal = {};
+      items.forEach(({ item }) => {
+        productQty[item.name] = (productQty[item.name] || 0) + item.quantity;
+        productVal[item.name] = (productVal[item.name] || 0) + parseFloat(item.total || 0);
+      });
+      items.sort((a, b) => {
+        const diff = productQty[b.item.name] - productQty[a.item.name];
+        if (diff !== 0) return diff;
+        const vdiff = productVal[b.item.name] - productVal[a.item.name];
+        if (vdiff !== 0) return vdiff;
+        return a.item.name.localeCompare(b.item.name);
+      });
+      const col = colMap[phase];
+      items.forEach(({ order, item, idx }) => {
+        const days = daysSince(order.date_created);
         const card = document.createElement('div');
         card.className = 'kb-card'; card.draggable = true;
         card.dataset.orderId = order.id; card.dataset.itemId = item.id; card.dataset.phase = phase;
