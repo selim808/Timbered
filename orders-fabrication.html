@@ -187,6 +187,12 @@
     #wip-chart-wrap .wip-kpi-value { font-size: 18px; font-weight: 700; color: #7A4610; margin-top: 2px; }
     #wip-chart-box { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; height: 360px; position: relative; }
     #wip-chart-box canvas { cursor: pointer; }
+    .nr-checklist { padding: 8px 12px 10px; border-top: 1px solid #f0e8e0; display: flex; flex-direction: column; gap: 5px; }
+    .nr-cl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .nr-cl-day { font-size: 10px; font-weight: 700; color: #7A4610; text-transform: uppercase; letter-spacing: 0.4px; min-width: 28px; }
+    .nr-check-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; cursor: pointer; user-select: none; }
+    .nr-check-item input[type=checkbox] { accent-color: #7A4610; width: 13px; height: 13px; cursor: pointer; }
+    .nr-check-item.done span { color: #27ae60; text-decoration: line-through; }
 
     /* KANBAN */
     #kb-filter-bar { display: none; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; gap: 6px; flex-wrap: wrap; }
@@ -227,6 +233,7 @@
   <button class="sub-nav-btn active" id="tabFab">Fabrication</button>
   <button class="sub-nav-btn" id="tabKanban">Kanban</button>
   <button class="sub-nav-btn" id="tabWipChart">WIP Chart</button>
+  <button class="sub-nav-btn" id="tabNoResponse">No Response</button>
 </div>
 
 <div class="toolbar">
@@ -287,6 +294,7 @@
   </div>
   <div id="wip-chart-box"><canvas id="wipChart"></canvas></div>
 </div>
+<div id="nr-wrap" style="display:none;"></div>
 <div id="kb-slider-wrap">
   <input type="range" id="kb-slider" min="0" max="100" value="0">
 </div>
@@ -1060,18 +1068,20 @@
   document.getElementById('kanban-wrap').addEventListener('touchend', () => { kbPinchStart = null; });
 
   // ── Tab switching ─────────────────────────────────────────────────
-  const tabFab       = document.getElementById('tabFab');
-  const tabKanban    = document.getElementById('tabKanban');
-  const tabWipChart  = document.getElementById('tabWipChart');
-  const fabContent   = document.getElementById('content');
-  const fabToolbar   = document.querySelector('.toolbar');
-  const fabBar       = document.getElementById('completedBar');
-  const kanbanWrap   = document.getElementById('kanban-wrap');
-  const wipChartWrap = document.getElementById('wip-chart-wrap');
-  const kbFilterBar  = document.getElementById('kb-filter-bar');
+  const tabFab        = document.getElementById('tabFab');
+  const tabKanban     = document.getElementById('tabKanban');
+  const tabWipChart   = document.getElementById('tabWipChart');
+  const tabNoResponse = document.getElementById('tabNoResponse');
+  const fabContent    = document.getElementById('content');
+  const fabToolbar    = document.querySelector('.toolbar');
+  const fabBar        = document.getElementById('completedBar');
+  const kanbanWrap    = document.getElementById('kanban-wrap');
+  const wipChartWrap  = document.getElementById('wip-chart-wrap');
+  const kbFilterBar   = document.getElementById('kb-filter-bar');
+  const nrWrap        = document.getElementById('nr-wrap');
 
   function setTab(active) {
-    [tabFab, tabKanban, tabWipChart].forEach(t => t.classList.remove('active'));
+    [tabFab, tabKanban, tabWipChart, tabNoResponse].forEach(t => t.classList.remove('active'));
     active.classList.add('active');
     fabContent.style.display   = active === tabFab ? 'block' : 'none';
     fabToolbar.style.display   = active === tabFab ? '' : 'none';
@@ -1080,6 +1090,7 @@
     kbSliderWrap.style.display = active === tabKanban ? 'block' : 'none';
     kbFilterBar.classList.toggle('visible', active === tabKanban);
     wipChartWrap.style.display = active === tabWipChart ? 'block' : 'none';
+    nrWrap.style.display       = active === tabNoResponse ? 'block' : 'none';
   }
 
   // ── Kanban phase-group filter buttons ────────────────────────────
@@ -1118,6 +1129,133 @@
     setTab(tabWipChart);
     buildWipChart();
   });
+
+  tabNoResponse.addEventListener('click', () => {
+    setTab(tabNoResponse);
+    renderNoResponse();
+  });
+
+  // ── No Response tab ───────────────────────────────────────────────
+  const NR_CL_KEY = 'tg_nr_checklist';
+  function nrClLoad() { try { return JSON.parse(localStorage.getItem(NR_CL_KEY) || '{}'); } catch { return {}; } }
+  function nrClSave(d) { localStorage.setItem(NR_CL_KEY, JSON.stringify(d)); }
+
+  function renderNoResponse() {
+    if (!allOrders || !allOrders.length) {
+      nrWrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px 20px;font-size:13px;">Loading…</div>';
+      return;
+    }
+
+    // Collect orders that have at least one WH-No_Response item
+    const nrOrders = allOrders.filter(o =>
+      o.line_items.some(item => getItemPhase(o.id, item.id) === 'WH-No_Response')
+    );
+
+    if (!nrOrders.length) {
+      nrWrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px 20px;font-size:13px;">No items in No Response</div>';
+      return;
+    }
+
+    // Sort oldest first
+    const sorted = [...nrOrders].sort((a, b) => daysSince(b.date_created) - daysSince(a.date_created));
+    const cl = nrClLoad();
+
+    const html = sorted.map(o => {
+      const days  = daysSince(o.date_created);
+      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const addr1 = o.billing.address_1 || '';
+      const addr2 = o.billing.address_2 || '';
+      const state = EG_STATES[o.billing.state] || o.billing.state || '';
+      const phone = o.billing.phone || '';
+      const waNum = phone.replace(/\D/g,'').replace(/^0/,'20');
+      const phoneHtml = phone
+        ? `<span class="order-phone-wrap" onclick="event.stopPropagation()">
+             <a class="order-phone-lbl" href="https://wa.me/${waNum}" target="_blank" title="WhatsApp">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
+             </a>
+             <span class="order-phone-num">${phone}</span>
+             <a class="order-phone-call" href="tel:${phone}" title="Call">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+             </a>
+           </span>`
+        : '<span class="order-phone-num">—</span>';
+
+      const itemsHtml = o.line_items.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
+      const oc = cl[String(o.id)] || {};
+      const NR_DAYS = [
+        { key: 'Sat', label: 'Sat' },
+        { key: 'Tue', label: 'Tue' },
+        { key: 'Fri', label: 'Fri' },
+      ];
+      const NR_ACTIONS = [
+        { key: 'sentWA',  label: 'Sent WA msg' },
+        { key: 'call1PM', label: 'Call 1 PM' },
+        { key: 'call5PM', label: 'at 5 PM' },
+        { key: 'call8PM', label: 'at 8 PM' },
+      ];
+      const checklistHtml = NR_DAYS.map(({ key: dayKey, label: dayLabel }) => {
+        const dayData = (oc[dayKey] || {});
+        const actionsHtml = NR_ACTIONS.map(({ key: actKey, label: actLabel }) => {
+          const checked = dayData[actKey] ? 'checked' : '';
+          const done    = dayData[actKey] ? ' done'   : '';
+          return `<label class="nr-check-item${done}" onclick="event.stopPropagation()">
+            <input type="checkbox" ${checked} data-nr-order="${o.id}" data-nr-day="${dayKey}" data-nr-key="${actKey}">
+            <span>${actLabel}</span>
+          </label>`;
+        }).join('');
+        return `<div class="nr-cl-row"><span class="nr-cl-day">${dayLabel}</span>${actionsHtml}</div>`;
+      }).join('');
+
+      return `<div class="order-card" data-group-key="nr-${o.id}">
+        <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <span class="d-badge ${dc(days)}">${days}d</span>
+          <span class="item-id">#${o.id}</span>
+          <span class="order-name-lbl">${name}</span>
+          <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
+          ${phoneHtml}
+          <span class="order-chevron">▼</span>
+        </div>
+        <div class="order-addr-lbl">
+          <span class="a1">${addr1}</span>
+          <span class="a2">${addr2}</span>
+          <span class="a3">${state}</span>
+        </div>
+        <div class="order-items">
+          <div class="order-items-inner">
+            ${itemsHtml}
+            <div class="nr-checklist">${checklistHtml}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Remember which cards were open
+    const wasOpen = [...nrWrap.querySelectorAll('.order-card.open')].map(el => el.dataset.groupKey);
+    nrWrap.innerHTML = `<div style="padding:8px;">${html}</div>`;
+    nrWrap.querySelectorAll('.order-card').forEach(el => {
+      if (wasOpen.includes(el.dataset.groupKey)) el.classList.add('open');
+    });
+
+    // Phase selector listeners
+    nrWrap.querySelectorAll('.phase-sel').forEach(sel => {
+      sel.addEventListener('change', () => {
+        setItemPhase(sel.dataset.order, sel.dataset.item, sel.value);
+        renderNoResponse();
+      });
+    });
+
+    // Checklist listeners
+    nrWrap.querySelectorAll('input[data-nr-order]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const d = nrClLoad();
+        if (!d[cb.dataset.nrOrder]) d[cb.dataset.nrOrder] = {};
+        if (!d[cb.dataset.nrOrder][cb.dataset.nrDay]) d[cb.dataset.nrOrder][cb.dataset.nrDay] = {};
+        d[cb.dataset.nrOrder][cb.dataset.nrDay][cb.dataset.nrKey] = cb.checked;
+        nrClSave(d);
+        cb.closest('.nr-check-item').classList.toggle('done', cb.checked);
+      });
+    });
+  }
 
   // ── WIP Chart ────────────────────────────────────────────────────
   const WIP_GREEN = ['WH-Ready', 'DLV-Bosta', 'DLV-Private', 'Partial - Delivered'];
