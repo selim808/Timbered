@@ -33,7 +33,7 @@
     .tbl-wrap { padding: 0; }
     table { width: 100%; border-collapse: collapse; background: #fff; }
     thead th { background: #fef3e2; color: #7A4610; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: left; border-bottom: 1px solid #e8ddd4; position: sticky; top: var(--thead-top, 0px); z-index: 10; }
-    .totals-row th { background: #fef3e2; font-size: 11px; font-weight: 700; color: #7A4610; padding: 6px 12px; border-bottom: 2px solid #e8ddd4; text-align: center; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
+    .totals-row th { background: #fef3e2; font-size: 11px; font-weight: 700; color: #7A4610; padding: 6px 4px; border-bottom: 2px solid #e8ddd4; text-align: left; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
     .totals-row .t-val { font-size: 10px; font-weight: 600; color: #a07040; display: block; }
     tbody tr { border-bottom: 1px solid #f5f0eb; transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
@@ -44,7 +44,8 @@
     .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; }
     .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; }
 .td-name { font-size: 12px; font-weight: 600; color: #333; }
-    .td-stock { white-space: nowrap; }
+    .td-stock { white-space: nowrap; width: 28px; text-align: left; padding-left: 4px; padding-right: 4px; }
+    thead th.th-num { width: 28px; text-align: left; padding: 8px 4px; vertical-align: bottom; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 0.5px; }
     .stock-row { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .stock-val { font-size: 12px; font-weight: 700; min-width: 36px; text-align: center; }
     .qty-btn { width: 26px; height: 26px; border: 1.5px solid #e8ddd4; border-radius: 7px; background: #fff; font-size: 15px; font-weight: 700; color: #7A4610; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
@@ -103,10 +104,10 @@
       <tr>
         <th>Img</th>
         <th>Name</th>
-        <th>Stock</th>
-        <th>Repair</th>
-        <th>Ordered</th>
-        <th>Fabricate</th>
+        <th class="th-num">Stock</th>
+        <th class="th-num">Repair</th>
+        <th class="th-num">Ordered</th>
+        <th class="th-num">Fabricate</th>
       </tr>
       <tr class="totals-row" id="totals-row">
         <th></th><th></th><th>—</th><th>—</th><th>—</th><th>—</th>
@@ -245,8 +246,8 @@
             <button class="qty-btn" onclick="changeRepair(${p.id},-1)">−</button>
           </div>
         </td>
-        <td style="font-size:13px;font-weight:700;color:${ordered>0?'#7A4610':'#ccc'};text-align:center;">${ordered || '—'}</td>
-        <td id="fab-${p.id}" style="font-size:13px;font-weight:700;color:${fabricate>0?'#c0392b':'#ccc'};text-align:center;">${fabricate || '—'}</td>
+        <td style="font-size:13px;font-weight:700;color:${ordered>0?'#7A4610':'#ccc'};padding:8px 4px;">${ordered || '—'}</td>
+        <td id="fab-${p.id}" style="font-size:13px;font-weight:700;color:${fabricate>0?'#c0392b':'#ccc'};padding:8px 4px;">${fabricate || '—'}</td>
       </tr>`;
     }).join('');
 
