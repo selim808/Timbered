@@ -186,8 +186,14 @@
     #wip-chart-wrap .wip-kpi-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
     #wip-chart-wrap .wip-kpi-value { font-size: 18px; font-weight: 700; color: #7A4610; margin-top: 2px; }
     #wip-chart-box { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; height: 360px; position: relative; }
+    #wip-chart-box canvas { cursor: pointer; }
 
     /* KANBAN */
+    #kb-filter-bar { display: none; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; gap: 6px; flex-wrap: wrap; }
+    #kb-filter-bar.visible { display: flex; }
+    .kb-filter-btn { font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; }
+    .kb-filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
+    .kb-col.hidden { display: none; }
     #kanban-wrap { display: none; overflow: auto; padding: 12px; padding-right: 0; touch-action: pan-x pan-y; }
     #kb-end-spacer { min-width: 12px; flex-shrink: 0; }
     .kb-board { display: flex; gap: 10px; align-items: flex-start; min-width: max-content; transform-origin: top left; transition: transform 0.05s; }
@@ -268,6 +274,11 @@
 
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
+<div id="kb-filter-bar">
+  <button class="kb-filter-btn active" data-kb-filter="production">Production</button>
+  <button class="kb-filter-btn active" data-kb-filter="wh">WH</button>
+  <button class="kb-filter-btn active" data-kb-filter="delivery">Delivery</button>
+</div>
 <div id="kanban-wrap"><div class="kb-board" id="kb-board"></div></div>
 <div id="wip-chart-wrap">
   <div class="wip-summary">
@@ -328,6 +339,19 @@
   ];
 
   const DLV_PHASES = ALL_PHASES.filter(p => !FAB_PHASES.includes(p));
+
+  const WH_PHASES  = [
+    "Sent to WH","Not Received in WH","Already in WH","Not available in WH",
+    "Sent to Workshop","WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"
+  ];
+  const DELIVERY_KB_PHASES = [
+    "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Partial - Delivered"
+  ];
+  function kbGroup(phase) {
+    if (WH_PHASES.includes(phase))       return 'wh';
+    if (DELIVERY_KB_PHASES.includes(phase)) return 'delivery';
+    return 'production';
+  }
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -918,6 +942,7 @@
     ALL_PHASES.forEach(phase => {
       const col = document.createElement('div');
       col.className = 'kb-col';
+      col.dataset.kbGroup = kbGroup(phase);
       col.innerHTML = `<div class="kb-col-header"><div class="kb-col-title">${phase}</div><div class="kb-col-count" id="kbcnt-${encodeKbPhase(phase)}">0</div></div><div class="kb-col-body" data-phase="${phase}"></div>`;
       board.appendChild(col);
       const body = col.querySelector('.kb-col-body');
@@ -1035,14 +1060,15 @@
   document.getElementById('kanban-wrap').addEventListener('touchend', () => { kbPinchStart = null; });
 
   // ── Tab switching ─────────────────────────────────────────────────
-  const tabFab      = document.getElementById('tabFab');
-  const tabKanban   = document.getElementById('tabKanban');
-  const tabWipChart = document.getElementById('tabWipChart');
+  const tabFab       = document.getElementById('tabFab');
+  const tabKanban    = document.getElementById('tabKanban');
+  const tabWipChart  = document.getElementById('tabWipChart');
   const fabContent   = document.getElementById('content');
   const fabToolbar   = document.querySelector('.toolbar');
   const fabBar       = document.getElementById('completedBar');
   const kanbanWrap   = document.getElementById('kanban-wrap');
   const wipChartWrap = document.getElementById('wip-chart-wrap');
+  const kbFilterBar  = document.getElementById('kb-filter-bar');
 
   function setTab(active) {
     [tabFab, tabKanban, tabWipChart].forEach(t => t.classList.remove('active'));
@@ -1052,8 +1078,33 @@
     fabBar.style.display       = active === tabFab && fabBar.classList.contains('visible') ? 'flex' : 'none';
     kanbanWrap.style.display   = active === tabKanban ? 'block' : 'none';
     kbSliderWrap.style.display = active === tabKanban ? 'block' : 'none';
+    kbFilterBar.classList.toggle('visible', active === tabKanban);
     wipChartWrap.style.display = active === tabWipChart ? 'block' : 'none';
   }
+
+  // ── Kanban phase-group filter buttons ────────────────────────────
+  const kbActiveFilters = new Set(['production', 'wh', 'delivery']);
+
+  function applyKbFilter() {
+    document.querySelectorAll('.kb-col[data-kb-group]').forEach(col => {
+      col.classList.toggle('hidden', !kbActiveFilters.has(col.dataset.kbGroup));
+    });
+  }
+
+  document.querySelectorAll('.kb-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.kbFilter;
+      if (kbActiveFilters.has(f)) {
+        if (kbActiveFilters.size === 1) return; // keep at least one active
+        kbActiveFilters.delete(f);
+        btn.classList.remove('active');
+      } else {
+        kbActiveFilters.add(f);
+        btn.classList.add('active');
+      }
+      applyKbFilter();
+    });
+  });
 
   tabFab.addEventListener('click', () => setTab(tabFab));
 
@@ -1120,6 +1171,22 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (event, elements) => {
+          if (!elements.length) return;
+          const phase = phases[elements[0].index];
+          // Switch to Fabrication tab, phase view, open that group
+          setTab(tabFab);
+          if (currentView !== 'phase') {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.view-btn[data-view="phase"]').classList.add('active');
+            currentView = 'phase';
+          }
+          render('phase-' + phase);
+          setTimeout(() => {
+            const group = document.querySelector(`[data-group-key="phase-${phase}"]`);
+            if (group) group.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 50);
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
