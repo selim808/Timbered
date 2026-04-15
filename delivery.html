@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    /* HEADER */
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
+    .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
+    .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; flex-wrap: wrap; }
+    .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
+    .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
+    .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; line-height: 1.4; }
+
+    /* STATE */
+    #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    /* CONTENT */
+    #content { padding: 10px; }
+
+    /* ORDER CARD */
+    .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
+    .order-top { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; }
+    .order-top:hover { background: #fdf8f4; border-radius: 8px 8px 0 0; }
+    .order-id { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .order-name-lbl { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .order-total-lbl { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
+    .order-phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .order-phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
+    .order-phone-lbl  { display: flex; align-items: center; text-decoration: none; }
+    .order-phone-lbl:hover svg { opacity: 0.75; }
+    .order-phone-call { display: flex; align-items: center; text-decoration: none; }
+    .order-phone-call:hover svg { opacity: 0.6; }
+    .order-days { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+    .order-days.warn   { background: #e67e22; }
+    .order-days.urgent { background: #e74c3c; }
+    .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
+    .order-card.open .order-chevron { transform: rotate(180deg); }
+    .order-addr-lbl { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; }
+    .order-addr-lbl .a1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .order-addr-lbl .a2 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+    .order-addr-lbl .a3 { flex-shrink:0; white-space:nowrap; font-weight:600; color:#7A4610; }
+    .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
+    .order-items-inner { overflow: hidden; }
+    .order-card.open .order-items { grid-template-rows: 1fr; }
+
+    /* ITEM ROW */
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid #f5f0eb; }
+    .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .item-thumb { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-placeholder { width: 28px; height: 28px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+    .item-name:hover { text-decoration: underline; color: #7A4610; }
+    .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
+    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 90px; }
+
+    /* photo popup */
+    .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-overlay.open { display: flex; }
+    .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
+    .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
+    .photo-popup-meta { display: flex; flex-direction: column; gap: 4px; }
+    .photo-popup-meta span { font-size: 12px; color: #666; text-align: center; }
+    .photo-popup-meta strong { color: #333; }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <span class="title">Delivery</span>
+  <span class="badge" id="orderCount">Loading…</span>
+  <a href="index.html" class="back">← Back</a>
+</div>
+
+<div class="toolbar">
+  <button class="filter-btn active" data-phase="WH-Ready">WH-Ready</button>
+  <button class="filter-btn active" data-phase="WH-No_Response">No Response</button>
+  <button class="filter-btn active" data-phase="DLV-Bareed-Cairo">Bareed Cairo</button>
+  <button class="filter-btn active" data-phase="DLV-Bareed-Tanta">Bareed Tanta</button>
+  <button class="filter-btn active" data-phase="DLV-Bosta">Bosta</button>
+  <button class="filter-btn active" data-phase="DLV-Private">Private</button>
+  <button class="filter-btn active" data-phase="Partial - Delivered">Partial Dlv</button>
+  <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
+  <input id="searchInput" type="search" placeholder="Search order, client, phone…"
+    style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
+</div>
+
+<div id="state">Loading…</div>
+<div id="content" style="display:none;"></div>
+
+<!-- Photo popup -->
+<div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
+  <div class="photo-popup" onclick="event.stopPropagation()">
+    <div class="photo-popup-name" id="photoName"></div>
+    <img id="photoImg" src="" alt="">
+    <div class="photo-popup-meta" id="photoMeta"></div>
+  </div>
+</div>
+
+<script>
+  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+                  + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
+
+  const DELIVERY_PHASES = [
+    "WH-Ready", "WH-No_Response",
+    "DLV-Bareed-Cairo", "DLV-Bareed-Tanta", "DLV-Bosta", "DLV-Private",
+    "Partial - Delivered"
+  ];
+
+  const ALL_PHASES = [
+    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
+    "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
+    "WH-Postponed","WH-Returned","WH-Ready","DLV-Bareed-Cairo","DLV-Bareed-Tanta",
+    "DLV-Bosta","DLV-Private","Partial - Delivered"
+  ];
+
+  const EG_STATES = {
+    "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
+    "5":"Cairo","6":"Dakahlia","7":"Damietta","8":"El Kalioubia","9":"Fayoum",
+    "10":"Gharbia","11":"Giza","12":"Ismailia","13":"Kafr Alsheikh","14":"Luxor",
+    "15":"Matruh","16":"Minia","17":"Minya","18":"Monufia","19":"New Valley",
+    "20":"North Sinai","21":"Port Said","22":"Qalyubia","23":"Qena","24":"Red Sea",
+    "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
+  };
+
+  // localStorage phase (shared with orders-fabrication)
+  const LS_KEY = 'tg_kanban_phases';
+  function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } }
+  function lsSave(all) { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+  function getItemPhase(orderId, itemId) {
+    const all = lsLoad();
+    return (all[String(orderId)] || {})[String(itemId)] || 'Created';
+  }
+  function setItemPhase(orderId, itemId, phase) {
+    const all = lsLoad();
+    if (!all[String(orderId)]) all[String(orderId)] = {};
+    all[String(orderId)][String(itemId)] = phase;
+    lsSave(all);
+    fetch(WC_PUT(orderId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
+    }).catch(() => {});
+  }
+
+  function resolvePhase(order, item) {
+    const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
+    return meta?.value || getItemPhase(order.id, item.id);
+  }
+
+  function phaseSelHtml(phase, orderId, itemId) {
+    return `<select class="phase-sel" data-order="${orderId}" data-item="${itemId}" onclick="event.stopPropagation()">
+      ${ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+    </select>`;
+  }
+
+  async function fetchProcessingOrders() {
+    let page = 1, all = [];
+    while (true) {
+      const res   = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=asc&per_page=100&page=${page}`);
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
+  }
+
+  // Photo popup
+  const _photoItems = {};
+  let _productCache = {};
+  let _productsFetchPromise = null;
+
+  function openPhoto(itemId) {
+    const item = _photoItems[itemId];
+    if (!item) return;
+    document.getElementById('photoName').textContent = item.name;
+    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoMeta').innerHTML = '';
+    document.getElementById('photoOverlay').classList.add('open');
+    ensureProductsCached().then(() => {
+      const p = _productCache[item.product_id];
+      if (!p) return;
+      const d = p.dimensions || {};
+      const dims = [d.length?`L:${d.length}`:'', d.width?`W:${d.width}`:'', d.height?`H:${d.height}`:''].filter(Boolean).join(' · ') || null;
+      const mat  = (p.attributes||[]).find(a => /material|خامة|wood/i.test(a.name))?.options?.join(', ') || null;
+      document.getElementById('photoMeta').innerHTML = [
+        dims ? `<span><strong>Dimensions:</strong> ${dims}</span>` : '',
+        mat  ? `<span><strong>Material:</strong> ${mat}</span>`    : '',
+      ].filter(Boolean).join('') || '';
+    }).catch(() => {});
+  }
+  function closePhoto() { document.getElementById('photoOverlay').classList.remove('open'); }
+
+  function ensureProductsCached() {
+    if (_productsFetchPromise) return _productsFetchPromise;
+    const ids = [...new Set(allOrders.flatMap(o => o.line_items.map(i => i.product_id)).filter(Boolean))];
+    if (!ids.length) return (_productsFetchPromise = Promise.resolve());
+    const base = "https://timberedgroup.com/wp-json/wc/v3/products?" + WC_CREDS + "&per_page=100";
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+    _productsFetchPromise = Promise.all(chunks.map(chunk =>
+      fetch(base + `&include=${chunk.join(',')}`)
+        .then(r => r.json()).then(ps => ps.forEach(p => { _productCache[p.id] = p; })).catch(() => {})
+    ));
+    return _productsFetchPromise;
+  }
+
+  function daysSince(dateStr) { return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000); }
+  function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
+
+  function phoneHtml(phone) {
+    if (!phone) return '<span class="order-phone-num">—</span>';
+    const wa = phone.replace(/\D/g,'').replace(/^0/,'20');
+    return `<span class="order-phone-wrap" onclick="event.stopPropagation()">
+      <a class="order-phone-lbl" href="https://wa.me/${wa}" target="_blank" title="WhatsApp">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
+      </a>
+      <span class="order-phone-num">${phone}</span>
+      <a class="order-phone-call" href="tel:${phone}" title="Call">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      </a>
+    </span>`;
+  }
+
+  function itemRowHtml(order, item, idx) {
+    const imgSrc = item.image?.src || '';
+    _photoItems[item.id] = item;
+    const thumb = imgSrc
+      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
+      : `<span class="item-thumb-placeholder"></span>`;
+    const phase = resolvePhase(order, item);
+    return `<div class="item-row">
+      ${thumb}
+      <span class="item-id">${order.id}.${idx+1}</span>
+      <a class="item-name" href="https://timberedgroup.com/?p=${item.product_id}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
+      <span class="item-qty">×${item.quantity}</span>
+      <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
+      ${phaseSelHtml(phase, order.id, item.id)}
+    </div>`;
+  }
+
+  function renderOrders(orders_list) {
+    if (!orders_list.length) return '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No delivery orders</div>';
+    return orders_list.map(o => {
+      const visibleItems = o.line_items.filter(item => activeFilters.has(resolvePhase(o, item)));
+      if (!visibleItems.length) return '';
+      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const addr1 = o.billing.address_1 || '';
+      const addr2 = o.billing.address_2 || '';
+      const state = EG_STATES[o.billing.state] || o.billing.state || '';
+      const days  = daysSince(o.date_created);
+      const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx)).join('');
+      return `<div class="order-card" data-group-key="order-${o.id}">
+        <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <span class="order-days ${dc(days)}">${days}d</span>
+          <span class="order-id">#${o.id}</span>
+          <span class="order-name-lbl">${name}</span>
+          <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
+          ${phoneHtml(o.billing.phone)}
+          <span class="order-chevron">▼</span>
+        </div>
+        <div class="order-addr-lbl">
+          <span class="a1">${addr1}</span>
+          <span class="a2">${addr2}</span>
+          <span class="a3">${state}</span>
+        </div>
+        <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
+      </div>`;
+    }).filter(Boolean).join('');
+  }
+
+  // ── State ─────────────────────────────────────────────────────────
+  let allOrders    = [];
+  let sortAsc      = true; // oldest first by default
+  let activeFilters = new Set(DELIVERY_PHASES);
+
+  function searchQuery() { return (document.getElementById('searchInput')?.value || '').trim().toLowerCase(); }
+  function orderMatches(o, q) {
+    const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+    const phone = (o.billing.phone || '').toLowerCase();
+    return String(o.id).includes(q) || phone.includes(q) || name.includes(q);
+  }
+  function filteredOrders() {
+    // Only orders that have at least one item in an active filter phase
+    const orders = allOrders.filter(o => o.line_items.some(item => activeFilters.has(resolvePhase(o, item))));
+    const q = searchQuery();
+    if (!q) return orders;
+    return orders.filter(o => orderMatches(o, q) || o.line_items.some(i => i.name.toLowerCase().includes(q)));
+  }
+
+  function getOpenGroups() { return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey); }
+  function restoreOpenGroups(keys) {
+    if (!keys.length) return;
+    document.querySelectorAll('[data-group-key]').forEach(el => { if (keys.includes(el.dataset.groupKey)) el.classList.add('open'); });
+  }
+
+  function render() {
+    const wasOpen = getOpenGroups();
+    const sorted  = [...filteredOrders()].sort((a, b) => {
+      const da = daysSince(a.date_created), db = daysSince(b.date_created);
+      return sortAsc ? db - da : da - db; // sortAsc=true → oldest first (most days)
+    });
+    const html = renderOrders(sorted);
+    document.getElementById('content').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No delivery orders</div>';
+    restoreOpenGroups(wasOpen);
+    attachPhaseListeners();
+    updateBadge(sorted.length);
+  }
+
+  function attachPhaseListeners() {
+    document.querySelectorAll('.phase-sel').forEach(sel => {
+      sel.addEventListener('change', () => {
+        setItemPhase(sel.dataset.order, sel.dataset.item, sel.value);
+        // update in-memory meta so filter re-evaluates correctly
+        allOrders.forEach(o => {
+          if (String(o.id) !== String(sel.dataset.order)) return;
+          const item = o.line_items.find(i => String(i.id) === String(sel.dataset.item));
+          if (item) {
+            let meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
+            if (meta) meta.value = sel.value;
+            else { item.meta_data = item.meta_data || []; item.meta_data.push({ key: 'tg_phase', value: sel.value }); }
+          }
+        });
+        render();
+      });
+    });
+  }
+
+  function updateBadge(count) {
+    const itemCount = filteredOrders().reduce((s, o) => s + o.line_items.filter(i => activeFilters.has(resolvePhase(o, i))).length, 0);
+    document.getElementById('orderCount').textContent = count + ' orders · ' + itemCount + ' items';
+  }
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn[data-phase]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const phase = btn.dataset.phase;
+      if (activeFilters.has(phase)) {
+        if (activeFilters.size > 1) { activeFilters.delete(phase); btn.classList.remove('active'); }
+      } else {
+        activeFilters.add(phase); btn.classList.add('active');
+      }
+      render();
+    });
+  });
+
+  // Sort
+  document.getElementById('sortBtn').addEventListener('click', () => {
+    sortAsc = !sortAsc;
+    document.getElementById('sortBtn').textContent = sortAsc ? '↑' : '↓';
+    render();
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', () => render());
+
+  // Load
+  fetchProcessingOrders().then(orders => {
+    // Keep only orders with at least one item in a delivery phase
+    allOrders = orders.filter(o =>
+      o.line_items.some(item => DELIVERY_PHASES.includes(resolvePhase(o, item)))
+    );
+    document.getElementById('state').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    render();
+  }).catch(e => {
+    document.getElementById('state').textContent = 'Error: ' + e.message;
+  });
+</script>
+</body>
+</html>
