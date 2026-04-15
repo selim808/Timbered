@@ -16,7 +16,8 @@
     .site-header .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
     /* TOOLBAR */
-    .toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 8px 12px; position: sticky; top: 51px; z-index: 99; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 8px 12px; position: sticky; top: 51px; z-index: 99; display: flex; flex-direction: column; gap: 8px; }
+    .toolbar-row { display: flex; gap: 6px; align-items: center; }
     #searchInput { flex: 1; min-width: 180px; font-size: 12px; padding: 5px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
     .stock-filter { display: flex; gap: 4px; }
     .sf-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
@@ -37,13 +38,31 @@
     /* COLUMNS */
     .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; }
     .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; }
-    .td-id { font-size: 11px; color: #bbb; white-space: nowrap; }
-    .td-name { font-size: 12px; font-weight: 600; color: #333; }
+.td-name { font-size: 12px; font-weight: 600; color: #333; }
     .td-stock { white-space: nowrap; }
-    .stock-row { display: flex; align-items: center; gap: 6px; }
+    .stock-row { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .stock-val { font-size: 12px; font-weight: 700; min-width: 36px; text-align: center; }
     .qty-btn { width: 26px; height: 26px; border: 1.5px solid #e8ddd4; border-radius: 7px; background: #fff; font-size: 15px; font-weight: 700; color: #7A4610; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
     .qty-btn:active { background: #fef3e2; }
+    .td-img img, .td-img .no-img { cursor: pointer; }
+
+    /* POPUP */
+    #popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    #popup-overlay.open { display: flex; }
+    #popup-box { background: #fff; border-radius: 16px; width: 100%; max-width: 360px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    #popup-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #f0e8e0; }
+    #popup-img.no-img-popup { display: flex; align-items: center; justify-content: center; font-size: 64px; aspect-ratio: 1; }
+    #popup-body { padding: 16px; }
+    #popup-id { font-size: 11px; color: #bbb; margin-bottom: 2px; }
+    #popup-name { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 4px; }
+    #popup-link { font-size: 12px; color: #7A4610; text-decoration: none; display: inline-block; margin-bottom: 14px; }
+    #popup-link:hover { text-decoration: underline; }
+    .popup-stats { display: flex; gap: 8px; margin-bottom: 16px; }
+    .pstat { flex: 1; background: #fef3e2; border-radius: 10px; padding: 10px 8px; text-align: center; }
+    .pstat-val { font-size: 20px; font-weight: 800; color: #7A4610; line-height: 1; }
+    .pstat-lbl { font-size: 10px; color: #a07040; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+    #popup-close { width: 100%; padding: 12px; background: #7A4610; color: #fff; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
+    #popup-close:active { background: #5c3208; }
   </style>
 </head>
 <body>
@@ -56,11 +75,16 @@
 </div>
 
 <div class="toolbar">
-  <input type="search" id="searchInput" placeholder="Search by name or ID…">
-  <div class="stock-filter">
+  <div class="toolbar-row">
+    <input type="search" id="searchInput" placeholder="Search by name or ID…" style="flex:1;">
+  </div>
+  <div class="toolbar-row stock-filter">
     <button class="sf-btn active" data-filter="all">All</button>
     <button class="sf-btn" data-filter="instock">In Stock</button>
     <button class="sf-btn" data-filter="outofstock">Out of Stock</button>
+    <button class="sf-btn" data-filter="repair">Repair</button>
+    <button class="sf-btn" data-filter="ordered">Ordered</button>
+    <button class="sf-btn" data-filter="fabricate">Fabricate</button>
   </div>
 </div>
 
@@ -69,14 +93,34 @@
   <table>
     <thead>
       <tr>
-        <th></th>
-        <th>ID</th>
+        <th>Img</th>
         <th>Name</th>
         <th>Qty</th>
+        <th>Repair</th>
+        <th>Ordered</th>
+        <th>Fabricate</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
+</div>
+
+<!-- PRODUCT POPUP -->
+<div id="popup-overlay">
+  <div id="popup-box">
+    <div id="popup-img-wrap"></div>
+    <div id="popup-body">
+      <div id="popup-id"></div>
+      <div id="popup-name"></div>
+      <a id="popup-link" href="#" target="_blank">View on site ↗</a>
+      <div class="popup-stats">
+        <div class="pstat"><div class="pstat-val" id="pstat-qty">—</div><div class="pstat-lbl">Stock</div></div>
+        <div class="pstat"><div class="pstat-val" id="pstat-repair">—</div><div class="pstat-lbl">Repair</div></div>
+        <div class="pstat"><div class="pstat-val" id="pstat-ordered">…</div><div class="pstat-lbl">Ordered</div></div>
+      </div>
+      <button id="popup-close" onclick="closePopup()">Close</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -101,16 +145,43 @@
     return meta ? parseInt(meta.value) || 0 : 0;
   }
 
-  async function updateStock(productId, newQty) {
+  function getTgRepair(p) {
+    const meta = (p.meta_data || []).find(m => m.key === 'tg_repair');
+    return meta ? parseInt(meta.value) || 0 : 0;
+  }
+
+  async function updateMeta(productId, key, value) {
     await fetch(WC_PUT(productId), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meta_data: [{ key: 'tg_stock', value: String(newQty) }] })
+      body: JSON.stringify({ meta_data: [{ key, value: String(value) }] })
     });
   }
 
-  let allProducts = [];
+  async function updateStock(productId, newQty) {
+    await updateMeta(productId, 'tg_stock', newQty);
+  }
+
+  let allProducts  = [];
   let activeFilter = 'all';
+  let orderedQtyMap = {}; // productId → ordered qty
+
+  async function fetchAllActiveOrders() {
+    const BASE = `https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}&per_page=100&status=processing`;
+    const first = await fetch(BASE + '&page=1');
+    const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+    const firstData  = await first.json();
+    const rest = totalPages > 1
+      ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, i) =>
+          fetch(BASE + '&page=' + (i + 2)).then(r => r.json())))
+      : [];
+    const orders = [firstData, ...rest].flat();
+    const map = {};
+    orders.forEach(o => o.line_items.forEach(li => {
+      if (li.product_id) map[li.product_id] = (map[li.product_id] || 0) + li.quantity;
+    }));
+    return map;
+  }
 
   function stockClass(p) {
     if (p.stock_status === 'onbackorder') return 'stock-onback';
@@ -129,47 +200,126 @@
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
-      if (activeFilter === 'instock'    && getTgStock(p) === 0) return false;
-      if (activeFilter === 'outofstock' && getTgStock(p) > 0)  return false;
+      if (activeFilter === 'instock'    && getTgStock(p) === 0)  return false;
+      if (activeFilter === 'outofstock' && getTgStock(p) > 0)   return false;
+      if (activeFilter === 'repair'     && getTgRepair(p) === 0) return false;
+      if (activeFilter === 'ordered'    && !(orderedQtyMap[p.id] > 0)) return false;
+      if (activeFilter === 'fabricate'  && !(Math.max(0, (orderedQtyMap[p.id] || 0) - getTgStock(p)) > 0)) return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
       return true;
     });
 
     document.getElementById('tbody').innerHTML = filtered.map(p => {
       const img    = p.images && p.images[0]
-        ? `<img src="${p.images[0].src}" alt="">`
-        : `<div class="no-img">📦</div>`;
-      const qty = getTgStock(p);
+        ? `<img src="${p.images[0].src}" alt="" onclick="openPopup(${p.id})">`
+        : `<div class="no-img" onclick="openPopup(${p.id})">📦</div>`;
+      const qty       = getTgStock(p);
+      const repair    = getTgRepair(p);
+      const ordered   = orderedQtyMap[p.id] || 0;
+      const fabricate = Math.max(0, ordered - qty);
       return `<tr>
         <td class="td-img">${img}</td>
-        <td class="td-id">#${p.id}</td>
         <td class="td-name">${p.name}</td>
         <td class="td-stock">
           <div class="stock-row">
-            <button class="qty-btn" onclick="changeQty(${p.id},-1)">−</button>
-            <span class="stock-val" id="stock-${p.id}">${qty}</span>
             <button class="qty-btn" onclick="changeQty(${p.id},+1)">+</button>
+            <span class="stock-val" id="stock-${p.id}">${qty}</span>
+            <button class="qty-btn" onclick="changeQty(${p.id},-1)">−</button>
           </div>
         </td>
+        <td class="td-stock">
+          <div class="stock-row">
+            <button class="qty-btn" onclick="changeRepair(${p.id},+1)">+</button>
+            <span class="stock-val" id="repair-${p.id}">${repair}</span>
+            <button class="qty-btn" onclick="changeRepair(${p.id},-1)">−</button>
+          </div>
+        </td>
+        <td style="font-size:13px;font-weight:700;color:${ordered>0?'#7A4610':'#ccc'};text-align:center;">${ordered || '—'}</td>
+        <td style="font-size:13px;font-weight:700;color:${fabricate>0?'#c0392b':'#ccc'};text-align:center;">${fabricate || '—'}</td>
       </tr>`;
     }).join('');
 
     document.getElementById('productCount').textContent = filtered.length + ' products';
   }
 
+  function setLocalMeta(p, key, value) {
+    const meta = p.meta_data || (p.meta_data = []);
+    const entry = meta.find(m => m.key === key);
+    if (entry) entry.value = String(value);
+    else meta.push({ key, value: String(value) });
+  }
+
   async function changeQty(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
     const newQty = Math.max(0, getTgStock(p) + delta);
-    // Update local meta_data
-    const meta = p.meta_data || (p.meta_data = []);
-    const entry = meta.find(m => m.key === 'tg_stock');
-    if (entry) entry.value = String(newQty);
-    else meta.push({ key: 'tg_stock', value: String(newQty) });
+    setLocalMeta(p, 'tg_stock', newQty);
     const el = document.getElementById('stock-' + productId);
     if (el) el.textContent = newQty;
-    updateStock(productId, newQty);
+    updateMeta(productId, 'tg_stock', newQty);
   }
+
+  async function changeRepair(productId, delta) {
+    const p = allProducts.find(x => x.id === productId);
+    if (!p) return;
+    const newVal = Math.max(0, getTgRepair(p) + delta);
+    setLocalMeta(p, 'tg_repair', newVal);
+    const el = document.getElementById('repair-' + productId);
+    if (el) el.textContent = newVal;
+    updateMeta(productId, 'tg_repair', newVal);
+  }
+
+  const WC_ORDERS = `https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}&per_page=100&status=pending,processing,on-hold`;
+
+  async function fetchOrderedQty(productId) {
+    let total = 0, page = 1;
+    while (true) {
+      const r = await fetch(WC_ORDERS + `&product=${productId}&page=${page}`);
+      const orders = await r.json();
+      if (!orders.length) break;
+      orders.forEach(o => o.line_items.forEach(li => {
+        if (li.product_id === productId) total += li.quantity;
+      }));
+      const totalPages = parseInt(r.headers.get('X-WP-TotalPages') || '1');
+      if (page >= totalPages) break;
+      page++;
+    }
+    return total;
+  }
+
+  async function openPopup(productId) {
+    const p = allProducts.find(x => x.id === productId);
+    if (!p) return;
+
+    const wrap = document.getElementById('popup-img-wrap');
+    if (p.images && p.images[0]) {
+      wrap.innerHTML = `<img id="popup-img" src="${p.images[0].src}" alt="">`;
+    } else {
+      wrap.innerHTML = `<div id="popup-img" class="no-img-popup">📦</div>`;
+    }
+
+    document.getElementById('popup-id').textContent   = '#' + p.id;
+    document.getElementById('popup-name').textContent = p.name;
+    document.getElementById('popup-link').href        = p.permalink || '#';
+    document.getElementById('pstat-qty').textContent    = getTgStock(p);
+    document.getElementById('pstat-repair').textContent = getTgRepair(p);
+    document.getElementById('pstat-ordered').textContent = '…';
+    document.getElementById('popup-overlay').classList.add('open');
+
+    fetchOrderedQty(productId).then(qty => {
+      document.getElementById('pstat-ordered').textContent = qty;
+    }).catch(() => {
+      document.getElementById('pstat-ordered').textContent = '—';
+    });
+  }
+
+  function closePopup() {
+    document.getElementById('popup-overlay').classList.remove('open');
+  }
+
+  document.getElementById('popup-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('popup-overlay')) closePopup();
+  });
 
   document.getElementById('searchInput').addEventListener('input', render);
   document.querySelectorAll('.sf-btn').forEach(btn => {
@@ -181,8 +331,9 @@
     });
   });
 
-  fetchAllProducts().then(products => {
-    allProducts = products;
+  Promise.all([fetchAllProducts(), fetchAllActiveOrders()]).then(([products, oqMap]) => {
+    allProducts  = products;
+    orderedQtyMap = oqMap;
     document.getElementById('state').style.display = 'none';
     document.getElementById('tblWrap').style.display = 'block';
     render();
