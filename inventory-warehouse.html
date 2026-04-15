@@ -81,7 +81,7 @@
       <button class="sf-btn active" data-filter="all">All</button>
       <button class="sf-btn" data-filter="instock">In Stock</button>
       <button class="sf-btn" data-filter="outofstock">Out Stock</button>
-      <button class="sf-btn" data-filter="repair">Repair</button>
+      <button class="sf-btn" data-filter="repair">Defected</button>
     </div>
   </div>
 </div>
@@ -94,7 +94,7 @@
         <th rowspan="2">Img</th>
         <th rowspan="2">Name</th>
         <th class="th-num">Stock</th>
-        <th class="th-num">Repair</th>
+        <th class="th-num">Defected</th>
       </tr>
       <tr class="totals-row" id="totals-row">
         <th id="total-stock">—</th>
@@ -113,7 +113,7 @@
       <div id="popup-name"></div>
       <div class="popup-stats">
         <div class="pstat"><div class="pstat-val" id="pstat-qty">—</div><div class="pstat-lbl">Stock</div></div>
-        <div class="pstat"><div class="pstat-val" id="pstat-repair">—</div><div class="pstat-lbl">Repair</div></div>
+        <div class="pstat"><div class="pstat-val" id="pstat-repair">—</div><div class="pstat-lbl">Defected</div></div>
       </div>
       <button id="popup-close" onclick="closePopup()">Close</button>
     </div>
@@ -142,7 +142,7 @@
     return meta ? parseInt(meta.value) || 0 : 0;
   }
 
-  function getTgRepair(p) {
+  function getTgDefected(p) {
     const meta = (p.meta_data || []).find(m => m.key === 'tg_repair');
     return meta ? parseInt(meta.value) || 0 : 0;
   }
@@ -163,7 +163,7 @@
     const filtered = allProducts.filter(p => {
       if (activeFilter === 'instock'    && getTgStock(p) === 0)  return false;
       if (activeFilter === 'outofstock' && getTgStock(p) > 0)   return false;
-      if (activeFilter === 'repair'     && getTgRepair(p) === 0) return false;
+      if (activeFilter === 'repair'     && getTgDefected(p) === 0) return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
       return true;
     });
@@ -173,7 +173,7 @@
         ? `<img src="${p.images[0].src}" alt="" onclick="openPopup(${p.id})">`
         : `<div class="no-img" onclick="openPopup(${p.id})">📦</div>`;
       const qty    = getTgStock(p);
-      const repair = getTgRepair(p);
+      const repair = getTgDefected(p);
       return `<tr>
         <td class="td-img">${img}</td>
         <td class="td-name">${p.name}</td>
@@ -186,16 +186,16 @@
         </td>
         <td class="td-stock">
           <div class="stock-row">
-            <button class="qty-btn" onclick="changeRepair(${p.id},+1)">+</button>
+            <button class="qty-btn" onclick="changeDefected(${p.id},+1)">+</button>
             <span class="stock-val" id="repair-${p.id}">${repair}</span>
-            <button class="qty-btn" onclick="changeRepair(${p.id},-1)">−</button>
+            <button class="qty-btn" onclick="changeDefected(${p.id},-1)">−</button>
           </div>
         </td>
       </tr>`;
     }).join('');
 
     document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getTgStock(p), 0);
-    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getTgRepair(p), 0);
+    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getTgDefected(p), 0);
   }
 
   function setLocalMeta(p, key, value) {
@@ -212,13 +212,21 @@
     setLocalMeta(p, 'tg_stock', newQty);
     const el = document.getElementById('stock-' + productId);
     if (el) el.textContent = newQty;
+    // Cap defected at new stock value
+    const curRepair = getTgRepair(p);
+    if (curRepair > newQty) {
+      setLocalMeta(p, 'tg_repair', newQty);
+      const rel = document.getElementById('repair-' + productId);
+      if (rel) rel.textContent = newQty;
+      updateMeta(productId, 'tg_repair', newQty);
+    }
     updateMeta(productId, 'tg_stock', newQty);
   }
 
-  async function changeRepair(productId, delta) {
+  async function changeDefected(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
-    const newVal = Math.min(getTgStock(p), Math.max(0, getTgRepair(p) + delta));
+    const newVal = Math.min(getTgStock(p), Math.max(0, getTgDefected(p) + delta));
     setLocalMeta(p, 'tg_repair', newVal);
     const el = document.getElementById('repair-' + productId);
     if (el) el.textContent = newVal;
@@ -234,7 +242,7 @@
       : `<div id="popup-img" class="no-img-popup">📦</div>`;
     document.getElementById('popup-name').textContent        = p.name;
     document.getElementById('pstat-qty').textContent         = getTgStock(p);
-    document.getElementById('pstat-repair').textContent      = getTgRepair(p);
+    document.getElementById('pstat-repair').textContent      = getTgDefected(p);
     document.getElementById('popup-overlay').classList.add('open');
   }
 

@@ -111,7 +111,7 @@
       </span>
     </div>
     <div class="toolbar-row stock-filter">
-      <button class="sf-btn" data-filter="repair">Repair</button>
+      <button class="sf-btn" data-filter="repair">Defected</button>
       <button class="sf-btn" data-filter="ordered">Ordered</button>
       <button class="sf-btn" data-filter="fabricate">Fabricate</button>
     </div>
@@ -126,7 +126,7 @@
         <th rowspan="2">Img</th>
         <th rowspan="2">Name</th>
         <th class="th-num">Stock</th>
-        <th class="th-num">Repair</th>
+        <th class="th-num">Defected</th>
         <th class="th-num">Ordered</th>
         <th class="th-num">Fabricate</th>
       </tr>
@@ -148,7 +148,7 @@
       <a id="popup-link" href="#" target="_blank">View on site ↗</a>
       <div class="popup-stats">
         <div class="pstat"><div class="pstat-val" id="pstat-qty">—</div><div class="pstat-lbl">Stock</div></div>
-        <div class="pstat"><div class="pstat-val" id="pstat-repair">—</div><div class="pstat-lbl">Repair</div></div>
+        <div class="pstat"><div class="pstat-val" id="pstat-repair">—</div><div class="pstat-lbl">Defected</div></div>
         <div class="pstat"><div class="pstat-val" id="pstat-ordered">…</div><div class="pstat-lbl">Ordered</div></div>
       </div>
       <button id="popup-close" onclick="closePopup()">Close</button>
@@ -352,6 +352,14 @@
     setLocalMeta(p, 'tg_stock', newQty);
     const el = document.getElementById('stock-' + productId);
     if (el) el.textContent = newQty;
+    // Cap defected at new stock value
+    const curRepair = getTgRepair(p);
+    if (curRepair > newQty) {
+      setLocalMeta(p, 'tg_repair', newQty);
+      const rel = document.getElementById('repair-' + productId);
+      if (rel) rel.textContent = newQty;
+      updateMeta(productId, 'tg_repair', newQty);
+    }
     refreshFab(productId);
     updateMeta(productId, 'tg_stock', newQty);
   }
