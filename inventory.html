@@ -43,7 +43,7 @@
     /* COLUMNS */
     .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; }
     .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; }
-.td-name { font-size: 12px; font-weight: 600; color: #333; }
+    .td-name { font-size: 12px; font-weight: 600; color: #333; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .td-stock { white-space: nowrap; width: 28px; text-align: left; padding-left: 4px; padding-right: 4px; }
     thead th.th-num { width: 28px; text-align: left; padding: 8px 4px; vertical-align: bottom; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 0.5px; }
     .stock-row { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -88,8 +88,8 @@
     </div>
     <div class="toolbar-row stock-filter">
       <button class="sf-btn active" data-filter="all">All</button>
-      <button class="sf-btn" data-filter="instock">In Stock</button>
-      <button class="sf-btn" data-filter="outofstock">Out of Stock</button>
+      <button class="sf-btn" data-filter="instock">In STK</button>
+      <button class="sf-btn" data-filter="outofstock">Out STK</button>
       <button class="sf-btn" data-filter="repair">Repair</button>
       <button class="sf-btn" data-filter="ordered">Ordered</button>
       <button class="sf-btn" data-filter="fabricate">Fabricate</button>
