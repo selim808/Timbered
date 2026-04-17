@@ -96,6 +96,7 @@
     .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
     .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
     .item-name:hover { text-decoration: underline; color: #7A4610; }
+    .note-icon { font-size: 12px; cursor: default; flex-shrink: 0; }
     .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
     .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
     .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 90px; }
@@ -256,6 +257,7 @@
     </label>
     <select class="bulk-phase-sel" id="bulkPhaseSel"></select>
     <button class="bulk-apply-btn" id="bulkApplyBtn" disabled>Apply</button>
+    <button class="filter-btn" id="noteFilterBtn" title="Show only items with customer note">📝 Notes</button>
   </div>
   <div class="tb-group" style="flex-basis:100%;">
     <span class="tb-label">Group by</span>
@@ -310,6 +312,12 @@
 <div id="nr-wrap" style="display:none;"></div>
 <div id="kb-slider-wrap">
   <input type="range" id="kb-slider" min="0" max="100" value="0">
+</div>
+
+<!-- Note callout -->
+<div id="noteCallout" style="display:none;position:fixed;z-index:9999;background:#fffbe6;border:1.5px solid #f0c040;border-radius:10px;padding:10px 14px;max-width:280px;font-size:13px;color:#333;box-shadow:0 4px 16px rgba(0,0,0,0.15);line-height:1.5;">
+  <div style="font-size:10px;font-weight:700;color:#b8860b;margin-bottom:4px;">Customer Note</div>
+  <div id="noteCalloutText"></div>
 </div>
 
 <!-- Photo popup -->
@@ -501,7 +509,7 @@
       ${thumb}
       <span class="d-badge ${dc(days)}">${days}d</span>
       <span class="item-id">${order.id}.${idx+1}</span>
-      <a class="item-name" href="${prodUrl}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
+      <a class="item-name" href="${prodUrl}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>${order.customer_note ? `<span class="note-icon" onclick="event.stopPropagation();showNoteCallout(this,'${order.customer_note.replace(/'/g,"\\'")}')">📝</span>` : ''}
       <span class="item-qty">×${item.quantity}</span>
       <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
       ${phaseSelHtml(phase, order.id, item.id)}
@@ -640,15 +648,19 @@
   }
   function filteredItems() {
     const q = searchQuery();
-    if (!q) return allItems;
-    return allItems.filter(({ order, item }) =>
+    let items = allItems;
+    if (q) items = items.filter(({ order, item }) =>
       item.name.toLowerCase().includes(q) || orderMatches(order, q));
+    if (noteFilterOn) items = items.filter(({ order }) => order.customer_note);
+    return items;
   }
   function filteredOrders() {
     const q = searchQuery();
-    if (!q) return allOrders;
-    return allOrders.filter(o =>
+    let orders = allOrders;
+    if (q) orders = orders.filter(o =>
       orderMatches(o, q) || o.line_items.some(item => item.name.toLowerCase().includes(q)));
+    if (noteFilterOn) orders = orders.filter(o => o.customer_note);
+    return orders;
   }
 
   function activePhases() {
@@ -849,6 +861,7 @@
   const phaseFilterSel  = document.getElementById('phaseFilterSel');
   let productSort = 'qty'; // 'qty' | 'value'
   let phaseFilterVal = ''; // '' = all
+  let noteFilterOn = false;
 
   function buildPhaseFilterSel() {
     phaseFilterSel.innerHTML = '<option value="">All phases</option>'
@@ -862,6 +875,13 @@
   }
   phaseFilterSel.addEventListener('change', () => {
     phaseFilterVal = phaseFilterSel.value;
+    render();
+  });
+
+  const noteFilterBtn = document.getElementById('noteFilterBtn');
+  noteFilterBtn.addEventListener('click', () => {
+    noteFilterOn = !noteFilterOn;
+    noteFilterBtn.classList.toggle('active', noteFilterOn);
     render();
   });
 
@@ -1428,6 +1448,34 @@
       }
     });
   }
+  // Note callout
+  const noteCallout = document.getElementById('noteCallout');
+  const noteCalloutText = document.getElementById('noteCalloutText');
+  let noteCalloutOpen = false;
+
+  function showNoteCallout(el, text) {
+    if (noteCalloutOpen && noteCallout._anchor === el) {
+      noteCallout.style.display = 'none';
+      noteCalloutOpen = false;
+      return;
+    }
+    noteCalloutText.textContent = text;
+    noteCallout.style.display = 'block';
+    noteCallout._anchor = el;
+    noteCalloutOpen = true;
+    const r = el.getBoundingClientRect();
+    const cw = noteCallout.offsetWidth;
+    let left = r.left;
+    if (left + cw > window.innerWidth - 8) left = window.innerWidth - cw - 8;
+    noteCallout.style.left = left + 'px';
+    noteCallout.style.top  = (r.bottom + 6) + 'px';
+  }
+  document.addEventListener('click', (e) => {
+    if (noteCalloutOpen && !noteCallout.contains(e.target)) {
+      noteCallout.style.display = 'none';
+      noteCalloutOpen = false;
+    }
+  });
 </script>
 </body>
 </html>
