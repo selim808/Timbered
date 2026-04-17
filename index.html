@@ -231,9 +231,53 @@
       .bi-kpi.large     { font-size: 22px; }
     }
 
+    #login-overlay {
+      position: fixed; inset: 0; background: #fef3e2; z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    #login-overlay img { width: 64px; margin-bottom: 8px; }
+    #login-overlay h2 { font-family: 'DM Serif Display', serif; color: #7A4610; font-size: 22px; }
+    #login-overlay input {
+      width: 260px; padding: 10px 16px; border: 2px solid #e8ddd4; border-radius: 20px;
+      font-size: 14px; outline: none; text-align: center; color: #333;
+    }
+    #login-overlay input:focus { border-color: #7A4610; }
+    #login-overlay button {
+      width: 260px; padding: 10px; border: none; border-radius: 20px;
+      background: #7A4610; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    #login-overlay button:hover { background: #5a3208; }
+    #login-error { color: #c0392b; font-size: 12px; display: none; }
   </style>
 </head>
 <body>
+
+<div id="login-overlay">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <h2>Timbered Dashboard</h2>
+  <input type="password" id="loginInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+  <button onclick="doLogin()">Enter</button>
+  <span id="login-error">Incorrect password. Try again.</span>
+</div>
+
+<script>
+  (function() {
+    if (sessionStorage.getItem('tg_auth') === '1') {
+      document.getElementById('login-overlay').style.display = 'none';
+    }
+  })();
+  function doLogin() {
+    const val = document.getElementById('loginInput').value;
+    if (val === '.Timbered23Group.') {
+      sessionStorage.setItem('tg_auth', '1');
+      document.getElementById('login-overlay').style.display = 'none';
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+      document.getElementById('loginInput').value = '';
+      document.getElementById('loginInput').focus();
+    }
+  }
+</script>
 
 <!-- ============================================================
      SITE HEADER
