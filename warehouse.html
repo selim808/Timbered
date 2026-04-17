@@ -139,7 +139,9 @@
   <button class="sub-nav-btn active" id="tabStock">Stock</button>
   <button class="sub-nav-btn" id="tabReceiving">Receiving</button>
   <button class="sub-nav-btn" id="tabOrders">Orders</button>
-  <button class="sub-nav-btn" id="tabDelivery">Delivery</button>
+  <button class="sub-nav-btn" id="tabWH">WH</button>
+  <button class="sub-nav-btn" id="tabDelivery">In Delivery</button>
+  <button class="sub-nav-btn" id="tabDelivered">Delivered</button>
   <button class="sub-nav-btn" id="tabCalls">Calls</button>
 </div>
 
@@ -157,15 +159,24 @@
     <button class="filter-btn active" data-ph="Already in WH">Already in WH</button>
     <button class="filter-btn active" data-ph="Not available in WH">Not Avail</button>
     <button class="filter-btn active" data-ph="Sent to Workshop">Workshop</button>
+    <button class="sort-btn" id="ordersSortBtn">↓</button>
+  </div>
+  <div class="filter-row">
+    <input class="toolbar-search" id="ordersSearch" type="search" placeholder="Search order, client, phone…">
+  </div>
+</div>
+
+<div class="toolbar" id="whToolbar">
+  <div class="filter-row">
     <button class="filter-btn active" data-ph="WH-Defected">Defected</button>
     <button class="filter-btn active" data-ph="WH-No_Response">No Response</button>
     <button class="filter-btn active" data-ph="WH-Postponed">Postponed</button>
     <button class="filter-btn active" data-ph="WH-Returned">Returned</button>
     <button class="filter-btn active" data-ph="WH-Ready">Ready</button>
-    <button class="sort-btn" id="ordersSortBtn">↓</button>
+    <button class="sort-btn" id="whSortBtn">↓</button>
   </div>
   <div class="filter-row">
-    <input class="toolbar-search" id="ordersSearch" type="search" placeholder="Search order, client, phone…">
+    <input class="toolbar-search" id="whSearch" type="search" placeholder="Search order, client, phone…">
   </div>
 </div>
 
@@ -175,7 +186,6 @@
     <button class="filter-btn active" data-ph="DLV-Bareed-Tanta">Bareed Tanta</button>
     <button class="filter-btn active" data-ph="DLV-Bosta">Bosta</button>
     <button class="filter-btn active" data-ph="DLV-Private">Private</button>
-    <button class="filter-btn active" data-ph="Delivered Partially">Partial Dlv</button>
     <button class="sort-btn" id="dlvSortBtn">↓</button>
     <button class="group-toggle active" id="grpByState">By State</button>
     <button class="group-toggle" id="grpByMethod">By Method</button>
@@ -185,12 +195,25 @@
   </div>
 </div>
 
+<div class="toolbar" id="deliveredToolbar">
+  <div class="filter-row">
+    <button class="filter-btn active" data-ph="Delivered Partially">Partially</button>
+    <button class="filter-btn active" data-ph="Delivered Fully">Fully</button>
+    <button class="sort-btn" id="deliveredSortBtn">↓</button>
+  </div>
+  <div class="filter-row">
+    <input class="toolbar-search" id="deliveredSearch" type="search" placeholder="Search order, client, phone…">
+  </div>
+</div>
+
 <!-- Content areas -->
 <div id="state-msg" class="state-msg">Loading…</div>
 <div id="stock-wrap"><iframe src="inventory-warehouse.html"></iframe></div>
 <div id="recv-wrap"     style="display:none; padding:10px;"></div>
-<div id="orders-wrap"   style="display:none; padding:10px;"></div>
+<div id="orders-wrap"    style="display:none; padding:10px;"></div>
+<div id="wh-wrap"       style="display:none; padding:10px;"></div>
 <div id="delivery-wrap" style="display:none; padding:10px;"></div>
+<div id="delivered-wrap"style="display:none; padding:10px;"></div>
 <div id="calls-wrap"    style="display:none; padding:10px;"></div>
 
 <!-- Photo popup -->
@@ -216,9 +239,10 @@
     "DLV-Bosta","DLV-Private","Delivered Partially"
   ];
 
-  const WH_PHASES  = ["Sent to WH","Not Received in WH","Already in WH","Not available in WH",
-                      "Sent to Workshop","WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"];
-  const DLV_PHASES = ["DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially"];
+  const WH_PHASES       = ["Sent to WH","Not Received in WH","Already in WH","Not available in WH","Sent to Workshop"];
+  const WH_SPEC_PHASES  = ["WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"];
+  const DLV_PHASES      = ["DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private"];
+  const DELIVERED_PHASES= ["Delivered Partially","Delivered Fully"];
 
   const SENT_TO_WH_NEXT    = ["Already in WH","Not Received in WH","WH-Defected"];
   const ALREADY_IN_WH_NEXT = ["WH-Ready","WH-No_Response","WH-Postponed","WH-Returned","WH-Defected",
@@ -244,11 +268,15 @@
 
   // ── State ─────────────────────────────────────────────────────────
   let allOrders = [];
-  let ordersFilters  = new Set(WH_PHASES);
-  let dlvFilters     = new Set(DLV_PHASES);
-  let ordersSortAsc  = false;
-  let dlvSortAsc     = false;
-  let dlvGroupByState = true;
+  let ordersFilters    = new Set(WH_PHASES);
+  let whFilters        = new Set(WH_SPEC_PHASES);
+  let dlvFilters       = new Set(DLV_PHASES);
+  let deliveredFilters = new Set(DELIVERED_PHASES);
+  let ordersSortAsc    = false;
+  let whSortAsc        = false;
+  let dlvSortAsc       = false;
+  let deliveredSortAsc = false;
+  let dlvGroupByState  = true;
 
   // ── Phase helpers ─────────────────────────────────────────────────
   function getPhase(item) {
@@ -503,6 +531,60 @@
     document.getElementById('headerBadge').textContent = total + ' orders';
   }
 
+  // ── WH (WH-specific phases) ───────────────────────────────────────
+  function renderWH() {
+    const q    = document.getElementById('whSearch').value.toLowerCase();
+    const wrap = document.getElementById('wh-wrap');
+    const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
+    const byState = {};
+    allOrders.forEach(o => {
+      if (!o.line_items.some(i => whFilters.has(getPhase(i)))) return;
+      const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
+      const sk = o.billing.state || '—';
+      (byState[sk] = byState[sk] || []).push(o);
+    });
+    const keys = Object.keys(byState).sort((a,b) => (EG_STATES[a]||a).localeCompare(EG_STATES[b]||b));
+    if (!keys.length) { wrap.innerHTML = '<div class="state-msg">No WH orders match</div>'; return; }
+    let total = 0;
+    wrap.innerHTML = keys.map(sk => {
+      const orders = byState[sk]; total += orders.length;
+      return groupHtml(sk, EG_STATES[sk]||sk,
+        orders.map(o => orderCardHtml(o, o.line_items.filter(i => whFilters.has(getPhase(i))))).join(''),
+        orders.length + ' orders', wasOpen);
+    }).join('');
+    attachGroupToggles(wrap);
+    attachPhaseListeners(wrap, renderWH);
+    document.getElementById('headerBadge').textContent = total + ' orders';
+  }
+
+  // ── DELIVERED ─────────────────────────────────────────────────────
+  function renderDelivered() {
+    const q    = document.getElementById('deliveredSearch').value.toLowerCase();
+    const wrap = document.getElementById('delivered-wrap');
+    const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
+    const byState = {};
+    allOrders.forEach(o => {
+      if (!o.line_items.some(i => deliveredFilters.has(getPhase(i)))) return;
+      const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
+      const sk = o.billing.state || '—';
+      (byState[sk] = byState[sk] || []).push(o);
+    });
+    const keys = Object.keys(byState).sort((a,b) => (EG_STATES[a]||a).localeCompare(EG_STATES[b]||b));
+    if (!keys.length) { wrap.innerHTML = '<div class="state-msg">No delivered orders match</div>'; return; }
+    let total = 0;
+    wrap.innerHTML = keys.map(sk => {
+      const orders = byState[sk]; total += orders.length;
+      return groupHtml(sk, EG_STATES[sk]||sk,
+        orders.map(o => orderCardHtml(o, o.line_items.filter(i => deliveredFilters.has(getPhase(i))))).join(''),
+        orders.length + ' orders', wasOpen);
+    }).join('');
+    attachGroupToggles(wrap);
+    attachPhaseListeners(wrap, renderDelivered);
+    document.getElementById('headerBadge').textContent = total + ' orders';
+  }
+
   // ── CALLS ─────────────────────────────────────────────────────────
   const CL_KEY = 'tg_wh_calls';
   function clLoad() { try { return JSON.parse(localStorage.getItem(CL_KEY)||'{}'); } catch { return {}; } }
@@ -603,11 +685,13 @@
 
   // ── TAB SWITCHING ─────────────────────────────────────────────────
   const TAB_CONFIG = {
-    tabStock:     { wrap:'stock-wrap',    toolbar:null,              render: null           },
-    tabReceiving: { wrap:'recv-wrap',     toolbar:'recvToolbar',     render: renderReceiving },
-    tabOrders:    { wrap:'orders-wrap',   toolbar:'ordersToolbar',   render: renderOrders   },
-    tabDelivery:  { wrap:'delivery-wrap', toolbar:'deliveryToolbar', render: renderDelivery },
-    tabCalls:     { wrap:'calls-wrap',    toolbar:null,              render: renderCalls    },
+    tabStock:     { wrap:'stock-wrap',     toolbar:null,               render: null            },
+    tabReceiving: { wrap:'recv-wrap',      toolbar:'recvToolbar',      render: renderReceiving  },
+    tabOrders:    { wrap:'orders-wrap',    toolbar:'ordersToolbar',    render: renderOrders     },
+    tabWH:        { wrap:'wh-wrap',        toolbar:'whToolbar',        render: renderWH         },
+    tabDelivery:  { wrap:'delivery-wrap',  toolbar:'deliveryToolbar',  render: renderDelivery   },
+    tabDelivered: { wrap:'delivered-wrap', toolbar:'deliveredToolbar', render: renderDelivered  },
+    tabCalls:     { wrap:'calls-wrap',     toolbar:null,               render: renderCalls      },
   };
 
   function setTab(id) {
@@ -640,6 +724,38 @@
     renderOrders();
   });
   document.getElementById('ordersSearch').addEventListener('input', renderOrders);
+
+  // WH tab filters
+  document.querySelectorAll('#whToolbar .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.ph;
+      if (whFilters.has(p)) { if (whFilters.size === 1) return; whFilters.delete(p); btn.classList.remove('active'); }
+      else { whFilters.add(p); btn.classList.add('active'); }
+      renderWH();
+    });
+  });
+  document.getElementById('whSortBtn').addEventListener('click', () => {
+    whSortAsc = !whSortAsc;
+    document.getElementById('whSortBtn').textContent = whSortAsc ? '↑' : '↓';
+    renderWH();
+  });
+  document.getElementById('whSearch').addEventListener('input', renderWH);
+
+  // Delivered tab filters
+  document.querySelectorAll('#deliveredToolbar .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.ph;
+      if (deliveredFilters.has(p)) { if (deliveredFilters.size === 1) return; deliveredFilters.delete(p); btn.classList.remove('active'); }
+      else { deliveredFilters.add(p); btn.classList.add('active'); }
+      renderDelivered();
+    });
+  });
+  document.getElementById('deliveredSortBtn').addEventListener('click', () => {
+    deliveredSortAsc = !deliveredSortAsc;
+    document.getElementById('deliveredSortBtn').textContent = deliveredSortAsc ? '↑' : '↓';
+    renderDelivered();
+  });
+  document.getElementById('deliveredSearch').addEventListener('input', renderDelivered);
 
   // Delivery tab filters + group toggle
   document.querySelectorAll('#deliveryToolbar .filter-btn').forEach(btn => {
