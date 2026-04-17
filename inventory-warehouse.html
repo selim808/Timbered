@@ -161,7 +161,7 @@
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
-      if (activeFilter === 'instock'    && getTgStock(p) === 0 && getTgRepair(p) === 0)  return false;
+      if (activeFilter === 'instock'    && getTgStock(p) === 0 && getTgDefected(p) === 0)  return false;
       if (activeFilter === 'outofstock' && getTgStock(p) > 0)   return false;
       if (activeFilter === 'repair'     && getTgDefected(p) === 0) return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
@@ -213,7 +213,7 @@
     const el = document.getElementById('stock-' + productId);
     if (el) el.textContent = newQty;
     // Cap defected at new stock value
-    const curRepair = getTgRepair(p);
+    const curRepair = getTgDefected(p);
     if (curRepair > newQty) {
       setLocalMeta(p, 'tg_repair', newQty);
       const rel = document.getElementById('repair-' + productId);
@@ -264,6 +264,7 @@
     document.documentElement.style.setProperty('--totals-top', (theadTop + headerH) + 'px');
   }
   window.addEventListener('resize', updateTheadTop);
+  if (window !== window.parent) document.querySelector('.site-header').style.display = 'none';
 
   document.getElementById('searchInput').addEventListener('input', render);
   document.querySelectorAll('.sf-btn[data-filter]').forEach(btn => {

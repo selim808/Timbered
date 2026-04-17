@@ -131,7 +131,7 @@
     .completed-row { display: none; flex-direction: row; gap: 4px; }
     .completed-row.visible { display: flex; }
     /* default (wrapped toolbar): cancel stacked above complete */
-    .cancel-filter { position: absolute; bottom: calc(100% + 5px); right: 0; }
+    .cancel-filter { position: static; }
     /* single-row toolbar: cancel inline with complete */
     @media (min-width: 700px) {
       .cancel-filter { position: static; }
@@ -230,7 +230,7 @@
 </div>
 
 <div class="sub-nav">
-  <button class="sub-nav-btn active" id="tabFab">Fabrication</button>
+  <button class="sub-nav-btn active" id="tabFab">Orders</button>
   <button class="sub-nav-btn" id="tabKanban">Kanban</button>
   <button class="sub-nav-btn" id="tabWipChart">WIP Chart</button>
   <button class="sub-nav-btn" id="tabNoResponse">No Response</button>
@@ -239,8 +239,14 @@
 <div class="toolbar">
   <div class="tb-group">
     <span class="tb-label">Phases</span>
-    <button class="filter-btn active" id="filterFab">Fabrication</button>
-    <button class="filter-btn active" id="filterDlv">Delivery</button>
+    <div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px;">
+      <button class="filter-btn active" data-phase-group="order-review">Order Review</button>
+      <button class="filter-btn active" data-phase-group="production">Production</button>
+      <button class="filter-btn active" data-phase-group="prod-wh">Prod-WH Interface</button>
+      <button class="filter-btn active" data-phase-group="in-delivery">In Delivery</button>
+      <button class="filter-btn active" data-phase-group="wh">WH</button>
+      <button class="filter-btn active" data-phase-group="delivered">Delivered</button>
+    </div>
   </div>
   <div class="tb-group">
     <span class="tb-label">Bulk</span>
@@ -251,13 +257,14 @@
     <select class="bulk-phase-sel" id="bulkPhaseSel"></select>
     <button class="bulk-apply-btn" id="bulkApplyBtn" disabled>Apply</button>
   </div>
-  <div class="tb-group">
+  <div class="tb-group" style="flex-basis:100%;">
     <span class="tb-label">Group by</span>
     <div class="view-btns">
-      <button class="view-btn active" data-view="phase">Phase</button>
+      <button class="view-btn" data-view="phase">Phase</button>
       <button class="view-btn" data-view="product">Product</button>
-      <button class="view-btn" data-view="order">Order</button>
+      <button class="view-btn active" data-view="order">Order</button>
     </div>
+    <select id="phaseFilterSel" style="display:none; font-size:11px; border:1.5px solid #e8ddd4; border-radius:8px; padding:3px 6px; color:#555;"></select>
     <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
     <span class="product-count-lbl" id="productCountLbl" style="display:none;"></span>
     <div class="prod-sort-btns" id="prodSortBtns" style="display:none;">
@@ -266,8 +273,8 @@
     </div>
     <div class="completed-wrap">
       <div class="completed-row" id="completedRow">
-        <button class="cancel-filter" id="cancelBtn">Cancel</button>
-        <button class="completed-filter" id="completedBtn">Complete</button>
+        <button class="cancel-filter" id="cancelBtn" title="Cancel orders">✕</button>
+        <button class="completed-filter" id="completedBtn" title="Complete orders">✓</button>
       </div>
     </div>
   </div>
@@ -282,9 +289,14 @@
 <div id="state">Loading fabrication items…</div>
 <div id="content" style="display:none;"></div>
 <div id="kb-filter-bar">
-  <button class="kb-filter-btn active" data-kb-filter="production">Production</button>
-  <button class="kb-filter-btn active" data-kb-filter="wh">WH</button>
-  <button class="kb-filter-btn active" data-kb-filter="delivery">Delivery</button>
+  <div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px;">
+    <button class="kb-filter-btn active" data-kb-filter="order-review">Order Review</button>
+    <button class="kb-filter-btn active" data-kb-filter="production">Production</button>
+    <button class="kb-filter-btn active" data-kb-filter="prod-wh">Prod-WH Interface</button>
+    <button class="kb-filter-btn active" data-kb-filter="delivery">In Delivery</button>
+    <button class="kb-filter-btn active" data-kb-filter="wh">WH</button>
+    <button class="kb-filter-btn active" data-kb-filter="delivered">Delivered</button>
+  </div>
 </div>
 <div id="kanban-wrap"><div class="kb-board" id="kb-board"></div></div>
 <div id="wip-chart-wrap">
@@ -293,6 +305,7 @@
     <div class="wip-kpi"><div class="wip-kpi-label">Total Items</div><div class="wip-kpi-value" id="wipTotalItems">—</div></div>
   </div>
   <div id="wip-chart-box"><canvas id="wipChart"></canvas></div>
+  <div id="wip-group-table" style="padding:12px 8px;"></div>
 </div>
 <div id="nr-wrap" style="display:none;"></div>
 <div id="kb-slider-wrap">
@@ -331,33 +344,38 @@
                + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
 
+  const ORDER_REVIEW_PHASES = ["Created","Not Confirmed","Check Inventory"];
   const FAB_PHASES = [
-    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
-    "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
-    "Paint & inspec.","Rdy for ship"
+    "Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Material Received","Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint & inspec.","Packaging","Ready to Ship"
   ];
 
   const ALL_PHASES = [
-    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
-    "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
-    "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
+    "Created","Not Confirmed","Check Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Material Received","Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint & inspec.","Packaging","Ready to Ship","Sent to WH","Not Received in WH","Already in WH",
     "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
     "WH-Postponed","WH-Returned","WH-Ready","DLV-Bareed-Cairo","DLV-Bareed-Tanta",
-    "DLV-Bosta","DLV-Private","Partial - Delivered"
+    "DLV-Bosta","DLV-Private","Delivered Partially","Delivered Fully"
   ];
 
-  const DLV_PHASES = ALL_PHASES.filter(p => !FAB_PHASES.includes(p));
+  const DLV_PHASES = ALL_PHASES.filter(p => !ORDER_REVIEW_PHASES.includes(p) && !FAB_PHASES.includes(p));
 
+  const PROD_WH_PHASES = [
+    "Sent to WH","Not Received in WH","Already in WH","Not available in WH","Sent to Workshop"
+  ];
   const WH_PHASES  = [
-    "Sent to WH","Not Received in WH","Already in WH","Not available in WH",
-    "Sent to Workshop","WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"
+    "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"
   ];
-  const DELIVERY_KB_PHASES = [
-    "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Partial - Delivered"
-  ];
+  const DELIVERY_KB_PHASES  = ["DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private"];
+  const DELIVERED_KB_PHASES = ["Delivered Partially","Delivered Fully"];
   function kbGroup(phase) {
-    if (WH_PHASES.includes(phase))       return 'wh';
-    if (DELIVERY_KB_PHASES.includes(phase)) return 'delivery';
+    if (ORDER_REVIEW_PHASES.includes(phase)) return 'order-review';
+    if (PROD_WH_PHASES.includes(phase))      return 'prod-wh';
+    if (WH_PHASES.includes(phase))           return 'wh';
+    if (DELIVERY_KB_PHASES.includes(phase))  return 'delivery';
+    if (DELIVERED_KB_PHASES.includes(phase)) return 'delivered';
     return 'production';
   }
 
@@ -492,7 +510,7 @@
 
   // ── Views ─────────────────────────────────────────────────────────
   function renderPhaseView(items) {
-    const phases = activePhases();
+    const phases = phaseFilterVal ? [phaseFilterVal] : activePhases();
     const groups = {};
     phases.forEach(p => groups[p] = []);
     items.forEach(({ order, item, idx, days }) => {
@@ -598,9 +616,17 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────────
-  let currentView = 'phase';
-  let sortAsc = false;
-  let showFab = true, showDlv = true;
+  let currentView = 'order';
+  let sortAsc = true;
+  const PHASE_GROUPS = {
+    'order-review': ORDER_REVIEW_PHASES,
+    'production':   FAB_PHASES,
+    'prod-wh':      PROD_WH_PHASES,
+    'wh':           WH_PHASES,
+    'in-delivery':  DELIVERY_KB_PHASES,
+    'delivered':    DELIVERED_KB_PHASES,
+  };
+  const activeGroups = new Set(Object.keys(PHASE_GROUPS));
   let allItems = [], allOrders = [];
   const selectedOrderIds = new Set();
 
@@ -627,24 +653,24 @@
 
   function activePhases() {
     const phases = [];
-    if (showFab) phases.push(...FAB_PHASES);
-    if (showDlv) phases.push(...DLV_PHASES);
+    for (const [key, arr] of Object.entries(PHASE_GROUPS)) {
+      if (activeGroups.has(key)) phases.push(...arr);
+    }
     return phases;
   }
 
   // Search
   document.getElementById('searchInput').addEventListener('input', () => render());
 
-  // Filter buttons
-  document.getElementById('filterFab').addEventListener('click', function() {
-    showFab = !showFab;
-    this.classList.toggle('active', showFab);
-    render();
-  });
-  document.getElementById('filterDlv').addEventListener('click', function() {
-    showDlv = !showDlv;
-    this.classList.toggle('active', showDlv);
-    render();
+  // Phase group filter buttons
+  document.querySelectorAll('[data-phase-group]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const g = this.dataset.phaseGroup;
+      if (activeGroups.has(g)) activeGroups.delete(g);
+      else activeGroups.add(g);
+      this.classList.toggle('active', activeGroups.has(g));
+      render();
+    });
   });
 
   // ── Order action flow (Complete / Cancel) ────────────────────────
@@ -659,8 +685,8 @@
     selectedOrderIds.clear();
     completedBtn.classList.remove('selecting');
     cancelBtn.classList.remove('selecting');
-    completedBtn.textContent = 'Complete';
-    cancelBtn.textContent    = 'Cancel';
+    completedBtn.textContent = '✓';
+    cancelBtn.textContent    = '✕';
     completedBar.classList.remove('visible', 'complete-mode', 'cancel-mode');
     document.querySelectorAll('.order-sel-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.order-card').forEach(c => c.classList.remove('selected'));
@@ -673,9 +699,9 @@
     });
     const count = selectedOrderIds.size;
     if (selectingMode === 'complete')
-      completedBtn.textContent = count > 0 ? `Complete (${count})` : 'Complete';
+      completedBtn.textContent = count > 0 ? `✓ (${count})` : '✓';
     else if (selectingMode === 'cancel')
-      cancelBtn.textContent = count > 0 ? `Cancel (${count})` : 'Cancel';
+      cancelBtn.textContent = count > 0 ? `✕ (${count})` : '✕';
     document.querySelectorAll('.order-card').forEach(card => {
       card.classList.toggle('selected', selectedOrderIds.has(String(card.dataset.orderId)));
     });
@@ -820,7 +846,24 @@
   // View toggle
   const productCountLbl = document.getElementById('productCountLbl');
   const prodSortBtns    = document.getElementById('prodSortBtns');
+  const phaseFilterSel  = document.getElementById('phaseFilterSel');
   let productSort = 'qty'; // 'qty' | 'value'
+  let phaseFilterVal = ''; // '' = all
+
+  function buildPhaseFilterSel() {
+    phaseFilterSel.innerHTML = '<option value="">All phases</option>'
+      + ALL_PHASES.map(p => `<option value="${p}">${p}</option>`).join('');
+    phaseFilterSel.value = phaseFilterVal;
+  }
+  function updatePhaseFilterSel() {
+    const show = currentView === 'phase';
+    phaseFilterSel.style.display = show ? 'inline-block' : 'none';
+    if (!show) phaseFilterVal = '';
+  }
+  phaseFilterSel.addEventListener('change', () => {
+    phaseFilterVal = phaseFilterSel.value;
+    render();
+  });
 
   function updateProductCountLbl() {
     const isProduct = currentView === 'product';
@@ -850,6 +893,7 @@
       btn.classList.add('active');
       currentView = btn.dataset.view;
       sortBtn.textContent = sortAsc ? '↑' : '↓';
+      updatePhaseFilterSel();
       render();
       updateProductCountLbl();
     });
@@ -931,6 +975,8 @@
     document.getElementById('itemCount').textContent =
       allItems.length + ' items · ' + orders.length + ' orders';
 
+    buildPhaseFilterSel();
+    updatePhaseFilterSel();
     render();
     updateProductCountLbl();
   }).catch(e => {
@@ -1258,8 +1304,8 @@
   }
 
   // ── WIP Chart ────────────────────────────────────────────────────
-  const WIP_GREEN = ['WH-Ready', 'DLV-Bosta', 'DLV-Private', 'Partial - Delivered'];
-  const WIP_RED   = ['WH-Defected', 'WH-No_Response', 'WH-Postponed', 'WH-Returned',
+  const WIP_GREEN = ['WH-Ready', 'DLV-Bosta', 'DLV-Private', 'Delivered Partially', 'Delivered'];
+  const WIP_RED   = ['Not Confirmed', 'WH-Defected', 'WH-No_Response', 'WH-Postponed', 'WH-Returned',
                      'Not Received in WH', 'Not available in WH',
                      'DLV-Bareed-Cairo', 'DLV-Bareed-Tanta'];
   Chart.register(ChartDataLabels);
@@ -1293,6 +1339,36 @@
     const totalItems = counts.reduce((s, v) => s + v, 0);
     document.getElementById('wipTotalVal').textContent   = Math.round(totalVal).toLocaleString() + ' EGP';
     document.getElementById('wipTotalItems').textContent = totalItems + ' items';
+
+    // Group summary table
+    const GROUP_DEFS = [
+      { label: 'Order Review',      phases: ORDER_REVIEW_PHASES },
+      { label: 'Production',        phases: FAB_PHASES },
+      { label: 'Prod-WH Interface', phases: PROD_WH_PHASES },
+      { label: 'WH',                phases: WH_PHASES },
+      { label: 'In Delivery',       phases: DELIVERY_KB_PHASES },
+      { label: 'Delivered',         phases: DELIVERED_KB_PHASES },
+    ];
+    const tableRows = GROUP_DEFS.map(g => {
+      const items = g.phases.reduce((s, p) => s + (phaseItems[p] || 0), 0);
+      const val   = g.phases.reduce((s, p) => s + (phaseVal[p]   || 0), 0);
+      return `<tr>
+        <td style="padding:5px 10px;font-weight:600;font-size:12px;color:#7A4610;">${g.label}</td>
+        <td style="padding:5px 10px;font-size:12px;text-align:right;">${items}</td>
+        <td style="padding:5px 10px;font-size:12px;text-align:right;color:#1a7a3c;font-weight:600;">${Math.round(val).toLocaleString()} EGP</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('wip-group-table').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e8ddd4;border-radius:8px;overflow:hidden;">
+        <thead>
+          <tr style="background:#f5f0eb;">
+            <th style="padding:6px 10px;font-size:11px;text-align:left;color:#7A4610;">Group</th>
+            <th style="padding:6px 10px;font-size:11px;text-align:right;color:#7A4610;">Items</th>
+            <th style="padding:6px 10px;font-size:11px;text-align:right;color:#7A4610;">Value</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
 
     const ctx = document.getElementById('wipChart').getContext('2d');
     if (wipChartInstance) { wipChartInstance.destroy(); wipChartInstance = null; }

@@ -92,7 +92,7 @@
   <button class="filter-btn active" data-phase="DLV-Bareed-Tanta">Bareed Tanta</button>
   <button class="filter-btn active" data-phase="DLV-Bosta">Bosta</button>
   <button class="filter-btn active" data-phase="DLV-Private">Private</button>
-  <button class="filter-btn active" data-phase="Partial - Delivered">Partial Dlv</button>
+  <button class="filter-btn active" data-phase="Delivered Partially">Partial Dlv</button>
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
   <input id="searchInput" type="search" placeholder="Search order, client, phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
@@ -119,7 +119,7 @@
   const DELIVERY_PHASES = [
     "WH-Ready", "WH-No_Response",
     "DLV-Bareed-Cairo", "DLV-Bareed-Tanta", "DLV-Bosta", "DLV-Private",
-    "Partial - Delivered"
+    "Delivered Partially"
   ];
 
   const ALL_PHASES = [
@@ -128,7 +128,7 @@
     "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
     "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
     "WH-Postponed","WH-Returned","WH-Ready","DLV-Bareed-Cairo","DLV-Bareed-Tanta",
-    "DLV-Bosta","DLV-Private","Partial - Delivered"
+    "DLV-Bosta","DLV-Private","Delivered Partially"
   ];
 
   const EG_STATES = {

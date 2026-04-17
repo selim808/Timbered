@@ -1208,7 +1208,7 @@ async function loadGoals() {
       if (el) el.innerText = totalItems;
   }
 
-  const PROD_GREEN = ["WH-Ready", "DLV-Bosta", "DLV-Private", "Partial - Delivered"];
+  const PROD_GREEN = ["WH-Ready", "DLV-Bosta", "DLV-Private", "Delivered Partially"];
   const PROD_RED   = ["WH-Defected", "WH-No_Response", "WH-Postponed", "WH-Returned",
                       "Not Received in WH", "Not available in WH",
                       "DLV-Bareed-Cairo", "DLV-Bareed-Tanta"];
@@ -1237,7 +1237,7 @@ async function loadGoals() {
           document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
           document.getElementById("prodLblDlv").style.opacity = dlvPct > 8 ? 1 : 0;
 
-          const partialEntry = data.find(d => d.Phases === "Partial - Delivered");
+          const partialEntry = data.find(d => d.Phases === "Delivered Partially");
           const partialEl = document.getElementById("ciPartialVal");
           if (partialEl) partialEl.innerText = fmt(partialEntry ? (partialEntry["WIP Value"] || 0) : 0);
 
@@ -1893,6 +1893,7 @@ async function loadGoals() {
   <a href="inventory.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2;">Inventory</a>
   <a href="customer-service.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2;">Customer Service</a>
   <a href="delivery.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2;">Delivery</a>
+  <a href="warehouse.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2;">Warehouse</a>
 </div>
 
 </body>

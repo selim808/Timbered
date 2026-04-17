@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warehouse — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
+    .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
+    .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+
+    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; overflow-x: auto; }
+    .sub-nav-btn { font-size: 12px; font-weight: 700; padding: 10px 16px; border: none; background: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+
+    .toolbar { padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 99px; z-index: 98; display: none; }
+    .toolbar.visible { display: block; }
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+    .filter-row:last-child { margin-bottom: 0; }
+    .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
+    .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
+    .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; line-height: 1.4; }
+    .group-toggle { font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; border: 1.5px solid #7A4610; background: #fff; color: #7A4610; cursor: pointer; white-space: nowrap; }
+    .group-toggle.active { background: #7A4610; color: #fff; }
+    .toolbar-search { width: 100%; font-size: 12px; padding: 5px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
+
+    .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    /* GROUP HEADER */
+    .group-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #7A4610; color: #fff; border-radius: 8px; cursor: pointer; user-select: none; margin-bottom: 0; }
+    .group-hdr.open { border-radius: 8px 8px 0 0; }
+    .group-hdr-name { font-size: 12px; font-weight: 700; flex: 1; }
+    .group-hdr-count { font-size: 11px; opacity: 0.8; }
+    .group-hdr-chev { font-size: 10px; opacity: 0.7; transition: transform 0.2s; }
+    .group-hdr.open .group-hdr-chev { transform: rotate(180deg); }
+    .group-body { display: none; padding: 6px; background: #f5f0eb; border: 1px solid #e8ddd4; border-top: none; border-radius: 0 0 8px 8px; margin-bottom: 8px; }
+    .group-hdr.open + .group-body { display: block; }
+    .group-wrap { margin-bottom: 8px; }
+    .group-wrap:last-child { margin-bottom: 0; }
+
+    /* ORDER CARD */
+    .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
+    .order-card:last-child { margin-bottom: 0; }
+    .order-top { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; }
+    .order-top:hover { background: #fdf8f4; border-radius: 8px 8px 0 0; }
+    .order-id { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .order-name-lbl { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .order-total-lbl { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
+    .order-phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .order-phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
+    .order-phone-lbl  { display: flex; align-items: center; text-decoration: none; }
+    .order-phone-call { display: flex; align-items: center; text-decoration: none; }
+    .order-days { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+    .order-days.warn   { background: #e67e22; }
+    .order-days.urgent { background: #e74c3c; }
+    .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
+    .order-card.open .order-chevron { transform: rotate(180deg); }
+    .order-addr-lbl { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; }
+    .order-addr-lbl .a1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .order-addr-lbl .a2 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+    .order-addr-lbl .a3 { flex-shrink:0; white-space:nowrap; font-weight:600; color:#7A4610; }
+    .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
+    .order-items-inner { overflow: hidden; }
+    .order-card.open .order-items { grid-template-rows: 1fr; }
+
+    /* ITEM ROW */
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid #f5f0eb; }
+    .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .item-thumb { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-ph { width: 28px; height: 28px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+    .item-name:hover { text-decoration: underline; color: #7A4610; }
+    .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
+    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 110px; }
+
+    /* RECEIVING */
+    .recv-section { margin-bottom: 10px; }
+    .recv-sec-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; font-size: 12px; font-weight: 700; color: #7A4610; cursor: pointer; user-select: none; }
+    .recv-sec-hdr.open { border-radius: 8px 8px 0 0; }
+    .recv-sec-count { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 1px 7px; }
+    .recv-sec-chev { font-size: 10px; color: #bbb; margin-left: auto; transition: transform 0.2s; }
+    .recv-sec-hdr.open .recv-sec-chev { transform: rotate(180deg); }
+    .recv-sec-body { display: none; border: 1px solid #e8ddd4; border-top: none; border-radius: 0 0 8px 8px; }
+    .recv-sec-hdr.open + .recv-sec-body { display: block; }
+    .recv-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #f5f0eb; background: #fff; }
+    .recv-item:last-child { border-bottom: none; }
+    .recv-item-thumb { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; flex-shrink: 0; border: 1px solid #e8ddd4; cursor: pointer; }
+    .recv-item-thumb-ph { width: 32px; height: 32px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .recv-item-info { flex: 1; min-width: 0; }
+    .recv-item-name { font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recv-item-id { font-size: 10px; color: #aaa; }
+    .recv-item-qty { font-size: 11px; color: #888; flex-shrink: 0; white-space: nowrap; }
+    .recv-phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 3px 5px; color: #555; flex-shrink: 0; max-width: 130px; }
+
+    /* CALLS CHECKLIST */
+    .calls-section { margin-bottom: 10px; }
+    .calls-sec-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; font-size: 12px; font-weight: 700; color: #7A4610; cursor: pointer; user-select: none; }
+    .calls-sec-hdr.open { border-radius: 8px 8px 0 0; }
+    .calls-sec-count { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 1px 7px; }
+    .calls-sec-chev { font-size: 10px; color: #bbb; margin-left: auto; transition: transform 0.2s; }
+    .calls-sec-hdr.open .calls-sec-chev { transform: rotate(180deg); }
+    .calls-sec-body { display: none; }
+    .calls-sec-hdr.open + .calls-sec-body { display: block; }
+    .nr-checklist { padding: 8px 12px 10px; border-top: 1px solid #f0e8e0; display: flex; flex-direction: column; gap: 5px; }
+    .nr-cl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .nr-cl-day { font-size: 10px; font-weight: 700; color: #7A4610; text-transform: uppercase; letter-spacing: 0.4px; min-width: 28px; }
+    .nr-check-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #555; cursor: pointer; user-select: none; }
+    .nr-check-item input[type=checkbox] { accent-color: #7A4610; width: 13px; height: 13px; cursor: pointer; }
+    .nr-check-item.done span { color: #27ae60; text-decoration: line-through; }
+
+    /* STOCK IFRAME */
+    #stock-wrap iframe { width: 100%; height: calc(100vh - 99px); border: none; display: block; }
+
+    /* photo popup */
+    .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-overlay.open { display: flex; }
+    .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
+    .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <span class="title">Warehouse</span>
+  <span class="badge" id="headerBadge">Loading…</span>
+  <a href="index.html" class="back">← Back</a>
+</div>
+
+<div class="sub-nav">
+  <button class="sub-nav-btn active" id="tabStock">Stock</button>
+  <button class="sub-nav-btn" id="tabReceiving">Receiving</button>
+  <button class="sub-nav-btn" id="tabOrders">Orders</button>
+  <button class="sub-nav-btn" id="tabDelivery">Delivery</button>
+  <button class="sub-nav-btn" id="tabCalls">Calls</button>
+</div>
+
+<!-- Toolbars (one per tab that needs one) -->
+<div class="toolbar" id="recvToolbar">
+  <div class="filter-row">
+    <input class="toolbar-search" id="recvSearch" type="search" placeholder="Search item or order…">
+  </div>
+</div>
+
+<div class="toolbar" id="ordersToolbar">
+  <div class="filter-row">
+    <button class="filter-btn active" data-ph="Sent to WH">Sent to WH</button>
+    <button class="filter-btn active" data-ph="Not Received in WH">Not Rcvd</button>
+    <button class="filter-btn active" data-ph="Already in WH">Already in WH</button>
+    <button class="filter-btn active" data-ph="Not available in WH">Not Avail</button>
+    <button class="filter-btn active" data-ph="Sent to Workshop">Workshop</button>
+    <button class="filter-btn active" data-ph="WH-Defected">Defected</button>
+    <button class="filter-btn active" data-ph="WH-No_Response">No Response</button>
+    <button class="filter-btn active" data-ph="WH-Postponed">Postponed</button>
+    <button class="filter-btn active" data-ph="WH-Returned">Returned</button>
+    <button class="filter-btn active" data-ph="WH-Ready">Ready</button>
+    <button class="sort-btn" id="ordersSortBtn">↓</button>
+  </div>
+  <div class="filter-row">
+    <input class="toolbar-search" id="ordersSearch" type="search" placeholder="Search order, client, phone…">
+  </div>
+</div>
+
+<div class="toolbar" id="deliveryToolbar">
+  <div class="filter-row">
+    <button class="filter-btn active" data-ph="DLV-Bareed-Cairo">Bareed Cairo</button>
+    <button class="filter-btn active" data-ph="DLV-Bareed-Tanta">Bareed Tanta</button>
+    <button class="filter-btn active" data-ph="DLV-Bosta">Bosta</button>
+    <button class="filter-btn active" data-ph="DLV-Private">Private</button>
+    <button class="filter-btn active" data-ph="Delivered Partially">Partial Dlv</button>
+    <button class="sort-btn" id="dlvSortBtn">↓</button>
+    <button class="group-toggle active" id="grpByState">By State</button>
+    <button class="group-toggle" id="grpByMethod">By Method</button>
+  </div>
+  <div class="filter-row">
+    <input class="toolbar-search" id="dlvSearch" type="search" placeholder="Search order, client, phone…">
+  </div>
+</div>
+
+<!-- Content areas -->
+<div id="state-msg" class="state-msg">Loading…</div>
+<div id="stock-wrap"><iframe src="inventory-warehouse.html"></iframe></div>
+<div id="recv-wrap"     style="display:none; padding:10px;"></div>
+<div id="orders-wrap"   style="display:none; padding:10px;"></div>
+<div id="delivery-wrap" style="display:none; padding:10px;"></div>
+<div id="calls-wrap"    style="display:none; padding:10px;"></div>
+
+<!-- Photo popup -->
+<div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
+  <div class="photo-popup" onclick="event.stopPropagation()">
+    <div class="photo-popup-name" id="photoName"></div>
+    <img id="photoImg" src="" alt="">
+  </div>
+</div>
+
+<script>
+  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+                  + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
+
+  const ALL_PHASES = [
+    "Created","Chk Inventory","Refurbish","Model & DWG","Job order preparation","Procurement",
+    "Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint & inspec.","Rdy for ship","Sent to WH","Not Received in WH","Already in WH",
+    "Not available in WH","Sent to Workshop","WH-Defected","WH-No_Response",
+    "WH-Postponed","WH-Returned","WH-Ready","DLV-Bareed-Cairo","DLV-Bareed-Tanta",
+    "DLV-Bosta","DLV-Private","Delivered Partially"
+  ];
+
+  const WH_PHASES  = ["Sent to WH","Not Received in WH","Already in WH","Not available in WH",
+                      "Sent to Workshop","WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"];
+  const DLV_PHASES = ["DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially"];
+
+  const SENT_TO_WH_NEXT    = ["Already in WH","Not Received in WH","WH-Defected"];
+  const ALREADY_IN_WH_NEXT = ["WH-Ready","WH-No_Response","WH-Postponed","WH-Returned","WH-Defected",
+                               "Not Received in WH","Not available in WH",
+                               "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially"];
+
+  const EG_STATES = {
+    "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
+    "5":"Cairo","6":"Dakahlia","7":"Damietta","8":"El Kalioubia","9":"Fayoum",
+    "10":"Gharbia","11":"Giza","12":"Ismailia","13":"Kafr Alsheikh","14":"Luxor",
+    "15":"Matruh","16":"Minia","17":"Monufia","18":"New Valley","19":"North Coast",
+    "20":"North Sinai","21":"Port Said","22":"Qalyubia","23":"Qena","24":"Red Sea",
+    "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
+  };
+
+  const DLV_METHOD_LABELS = {
+    "DLV-Bareed-Cairo": "Bareed Cairo",
+    "DLV-Bareed-Tanta": "Bareed Tanta",
+    "DLV-Bosta":        "Bosta",
+    "DLV-Private":      "Private",
+    "Delivered Partially": "Partial Delivered"
+  };
+
+  // ── State ─────────────────────────────────────────────────────────
+  let allOrders = [];
+  let ordersFilters  = new Set(WH_PHASES);
+  let dlvFilters     = new Set(DLV_PHASES);
+  let ordersSortAsc  = false;
+  let dlvSortAsc     = false;
+  let dlvGroupByState = true;
+
+  // ── Phase helpers ─────────────────────────────────────────────────
+  function getPhase(item) {
+    const m = (item.meta_data || []).find(x => x.key === 'tg_phase');
+    return m?.value || 'Created';
+  }
+  function setPhase(orderId, itemId, phase) {
+    const order = allOrders.find(o => String(o.id) === String(orderId));
+    if (order) {
+      const item = order.line_items.find(i => String(i.id) === String(itemId));
+      if (item) {
+        const m = (item.meta_data || []).find(x => x.key === 'tg_phase');
+        if (m) m.value = phase; else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key:'tg_phase', value: phase }); }
+      }
+    }
+    fetch(WC_PUT(orderId), { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ line_items:[{ id: parseInt(itemId), meta_data:[{ key:'tg_phase', value: phase }] }] })
+    }).catch(()=>{});
+  }
+
+  // ── Fetch ─────────────────────────────────────────────────────────
+  async function fetchAllOrders() {
+    let page = 1, all = [];
+    while (true) {
+      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
+  }
+
+  function daysSince(d) { return Math.floor((Date.now() - new Date(d).getTime()) / 86400000); }
+  function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
+
+  const _photoItems = {};
+  function openPhoto(id) {
+    const item = _photoItems[id];
+    if (!item) return;
+    document.getElementById('photoName').textContent = item.name;
+    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoOverlay').classList.add('open');
+  }
+  function closePhoto() { document.getElementById('photoOverlay').classList.remove('open'); }
+
+  const WA_SVG  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>`;
+  const CALL_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>`;
+
+  function phoneHtml(phone) {
+    if (!phone) return '<span class="order-phone-num">—</span>';
+    const wa = phone.replace(/\D/g,'').replace(/^0/,'20');
+    return `<span class="order-phone-wrap" onclick="event.stopPropagation()">
+      <a class="order-phone-lbl" href="https://wa.me/${wa}" target="_blank">${WA_SVG}</a>
+      <span class="order-phone-num">${phone}</span>
+      <a class="order-phone-call" href="tel:${phone}">${CALL_SVG}</a>
+    </span>`;
+  }
+
+  function thumbHtml(item, size = 28) {
+    _photoItems[item.id] = item;
+    return item.image?.src
+      ? `<img class="item-thumb" style="width:${size}px;height:${size}px;" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
+      : `<span class="item-thumb-ph" style="width:${size}px;height:${size}px;"></span>`;
+  }
+
+  function itemRowHtml(o, item, idx) {
+    const phase = getPhase(item);
+    const opts  = ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('');
+    return `<div class="item-row">
+      ${thumbHtml(item)}
+      <span class="item-id">${o.id}.${idx+1}</span>
+      <a class="item-name" href="https://timberedgroup.com/?p=${item.product_id}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
+      <span class="item-qty">×${item.quantity}</span>
+      <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
+      <select class="phase-sel" data-order="${o.id}" data-item="${item.id}" onclick="event.stopPropagation()">${opts}</select>
+    </div>`;
+  }
+
+  function orderCardHtml(o, visibleItems) {
+    const days  = daysSince(o.date_created);
+    const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+    const itemsHtml = visibleItems.map((item, i) => itemRowHtml(o, item, i)).join('');
+    return `<div class="order-card" data-order-id="${o.id}">
+      <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+        <span class="order-days ${dc(days)}">${days}d</span>
+        <span class="order-id">#${o.id}</span>
+        <span class="order-name-lbl">${name}</span>
+        <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
+        ${phoneHtml(o.billing.phone)}
+        <span class="order-chevron">▼</span>
+      </div>
+      <div class="order-addr-lbl">
+        <span class="a1">${o.billing.address_1||''}</span>
+        <span class="a2">${o.billing.address_2||''}</span>
+        <span class="a3">${EG_STATES[o.billing.state]||o.billing.state||''}</span>
+      </div>
+      <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
+    </div>`;
+  }
+
+  function groupHtml(key, label, ordersHtml, count, wasOpen) {
+    const open = wasOpen.has(key) ? ' open' : '';
+    return `<div class="group-wrap">
+      <div class="group-hdr${open}" data-key="${key}">
+        <span class="group-hdr-name">${label}</span>
+        <span class="group-hdr-count">${count}</span>
+        <span class="group-hdr-chev">▼</span>
+      </div>
+      <div class="group-body">${ordersHtml}</div>
+    </div>`;
+  }
+
+  function attachGroupToggles(wrap) {
+    wrap.querySelectorAll('.group-hdr').forEach(h => h.addEventListener('click', () => h.classList.toggle('open')));
+  }
+  function attachPhaseListeners(wrap, rerender) {
+    wrap.querySelectorAll('.phase-sel').forEach(sel => {
+      sel.addEventListener('change', () => { setPhase(sel.dataset.order, sel.dataset.item, sel.value); rerender(); });
+    });
+  }
+
+  // ── RECEIVING ─────────────────────────────────────────────────────
+  function renderReceiving() {
+    const q    = document.getElementById('recvSearch').value.toLowerCase();
+    const wrap = document.getElementById('recv-wrap');
+    const sections = [
+      { phase:'Sent to WH',    label:'Sent to WH',    next: SENT_TO_WH_NEXT },
+      { phase:'Already in WH', label:'Already in WH', next: ALREADY_IN_WH_NEXT },
+    ];
+    let pendingTotal = 0;
+    let html = sections.map(({ phase, label, next }) => {
+      const items = [];
+      allOrders.forEach(o => o.line_items.forEach((item, idx) => {
+        if (getPhase(item) !== phase) return;
+        if (q && !item.name.toLowerCase().includes(q) && !String(o.id).includes(q)) return;
+        items.push({ o, item, idx });
+      }));
+      pendingTotal += items.length;
+      const rows = items.map(({ o, item, idx }) => {
+        const opts = next.map(p => `<option value="${p}">${p}</option>`).join('');
+        return `<div class="recv-item">
+          ${thumbHtml(item, 32)}
+          <div class="recv-item-info">
+            <div class="recv-item-name">${item.name}</div>
+            <div class="recv-item-id">#${o.id} · item ${idx+1}</div>
+          </div>
+          <span class="recv-item-qty">×${item.quantity}</span>
+          <select class="recv-phase-sel" data-order="${o.id}" data-item="${item.id}" onclick="event.stopPropagation()">
+            <option value="" disabled selected>→ Move to…</option>${opts}
+          </select>
+        </div>`;
+      }).join('');
+      const openCls = items.length ? ' open' : '';
+      return `<div class="recv-section">
+        <div class="recv-sec-hdr${openCls}">
+          <span>${label}</span>
+          <span class="recv-sec-count">${items.length} items</span>
+          <span class="recv-sec-chev">▼</span>
+        </div>
+        <div class="recv-sec-body">${rows || '<div class="state-msg" style="padding:20px;">No items</div>'}</div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.recv-sec-hdr').forEach(h => h.addEventListener('click', () => h.classList.toggle('open')));
+    wrap.querySelectorAll('.recv-phase-sel').forEach(sel => sel.addEventListener('change', () => {
+      if (!sel.value) return;
+      setPhase(sel.dataset.order, sel.dataset.item, sel.value);
+      renderReceiving();
+    }));
+    document.getElementById('headerBadge').textContent = pendingTotal + ' pending';
+  }
+
+  // ── ORDERS (WH phases) ────────────────────────────────────────────
+  function renderOrders() {
+    const q    = document.getElementById('ordersSearch').value.toLowerCase();
+    const wrap = document.getElementById('orders-wrap');
+    const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
+
+    const byState = {};
+    allOrders.forEach(o => {
+      if (!o.line_items.some(i => ordersFilters.has(getPhase(i)))) return;
+      const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
+      const sk = o.billing.state || '—';
+      (byState[sk] = byState[sk] || []).push(o);
+    });
+
+    const keys = Object.keys(byState).sort((a,b) => (EG_STATES[a]||a).localeCompare(EG_STATES[b]||b));
+    if (!keys.length) { wrap.innerHTML = '<div class="state-msg">No orders match</div>'; return; }
+
+    let total = 0;
+    wrap.innerHTML = keys.map(sk => {
+      const orders = byState[sk];
+      total += orders.length;
+      const cardsHtml = orders.map(o => {
+        const vis = o.line_items.filter(i => ordersFilters.has(getPhase(i)));
+        return orderCardHtml(o, vis);
+      }).join('');
+      return groupHtml(sk, EG_STATES[sk]||sk, cardsHtml, orders.length + ' orders', wasOpen);
+    }).join('');
+
+    attachGroupToggles(wrap);
+    attachPhaseListeners(wrap, renderOrders);
+    document.getElementById('headerBadge').textContent = total + ' orders';
+  }
+
+  // ── DELIVERY ──────────────────────────────────────────────────────
+  function renderDelivery() {
+    const q    = document.getElementById('dlvSearch').value.toLowerCase();
+    const wrap = document.getElementById('delivery-wrap');
+    const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
+
+    const matchingOrders = allOrders.filter(o => {
+      if (!o.line_items.some(i => dlvFilters.has(getPhase(i)))) return false;
+      const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      return !q || String(o.id).includes(q) || nm.includes(q) || (o.billing.phone||'').includes(q);
+    });
+
+    if (!matchingOrders.length) { wrap.innerHTML = '<div class="state-msg">No delivery orders match</div>'; return; }
+
+    const groups = {};
+    matchingOrders.forEach(o => {
+      let key, label;
+      if (dlvGroupByState) {
+        key   = o.billing.state || '—';
+        label = EG_STATES[key] || key;
+      } else {
+        // Primary delivery method = first DLV phase found on any item
+        const method = o.line_items.map(i => getPhase(i)).find(p => dlvFilters.has(p)) || '—';
+        key   = method;
+        label = DLV_METHOD_LABELS[method] || method;
+      }
+      (groups[key] = groups[key] || { label, orders:[] }).orders.push(o);
+    });
+
+    const keys = Object.keys(groups).sort((a,b) => groups[a].label.localeCompare(groups[b].label));
+    let total = 0;
+    wrap.innerHTML = keys.map(k => {
+      const { label, orders } = groups[k];
+      total += orders.length;
+      const cardsHtml = orders.map(o => {
+        const vis = o.line_items.filter(i => dlvFilters.has(getPhase(i)));
+        return orderCardHtml(o, vis);
+      }).join('');
+      return groupHtml(k, label, cardsHtml, orders.length + ' orders', wasOpen);
+    }).join('');
+
+    attachGroupToggles(wrap);
+    attachPhaseListeners(wrap, renderDelivery);
+    document.getElementById('headerBadge').textContent = total + ' orders';
+  }
+
+  // ── CALLS ─────────────────────────────────────────────────────────
+  const CL_KEY = 'tg_wh_calls';
+  function clLoad() { try { return JSON.parse(localStorage.getItem(CL_KEY)||'{}'); } catch { return {}; } }
+  function clSave(d) { localStorage.setItem(CL_KEY, JSON.stringify(d)); }
+
+  const CL_DAYS    = [{ k:'Sat', l:'Sat' },{ k:'Tue', l:'Tue' },{ k:'Fri', l:'Fri' }];
+  const CL_ACTIONS = [{ k:'wa', l:'WA' },{ k:'call1', l:'Call 1 PM' },{ k:'call5', l:'at 5 PM' },{ k:'call8', l:'at 8 PM' }];
+
+  function checklistHtml(orderId, cl) {
+    const oc = cl[String(orderId)] || {};
+    return `<div class="nr-checklist">${CL_DAYS.map(({ k:dk, l:dl }) => {
+      const dd = oc[dk] || {};
+      const acts = CL_ACTIONS.map(({ k:ak, l:al }) => {
+        const chk  = dd[ak] ? 'checked' : '';
+        const done = dd[ak] ? ' done'   : '';
+        return `<label class="nr-check-item${done}" onclick="event.stopPropagation()">
+          <input type="checkbox" ${chk} data-cl-order="${orderId}" data-cl-day="${dk}" data-cl-key="${ak}">
+          <span>${al}</span></label>`;
+      }).join('');
+      return `<div class="nr-cl-row"><span class="nr-cl-day">${dl}</span>${acts}</div>`;
+    }).join('')}</div>`;
+  }
+
+  function callsOrderCardHtml(o, cl) {
+    const days = daysSince(o.date_created);
+    const name = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+    const itemsHtml = o.line_items.map((item, i) => itemRowHtml(o, item, i)).join('');
+    return `<div class="order-card" data-order-id="${o.id}">
+      <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+        <span class="order-days ${dc(days)}">${days}d</span>
+        <span class="order-id">#${o.id}</span>
+        <span class="order-name-lbl">${name}</span>
+        <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
+        ${phoneHtml(o.billing.phone)}
+        <span class="order-chevron">▼</span>
+      </div>
+      <div class="order-addr-lbl">
+        <span class="a1">${o.billing.address_1||''}</span>
+        <span class="a2">${o.billing.address_2||''}</span>
+        <span class="a3">${EG_STATES[o.billing.state]||o.billing.state||''}</span>
+      </div>
+      <div class="order-items">
+        <div class="order-items-inner">
+          ${itemsHtml}
+          ${checklistHtml(o.id, cl)}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderCalls() {
+    const wrap = document.getElementById('calls-wrap');
+    const cl   = clLoad();
+    const sections = [
+      { phase:'WH-Ready',       label:'Pre-Delivery (WH-Ready)',   desc:'Call customer to confirm before dispatching' },
+      { phase:'WH-No_Response', label:'No Response (WH-No_Response)', desc:'Follow-up calls' },
+    ];
+
+    let html = sections.map(({ phase, label, desc }) => {
+      const orders = allOrders.filter(o => o.line_items.some(i => getPhase(i) === phase))
+                              .sort((a,b) => daysSince(b.date_created) - daysSince(a.date_created));
+      const cardsHtml = orders.map(o => callsOrderCardHtml(o, cl)).join('');
+      const openCls = orders.length ? ' open' : '';
+      return `<div class="calls-section">
+        <div class="calls-sec-hdr${openCls}">
+          <span>${label}</span>
+          <span class="calls-sec-count">${orders.length}</span>
+          <span class="calls-sec-chev">▼</span>
+        </div>
+        <div class="calls-sec-body">${cardsHtml || '<div class="state-msg" style="padding:20px;">No orders</div>'}</div>
+      </div>`;
+    }).join('');
+
+    const wasOpenCards = [...wrap.querySelectorAll('.order-card.open')].map(c => c.dataset.orderId);
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.order-card').forEach(c => {
+      if (wasOpenCards.includes(c.dataset.orderId)) c.classList.add('open');
+    });
+
+    wrap.querySelectorAll('.calls-sec-hdr').forEach(h => h.addEventListener('click', () => h.classList.toggle('open')));
+    attachPhaseListeners(wrap, renderCalls);
+
+    wrap.querySelectorAll('input[data-cl-order]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const d = clLoad();
+        if (!d[cb.dataset.clOrder]) d[cb.dataset.clOrder] = {};
+        if (!d[cb.dataset.clOrder][cb.dataset.clDay]) d[cb.dataset.clOrder][cb.dataset.clDay] = {};
+        d[cb.dataset.clOrder][cb.dataset.clDay][cb.dataset.clKey] = cb.checked;
+        clSave(d);
+        cb.closest('.nr-check-item').classList.toggle('done', cb.checked);
+      });
+    });
+
+    const total = sections.reduce((s, { phase }) =>
+      s + allOrders.filter(o => o.line_items.some(i => getPhase(i) === phase)).length, 0);
+    document.getElementById('headerBadge').textContent = total + ' orders';
+  }
+
+  // ── TAB SWITCHING ─────────────────────────────────────────────────
+  const TAB_CONFIG = {
+    tabStock:     { wrap:'stock-wrap',    toolbar:null,              render: null           },
+    tabReceiving: { wrap:'recv-wrap',     toolbar:'recvToolbar',     render: renderReceiving },
+    tabOrders:    { wrap:'orders-wrap',   toolbar:'ordersToolbar',   render: renderOrders   },
+    tabDelivery:  { wrap:'delivery-wrap', toolbar:'deliveryToolbar', render: renderDelivery },
+    tabCalls:     { wrap:'calls-wrap',    toolbar:null,              render: renderCalls    },
+  };
+
+  function setTab(id) {
+    Object.entries(TAB_CONFIG).forEach(([k, cfg]) => {
+      document.getElementById(k).classList.toggle('active', k === id);
+      const w = document.getElementById(cfg.wrap);
+      w.style.display = (k === id) ? 'block' : 'none';
+      if (cfg.toolbar) document.getElementById(cfg.toolbar).classList.toggle('visible', k === id);
+    });
+    document.getElementById('state-msg').style.display = 'none';
+    if (TAB_CONFIG[id].render) TAB_CONFIG[id].render();
+  }
+
+  Object.keys(TAB_CONFIG).forEach(id => {
+    document.getElementById(id).addEventListener('click', () => setTab(id));
+  });
+
+  // Orders tab filters
+  document.querySelectorAll('#ordersToolbar .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.ph;
+      if (ordersFilters.has(p)) { if (ordersFilters.size === 1) return; ordersFilters.delete(p); btn.classList.remove('active'); }
+      else { ordersFilters.add(p); btn.classList.add('active'); }
+      renderOrders();
+    });
+  });
+  document.getElementById('ordersSortBtn').addEventListener('click', () => {
+    ordersSortAsc = !ordersSortAsc;
+    document.getElementById('ordersSortBtn').textContent = ordersSortAsc ? '↑' : '↓';
+    renderOrders();
+  });
+  document.getElementById('ordersSearch').addEventListener('input', renderOrders);
+
+  // Delivery tab filters + group toggle
+  document.querySelectorAll('#deliveryToolbar .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.ph;
+      if (dlvFilters.has(p)) { if (dlvFilters.size === 1) return; dlvFilters.delete(p); btn.classList.remove('active'); }
+      else { dlvFilters.add(p); btn.classList.add('active'); }
+      renderDelivery();
+    });
+  });
+  document.getElementById('dlvSortBtn').addEventListener('click', () => {
+    dlvSortAsc = !dlvSortAsc;
+    document.getElementById('dlvSortBtn').textContent = dlvSortAsc ? '↑' : '↓';
+    renderDelivery();
+  });
+  document.getElementById('grpByState').addEventListener('click', () => {
+    dlvGroupByState = true;
+    document.getElementById('grpByState').classList.add('active');
+    document.getElementById('grpByMethod').classList.remove('active');
+    renderDelivery();
+  });
+  document.getElementById('grpByMethod').addEventListener('click', () => {
+    dlvGroupByState = false;
+    document.getElementById('grpByMethod').classList.add('active');
+    document.getElementById('grpByState').classList.remove('active');
+    renderDelivery();
+  });
+  document.getElementById('dlvSearch').addEventListener('input', renderDelivery);
+  document.getElementById('recvSearch').addEventListener('input', renderReceiving);
+
+  // ── INIT ──────────────────────────────────────────────────────────
+  fetchAllOrders().then(orders => {
+    allOrders = orders;
+    document.getElementById('state-msg').style.display = 'none';
+  }).catch(e => {
+    document.getElementById('state-msg').textContent = 'Error: ' + e.message;
+  });
+</script>
+</body>
+</html>
