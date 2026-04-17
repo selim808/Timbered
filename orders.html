@@ -227,6 +227,7 @@
   <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered" style="display:block;"></a>
   <span class="title">Orders</span>
   <span class="badge" id="itemCount">Loading…</span>
+  <span class="badge" id="totalValue" style="background:#e8f5ee;color:#1a7a3c;border-color:#b7dfc8;"></span>
   <a href="index.html" class="back">← Back</a>
 </div>
 
@@ -636,6 +637,7 @@
   };
   const activeGroups = new Set(Object.keys(PHASE_GROUPS));
   let allItems = [], allOrders = [];
+  let grandTotal = 0, grandQty = 0;
   const selectedOrderIds = new Set();
 
   function searchQuery() {
@@ -992,8 +994,15 @@
       });
     });
 
+    grandTotal = 0; grandQty = 0;
+    allOrders.forEach(o => o.line_items.forEach(i => {
+      grandTotal += parseFloat(i.total || 0);
+      grandQty   += (i.quantity || 1);
+    }));
     document.getElementById('itemCount').textContent =
-      allItems.length + ' items · ' + orders.length + ' orders';
+      grandQty + ' items · ' + orders.length + ' orders';
+    document.getElementById('totalValue').textContent =
+      Math.round(grandTotal).toLocaleString() + ' EGP';
 
     buildPhaseFilterSel();
     updatePhaseFilterSel();
@@ -1355,10 +1364,8 @@
       WIP_RED.includes(p)   ? '#e74c3c' : '#3498db'
     );
 
-    const totalVal   = values.reduce((s, v) => s + v, 0);
-    const totalItems = counts.reduce((s, v) => s + v, 0);
-    document.getElementById('wipTotalVal').textContent   = Math.round(totalVal).toLocaleString() + ' EGP';
-    document.getElementById('wipTotalItems').textContent = totalItems + ' items';
+    document.getElementById('wipTotalVal').textContent   = Math.round(grandTotal).toLocaleString() + ' EGP';
+    document.getElementById('wipTotalItems').textContent = grandQty + ' items';
 
     // Group summary table
     const GROUP_DEFS = [
