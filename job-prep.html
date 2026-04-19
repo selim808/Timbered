@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Order Prep — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; flex: 1; }
+    .back { font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; }
+    .sub-nav-btn { font-size: 12px; font-weight: 700; padding: 10px 18px; border: none; background: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+
+    .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; margin-left: 4px; }
+
+    .wrap { padding: 10px 10px 100px; max-width: 640px; margin: 0 auto; }
+    .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    /* PRODUCT CARD (New JO tab) */
+    .prod-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .prod-top { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+    .prod-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .prod-thumb-ph { width: 40px; height: 40px; border-radius: 6px; background: #f0e8e0; flex-shrink: 0; }
+    .prod-info { flex: 1; min-width: 0; }
+    .prod-name { font-size: 12px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prod-id { font-size: 10px; color: #aaa; margin-top: 1px; }
+    .dwg-icon { font-size: 9px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 3px; padding: 1px 4px; text-decoration: none; flex-shrink: 0; line-height: 1.4; white-space: nowrap; }
+    .dwg-icon:hover { background: #7A4610; color: #fff; }
+    .qty-col { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; min-width: 42px; }
+    .qty-col-lbl { font-size: 9px; color: #aaa; font-weight: 700; text-transform: uppercase; }
+    .qty-col-val { font-size: 15px; font-weight: 700; color: #333; }
+    .mts-col { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; min-width: 52px; }
+    .mts-col-lbl { font-size: 9px; color: #7A4610; font-weight: 700; text-transform: uppercase; }
+    .mts-input { width: 52px; font-size: 15px; font-weight: 700; color: #7A4610; border: 1.5px solid #e8ddd4; border-radius: 6px; padding: 2px 6px; text-align: center; outline: none; background: #fef3e2; }
+    .mts-input:focus { border-color: #7A4610; }
+    .total-col { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; min-width: 42px; }
+    .total-col-lbl { font-size: 9px; color: #555; font-weight: 700; text-transform: uppercase; }
+    .total-col-val { font-size: 15px; font-weight: 700; color: #7A4610; }
+
+    /* MTO orders breakdown */
+    .mto-orders { border-top: 1px solid #f5f0eb; padding: 6px 12px 8px; background: #fdf8f4; }
+    .mto-order-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; color: #666; }
+    .mto-order-id { font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .mto-order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mto-order-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+
+    /* SUBMIT BUTTON */
+    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e8ddd4; padding: 12px 16px; z-index: 90; display: flex; gap: 10px; align-items: center; max-width: 640px; margin: 0 auto; }
+    .submit-btn { flex: 1; background: #7A4610; color: #fff; border: none; border-radius: 20px; padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .submit-btn:hover:not(:disabled) { background: #5a3209; }
+    .submit-summary { font-size: 11px; color: #aaa; flex-shrink: 0; }
+
+    /* JO HISTORY CARDS */
+    .jo-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .jo-top { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none; }
+    .jo-top:hover { background: #fdf8f4; }
+    .jo-ref { font-size: 12px; font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .jo-date { font-size: 11px; color: #aaa; flex: 1; }
+    .jo-count { font-size: 11px; color: #555; flex-shrink: 0; }
+    .jo-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
+    .jo-card.open .jo-chev { transform: rotate(180deg); }
+    .jo-body { display: none; border-top: 1px solid #f5f0eb; }
+    .jo-card.open .jo-body { display: block; }
+
+    .jo-item { padding: 10px 12px; border-bottom: 1px solid #f5f0eb; }
+    .jo-item:last-child { border-bottom: none; }
+    .jo-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .jo-item-thumb { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .jo-item-thumb-ph { width: 32px; height: 32px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .jo-item-name { font-size: 12px; font-weight: 700; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .jo-qty-row { display: flex; gap: 16px; padding-left: 40px; }
+    .jo-qty-chip { font-size: 11px; color: #666; }
+    .jo-qty-chip span { font-weight: 700; color: #333; }
+    .jo-qty-chip.mts span { color: #7A4610; }
+    .jo-qty-chip.total span { color: #222; }
+    .jo-orders-list { margin-top: 4px; padding-left: 40px; }
+    .jo-order-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 1px 7px; margin: 2px 2px 0 0; font-weight: 600; }
+
+    /* STATUS BADGE */
+    .status-badge { font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 8px; flex-shrink: 0; }
+    .status-open { background: #fef3e2; color: #7A4610; }
+    .status-done { background: #eafaf1; color: #27ae60; }
+
+    /* MTS-ONLY SECTION */
+    .section-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 4px; margin: 16px 0 8px; }
+    .section-hdr-line { flex: 1; height: 1px; background: #e8ddd4; }
+    .section-hdr-lbl { font-size: 11px; font-weight: 700; color: #7A4610; white-space: nowrap; }
+
+    .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .prod-search { flex: 1; font-size: 12px; padding: 8px 12px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
+    .prod-search:focus { border-color: #7A4610; }
+    .search-btn { font-size: 12px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+    .search-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .search-results { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .search-result-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #f5f0eb; }
+    .search-result-row:last-child { border-bottom: none; }
+    .sr-thumb { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .sr-thumb-ph { width: 28px; height: 28px; border-radius: 4px; background: #f0e8e0; flex-shrink: 0; }
+    .sr-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-add { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
+    .sr-add:hover { background: #7A4610; color: #fff; }
+    .sr-add:disabled { border-color: #ccc; color: #ccc; cursor: default; }
+
+    .mts-only-card { background: #fff; border: 1.5px solid #c97d3a; border-radius: 8px; margin-bottom: 8px; }
+    .mts-only-top { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+    .mts-only-badge { font-size: 9px; font-weight: 700; background: #c97d3a; color: #fff; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; white-space: nowrap; }
+    .remove-btn { font-size: 16px; color: #e74c3c; background: none; border: none; cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+    .remove-btn:hover { color: #c0392b; }
+    .jo-delete-btn { font-size: 11px; font-weight: 700; color: #e74c3c; border: 1.5px solid #e74c3c; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+    .jo-delete-btn:hover { background: #e74c3c; color: #fff; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <span class="title">Job Order Preparation</span>
+  <a href="index.html" class="back">← Back</a>
+</header>
+
+<nav class="sub-nav">
+  <button class="sub-nav-btn active" id="tabNew">New JO <span class="badge" id="newBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabHistory">History <span class="badge" id="histBadge">—</span></button>
+</nav>
+
+<div id="stateMsg" class="state-msg">Loading…</div>
+
+<div class="wrap" id="newWrap" style="display:none"></div>
+<div class="wrap" id="histWrap" style="display:none"></div>
+
+<div class="submit-bar" id="submitBar" style="display:none">
+  <span class="submit-summary" id="submitSummary"></span>
+  <button class="submit-btn" id="submitBtn" onclick="submitJO()">Submit Job Order</button>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<script>
+  // ── Firebase ──────────────────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg",
+    authDomain: "timbered-dashboard.firebaseapp.com",
+    projectId: "timbered-dashboard",
+    storageBucket: "timbered-dashboard.firebasestorage.app",
+    messagingSenderId: "979815602482",
+    appId: "1:979815602482:web:5a93effad07f738b301f2b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ── WC API ────────────────────────────────────────────────────────
+  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+                  + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+
+  const JO_PHASE = "Job order preparation";
+
+  const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  function getPhase(item) {
+    const m = (item.meta_data || []).find(x => x.key === 'tg_phase');
+    return m?.value || 'Created';
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  async function fetchAllOrders() {
+    let page = 1, all = [];
+    while (true) {
+      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
+  }
+
+  // ── Group WC orders by product ────────────────────────────────────
+  function groupByProduct(orders) {
+    const map = {};
+    orders.forEach(order => {
+      const customer = [order.billing?.first_name, order.billing?.last_name].filter(Boolean).join(' ') || '—';
+      order.line_items.filter(i => getPhase(i) === JO_PHASE).forEach(item => {
+        if (!map[item.product_id]) {
+          map[item.product_id] = {
+            product_id: item.product_id,
+            name: item.name,
+            image: item.image?.src || '',
+            mto_qty: 0,
+            mto_orders: []
+          };
+        }
+        map[item.product_id].mto_qty += item.quantity;
+        map[item.product_id].mto_orders.push({ order_id: order.id, customer, qty: item.quantity });
+      });
+    });
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // ── Render New JO tab ─────────────────────────────────────────────
+  function renderNew(products) {
+    document.getElementById('newBadge').textContent = products.length;
+    if (!products.length) {
+      document.getElementById('newWrap').innerHTML = '<div class="state-msg">No items in Job Order Preparation phase</div>';
+      document.getElementById('submitBar').style.display = 'none';
+      return;
+    }
+
+    const html = products.map(p => {
+      const thumb = p.image
+        ? `<img class="prod-thumb" src="${p.image}" alt="">`
+        : `<div class="prod-thumb-ph"></div>`;
+      const dwg = DRAWING_URLS[p.product_id];
+      const ordersHtml = p.mto_orders.map(o =>
+        `<div class="mto-order-row">
+          <span class="mto-order-id">#${o.order_id}</span>
+          <span class="mto-order-name">${o.customer}</span>
+          <span class="mto-order-qty">×${o.qty}</span>
+        </div>`
+      ).join('');
+
+      return `
+        <div class="prod-card" data-pid="${p.product_id}">
+          <div class="prod-top">
+            ${thumb}
+            <div class="prod-info">
+              <div class="prod-name">${p.name}</div>
+              <div class="prod-id">#${p.product_id}</div>
+            </div>
+            ${dwg ? `<a class="dwg-icon" href="${dwg}" target="_blank">DWG</a>` : ''}
+            <div class="qty-col">
+              <span class="qty-col-lbl">MTO</span>
+              <span class="qty-col-val">${p.mto_qty}</span>
+            </div>
+            <div class="mts-col">
+              <span class="mts-col-lbl">MTS</span>
+              <input class="mts-input" type="number" min="0" placeholder="0"
+                data-pid="${p.product_id}" data-mto="${p.mto_qty}"
+                oninput="updateTotal(this)">
+            </div>
+            <div class="total-col" id="total-${p.product_id}">
+              <span class="total-col-lbl">Total</span>
+              <span class="total-col-val">${p.mto_qty}</span>
+            </div>
+          </div>
+          <div class="mto-orders">${ordersHtml}</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('newWrap').innerHTML = html + `
+      <div class="section-hdr">
+        <div class="section-hdr-line"></div>
+        <span class="section-hdr-lbl">Stock Only — MTS (no order)</span>
+        <div class="section-hdr-line"></div>
+      </div>
+      <div class="search-row">
+        <input class="prod-search" id="prodSearch" type="text" placeholder="Search product name…"
+          onkeydown="if(event.key==='Enter')searchProducts()">
+        <button class="search-btn" id="searchBtn" onclick="searchProducts()">Search</button>
+      </div>
+      <div id="searchResults"></div>
+      <div id="mtsOnlyList"></div>`;
+    document.getElementById('submitBar').style.display = 'flex';
+    renderMtsOnlyList();
+    updateSubmitSummary();
+  }
+
+  function updateTotal(input) {
+    const mto = parseInt(input.dataset.mto) || 0;
+    const mts = parseInt(input.value) || 0;
+    const totalEl = document.getElementById(`total-${input.dataset.pid}`);
+    if (totalEl) totalEl.querySelector('.total-col-val').textContent = mto + mts;
+    updateSubmitSummary();
+  }
+
+  function updateSubmitSummary() {
+    const mtoCards = document.querySelectorAll('.prod-card[data-pid]');
+    let totalItems = mtoCards.length + _mtsOnly.length;
+    let totalQty = 0;
+    mtoCards.forEach(card => {
+      const inp = card.querySelector('.mts-input');
+      const mto = parseInt(inp?.dataset.mto) || 0;
+      const mts = parseInt(inp?.value) || 0;
+      totalQty += mto + mts;
+    });
+    _mtsOnly.forEach(p => { totalQty += parseInt(p.qty) || 1; });
+    document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units`;
+  }
+
+  // ── MTS-only product search & list ───────────────────────────────
+  const WC_PRODUCTS = `https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&per_page=20&status=publish`;
+  let _mtsOnly = []; // [{ product_id, name, image, qty }]
+
+  async function searchProducts() {
+    const q = document.getElementById('prodSearch').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const res = await fetch(`${WC_PRODUCTS}&search=${encodeURIComponent(q)}`);
+      const prods = await res.json();
+      const mtoIds = new Set(document.querySelectorAll('.prod-card[data-pid]') ? [...document.querySelectorAll('.prod-card[data-pid]')].map(c => parseInt(c.dataset.pid)) : []);
+      const mtsIds = new Set(_mtsOnly.map(p => p.product_id));
+      const rows = prods.map(p => {
+        const already = mtoIds.has(p.id) || mtsIds.has(p.id);
+        const thumb = p.images?.[0]?.src
+          ? `<img class="sr-thumb" src="${p.images[0].src}" alt="">`
+          : `<div class="sr-thumb-ph"></div>`;
+        return `<div class="search-result-row">
+          ${thumb}
+          <span class="sr-name">${p.name}</span>
+          <button class="sr-add" ${already ? 'disabled' : ''} onclick="addMtsProduct(${p.id},'${p.name.replace(/'/g,"\\'")}','${p.images?.[0]?.src||''}')">
+            ${already ? 'Added' : '+ Add'}
+          </button>
+        </div>`;
+      }).join('');
+      document.getElementById('searchResults').innerHTML = rows
+        ? `<div class="search-results">${rows}</div>`
+        : '<div class="state-msg" style="padding:12px;font-size:12px;">No products found</div>';
+    } catch(e) {
+      document.getElementById('searchResults').innerHTML = `<div class="state-msg" style="padding:12px;font-size:12px;">Error: ${e.message}</div>`;
+    }
+    btn.disabled = false; btn.textContent = 'Search';
+  }
+
+  function addMtsProduct(pid, name, image) {
+    if (_mtsOnly.find(p => p.product_id === pid)) return;
+    _mtsOnly.push({ product_id: pid, name, image, qty: 1 });
+    document.getElementById('searchResults').innerHTML = '';
+    document.getElementById('prodSearch').value = '';
+    renderMtsOnlyList();
+    updateSubmitSummary();
+  }
+
+  function removeMtsProduct(pid) {
+    _mtsOnly = _mtsOnly.filter(p => p.product_id !== pid);
+    renderMtsOnlyList();
+    updateSubmitSummary();
+  }
+
+  function renderMtsOnlyList() {
+    const el = document.getElementById('mtsOnlyList');
+    if (!el) return;
+    if (!_mtsOnly.length) { el.innerHTML = ''; return; }
+    el.innerHTML = _mtsOnly.map(p => {
+      const thumb = p.image
+        ? `<img class="prod-thumb" src="${p.image}" alt="">`
+        : `<div class="prod-thumb-ph"></div>`;
+      const dwg = DRAWING_URLS[p.product_id];
+      return `<div class="mts-only-card">
+        <div class="mts-only-top">
+          ${thumb}
+          <div class="prod-info">
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-id">#${p.product_id}</div>
+          </div>
+          ${dwg ? `<a class="dwg-icon" href="${dwg}" target="_blank">DWG</a>` : ''}
+          <span class="mts-only-badge">MTS only</span>
+          <div class="mts-col">
+            <span class="mts-col-lbl">Qty</span>
+            <input class="mts-input" type="number" min="1" value="${p.qty}"
+              data-pid="${p.product_id}"
+              oninput="_mtsOnly.find(x=>x.product_id===${p.product_id}).qty=parseInt(this.value)||1; updateSubmitSummary()">
+          </div>
+          <button class="remove-btn" onclick="removeMtsProduct(${p.product_id})">×</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Submit JO to Firestore ────────────────────────────────────────
+  async function submitJO() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const items = [];
+    document.querySelectorAll('.prod-card').forEach(card => {
+      const pid = parseInt(card.dataset.pid);
+      const input = card.querySelector('.mts-input');
+      const mtoQty = parseInt(input.dataset.mto) || 0;
+      const mtsQty = parseInt(input.value) || 0;
+      const mtoOrders = [];
+      card.querySelectorAll('.mto-order-row').forEach(row => {
+        const id = parseInt(row.querySelector('.mto-order-id').textContent.replace('#',''));
+        const customer = row.querySelector('.mto-order-name').textContent;
+        const qty = parseInt(row.querySelector('.mto-order-qty').textContent.replace('×',''));
+        mtoOrders.push({ order_id: id, customer, qty });
+      });
+      items.push({
+        product_id: pid,
+        product_name: card.querySelector('.prod-name').textContent,
+        image: card.querySelector('.prod-thumb')?.src || '',
+        mto: { qty: mtoQty, orders: mtoOrders },
+        mts: { qty: mtsQty },
+        total_qty: mtoQty + mtsQty
+      });
+    });
+
+    // Add pure MTS-only products
+    _mtsOnly.forEach(p => {
+      items.push({
+        product_id: p.product_id,
+        product_name: p.name,
+        image: p.image || '',
+        mto: { qty: 0, orders: [] },
+        mts: { qty: parseInt(p.qty) || 1 },
+        total_qty: parseInt(p.qty) || 1
+      });
+    });
+
+    if (!items.length) { btn.disabled = false; btn.textContent = 'Submit Job Order'; return; }
+
+    const countSnap = await db.collection('job_orders').get();
+    const nextNum = String(countSnap.size + 1).padStart(3, '0');
+    const ref = `JO_${nextNum}`;
+
+    try {
+      await db.collection('job_orders').add({
+        ref,
+        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        status: 'open',
+        items
+      });
+
+      btn.textContent = '✓ Submitted!';
+      btn.style.background = '#27ae60';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = 'Submit Job Order';
+        btn.style.background = '';
+        setTab('tabHistory');
+      }, 1500);
+    } catch (e) {
+      alert('Error saving JO: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'Submit Job Order';
+    }
+  }
+
+  // ── Delete JO ─────────────────────────────────────────────────────
+  async function deleteJO(docId, ref) {
+    if (!confirm(`Delete ${ref}? This cannot be undone.`)) return;
+    try {
+      await db.collection('job_orders').doc(docId).delete();
+      document.getElementById(`jo-${docId}`)?.remove();
+      const badge = document.getElementById('histBadge');
+      badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+    } catch(e) {
+      alert('Error deleting: ' + e.message);
+    }
+  }
+
+  // ── Render History tab ────────────────────────────────────────────
+  async function renderHistory() {
+    const wrap = document.getElementById('histWrap');
+    wrap.innerHTML = '<div class="state-msg">Loading history…</div>';
+    try {
+      const snap = await db.collection('job_orders').orderBy('created_at', 'desc').get();
+      document.getElementById('histBadge').textContent = snap.size;
+      if (snap.empty) { wrap.innerHTML = '<div class="state-msg">No job orders yet</div>'; return; }
+
+      const html = snap.docs.map(doc => {
+        const jo = doc.data();
+        const itemCount = (jo.items || []).length;
+        const totalQty = (jo.items || []).reduce((s, i) => s + (i.total_qty || 0), 0);
+        const statusCls = jo.status === 'open' ? 'status-open' : 'status-done';
+        const statusLbl = jo.status === 'open' ? 'Open' : 'Done';
+
+        const itemsHtml = (jo.items || []).map(item => {
+          const thumb = item.image
+            ? `<img class="jo-item-thumb" src="${item.image}" alt="">`
+            : `<div class="jo-item-thumb-ph"></div>`;
+          const ordersHtml = (item.mto?.orders || []).map(o =>
+            `<span class="jo-order-pill">#${o.order_id} · ${o.customer} · ×${o.qty}</span>`
+          ).join('');
+          return `
+            <div class="jo-item">
+              <div class="jo-item-top">
+                ${thumb}
+                <span class="jo-item-name">${item.product_name}</span>
+              </div>
+              <div class="jo-qty-row">
+                <span class="jo-qty-chip">MTO <span>${item.mto?.qty || 0}</span></span>
+                <span class="jo-qty-chip mts">MTS <span>${item.mts?.qty || 0}</span></span>
+                <span class="jo-qty-chip total">Total <span>${item.total_qty || 0}</span></span>
+              </div>
+              ${ordersHtml ? `<div class="jo-orders-list">${ordersHtml}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        return `
+          <div class="jo-card" id="jo-${doc.id}">
+            <div class="jo-top" onclick="this.closest('.jo-card').classList.toggle('open')">
+              <span class="jo-ref">${jo.ref || '—'}</span>
+              <span class="jo-date">${fmtDate(jo.created_at)}</span>
+              <span class="jo-count">${itemCount} products · ${totalQty} units</span>
+              <span class="status-badge ${statusCls}">${statusLbl}</span>
+              <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${doc.id}','${jo.ref||''}')">Delete</button>
+              <span class="jo-chev">▼</span>
+            </div>
+            <div class="jo-body">${itemsHtml}</div>
+          </div>`;
+      }).join('');
+
+      wrap.innerHTML = html;
+    } catch (e) {
+      wrap.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`;
+    }
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────────
+  let _wcProducts = [];
+
+  function setTab(id) {
+    document.getElementById('tabNew').classList.toggle('active', id === 'tabNew');
+    document.getElementById('tabHistory').classList.toggle('active', id === 'tabHistory');
+    document.getElementById('newWrap').style.display = id === 'tabNew' ? 'block' : 'none';
+    document.getElementById('histWrap').style.display = id === 'tabHistory' ? 'block' : 'none';
+    document.getElementById('submitBar').style.display = id === 'tabNew' && _wcProducts.length ? 'flex' : 'none';
+    if (id === 'tabHistory') renderHistory();
+  }
+
+  document.getElementById('tabNew').addEventListener('click', () => setTab('tabNew'));
+  document.getElementById('tabHistory').addEventListener('click', () => setTab('tabHistory'));
+
+  // ── Init ──────────────────────────────────────────────────────────
+  fetchAllOrders().then(orders => {
+    _wcProducts = groupByProduct(orders);
+    document.getElementById('stateMsg').style.display = 'none';
+    document.getElementById('newWrap').style.display = 'block';
+    renderNew(_wcProducts);
+  }).catch(e => {
+    document.getElementById('stateMsg').textContent = 'Error loading orders: ' + e.message;
+  });
+</script>
+</body>
+</html>
