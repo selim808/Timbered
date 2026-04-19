@@ -119,6 +119,8 @@
     .jo-delete-btn:hover { background: #e74c3c; color: #fff; }
     .jo-edit-btn { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
     .jo-edit-btn:hover { background: #7A4610; color: #fff; }
+    .jo-pdf-btn { font-size: 11px; font-weight: 700; color: #2980b9; border: 1.5px solid #2980b9; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+    .jo-pdf-btn:hover { background: #2980b9; color: #fff; }
 
     /* EDIT OVERLAY */
     .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
@@ -555,6 +557,102 @@
     btn.disabled = false; btn.textContent = 'Save Changes';
   }
 
+  // ── Export PDF ────────────────────────────────────────────────────
+  async function exportPDF(docId) {
+    const btn = event.target;
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const doc = await db.collection('job_orders').doc(docId).get();
+      const jo = doc.data();
+      const items = jo.items || [];
+
+      // Fetch WC product prices in one call
+      const ids = [...new Set(items.map(i => i.product_id))].join(',');
+      const res = await fetch(`https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&include=${ids}&per_page=100`);
+      const prods = await res.json();
+      const priceMap = {};
+      prods.forEach(p => { priceMap[p.id] = parseFloat(p.price) || 0; });
+
+      const date = jo.created_at?.toDate ? jo.created_at.toDate() : new Date();
+      const dateStr = date.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+
+      let grandTotal = 0;
+      const rows = items.map(item => {
+        const unitPrice = priceMap[item.product_id] || 0;
+        const value = unitPrice * (item.total_qty || 0);
+        grandTotal += value;
+        const mtoOrders = (item.mto?.orders || []).map(o => `#${o.order_id}(×${o.qty})`).join(', ');
+        return `<tr>
+          <td>${item.product_name}</td>
+          <td class="num">${item.mto?.qty || 0}${mtoOrders ? `<br><small style="color:#888">${mtoOrders}</small>` : ''}</td>
+          <td class="num">${item.mts?.qty || 0}</td>
+          <td class="num"><strong>${item.total_qty || 0}</strong></td>
+          <td class="num">${unitPrice.toLocaleString()} EGP</td>
+          <td class="num"><strong>${value.toLocaleString()} EGP</strong></td>
+        </tr>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>${jo.ref}</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; font-size: 12px; color: #222; padding: 32px; }
+          .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+          .logo { font-size: 20px; font-weight: 900; color: #7A4610; letter-spacing: 1px; }
+          .jo-meta { text-align: right; }
+          .jo-ref { font-size: 18px; font-weight: 800; color: #7A4610; }
+          .jo-date { font-size: 11px; color: #888; margin-top: 2px; }
+          h2 { font-size: 13px; color: #555; margin-bottom: 10px; border-bottom: 1px solid #e0d8d0; padding-bottom: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th { background: #7A4610; color: #fff; padding: 7px 10px; font-size: 11px; text-align: left; }
+          th.num, td.num { text-align: right; }
+          td { padding: 7px 10px; border-bottom: 1px solid #f0ebe4; font-size: 11px; vertical-align: top; }
+          tr:nth-child(even) td { background: #faf7f4; }
+          .total-row td { border-top: 2px solid #7A4610; font-weight: 700; font-size: 13px; padding-top: 10px; }
+          .footer { margin-top: 32px; font-size: 10px; color: #aaa; text-align: center; }
+          @media print { body { padding: 16px; } button { display: none; } }
+        </style>
+      </head><body>
+        <div class="header">
+          <div>
+            <div class="logo">TIMBERED</div>
+            <div style="font-size:11px;color:#888;margin-top:4px;">Job Order Report</div>
+          </div>
+          <div class="jo-meta">
+            <div class="jo-ref">${jo.ref}</div>
+            <div class="jo-date">${dateStr}</div>
+            <div class="jo-date" style="margin-top:4px;">Status: ${jo.status || 'open'}</div>
+          </div>
+        </div>
+        <h2>Items</h2>
+        <table>
+          <thead><tr>
+            <th>Product</th>
+            <th class="num">MTO</th>
+            <th class="num">MTS</th>
+            <th class="num">Total Qty</th>
+            <th class="num">Unit Price</th>
+            <th class="num">Value</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr class="total-row">
+            <td colspan="5" style="text-align:right;">Total JO Value</td>
+            <td class="num">${grandTotal.toLocaleString()} EGP</td>
+          </tr></tfoot>
+        </table>
+        <div class="footer">Generated ${new Date().toLocaleString('en-GB')} · Timbered Dashboard</div>
+        <script>window.onload=()=>window.print();<\/script>
+      </body></html>`;
+
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+    } catch(e) {
+      alert('Error generating PDF: ' + e.message);
+    }
+    btn.textContent = 'PDF'; btn.disabled = false;
+  }
+
   // ── Delete JO ─────────────────────────────────────────────────────
   async function deleteJO(docId, ref) {
     if (!confirm(`Delete ${ref}? This cannot be undone.`)) return;
@@ -613,6 +711,7 @@
               <span class="jo-date">${fmtDate(jo.created_at)}</span>
               <span class="jo-count">${itemCount} products · ${totalQty} units</span>
               <span class="status-badge ${statusCls}">${statusLbl}</span>
+              <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${doc.id}')">PDF</button>
               <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${doc.id}')">Edit</button>
               <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${doc.id}','${jo.ref||''}')">Delete</button>
               <span class="jo-chev">▼</span>
