@@ -377,7 +377,7 @@
         <div class="od-label">Customer</div>
         <div class="od-val" style="font-weight:700">${[b.first_name,b.last_name].filter(Boolean).join(' ')||'—'}</div>
         ${b.phone ? `<div class="od-val" style="margin-top:3px"><a href="tel:${b.phone}" style="color:#7A4610">${b.phone}</a></div>` : ''}
-        ${address ? `<div class="od-val" style="margin-top:3px;color:#888">${address}</div>` : ''}
+        ${address ? `<div class="od-val" style="margin-top:3px;color:#888">${address} <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" onclick="event.stopPropagation()" title="Open in Google Maps" style="margin-left:4px;text-decoration:none;vertical-align:middle;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#e74c3c"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></a></div>` : ''}
       </div>
       <div class="od-section">
         <div class="od-label">Items</div>
@@ -433,7 +433,7 @@
     return `<div class="order-card" data-order-id="${o.id}">
       <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
         <span class="order-days ${dc(days)}">${days}d</span>
-        <span class="order-id">#${o.id}</span>
+        <span class="order-id" style="cursor:pointer" onclick="event.stopPropagation();showOrderDetail(${o.id})">#${o.id}</span>
         <span class="order-name-lbl">${name}</span>
         <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
         ${phoneHtml(o.billing.phone)}
@@ -679,7 +679,7 @@
     return `<div class="order-card" data-order-id="${o.id}">
       <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
         <span class="order-days ${dc(days)}">${days}d</span>
-        <span class="order-id">#${o.id}</span>
+        <span class="order-id" style="cursor:pointer" onclick="event.stopPropagation();showOrderDetail(${o.id})">#${o.id}</span>
         <span class="order-name-lbl">${name}</span>
         <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
         ${phoneHtml(o.billing.phone)}
