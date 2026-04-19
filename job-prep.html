@@ -194,6 +194,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  db.settings({ experimentalForceLongPolling: true, merge: true });
 
   // ── WC API ────────────────────────────────────────────────────────
   const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
