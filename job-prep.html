@@ -178,23 +178,71 @@
   <button class="submit-btn" id="submitBtn" onclick="submitJO()">Submit Job Order</button>
 </div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-
 <script>
-  // ── Firebase ──────────────────────────────────────────────────────
-  const firebaseConfig = {
-    apiKey: "AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg",
-    authDomain: "timbered-dashboard.firebaseapp.com",
-    projectId: "timbered-dashboard",
-    storageBucket: "timbered-dashboard.firebasestorage.app",
-    messagingSenderId: "979815602482",
-    appId: "1:979815602482:web:5a93effad07f738b301f2b"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+  // ── Firestore REST API (no SDK — avoids GitHub Pages CORS issue) ──
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (v instanceof Date) return { timestampValue: v.toISOString() };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') { const f={}; Object.entries(v).forEach(([k,x])=>f[k]=toFsVal(x)); return { mapValue:{fields:f} }; }
+    return { stringValue: String(v) };
+  }
+  function fromFsVal(v) {
+    if (!v) return null;
+    if ('nullValue' in v) return null;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('integerValue' in v) return parseInt(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('stringValue' in v) return v.stringValue;
+    if ('timestampValue' in v) return new Date(v.timestampValue);
+    if ('arrayValue' in v) return (v.arrayValue.values||[]).map(fromFsVal);
+    if ('mapValue' in v) { const o={}; Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=fromFsVal(x)); return o; }
+    return null;
+  }
+  function fromFsDoc(doc) {
+    const o={}; Object.entries(doc.fields||{}).forEach(([k,v])=>o[k]=fromFsVal(v));
+    o._id = doc.name.split('/').pop(); return o;
+  }
+  function toFsFields(obj) { const f={}; Object.entries(obj).forEach(([k,v])=>f[k]=toFsVal(v)); return {fields:f}; }
+
+  async function fsQuery(col) {
+    const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ structuredQuery:{ from:[{collectionId:col}], orderBy:[{field:{fieldPath:'created_at'},direction:'DESCENDING'}] } })
+    });
+    const rows = await res.json();
+    return rows.filter(r=>r.document).map(r=>fromFsDoc(r.document));
+  }
+  async function fsGetAll(col) {
+    const res = await fetch(`${FS_BASE}/${col}?key=${FS_KEY}`);
+    const data = await res.json();
+    return (data.documents||[]).map(fromFsDoc);
+  }
+  async function fsAdd(col, data) {
+    const res = await fetch(`${FS_BASE}/${col}?key=${FS_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(toFsFields(data))
+    });
+    return fromFsDoc(await res.json());
+  }
+  async function fsGet(col, id) {
+    const res = await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}`);
+    return fromFsDoc(await res.json());
+  }
+  async function fsUpdate(col, id, data) {
+    const mask = Object.keys(data).map(k=>`updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+    await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}&${mask}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(toFsFields(data))
+    });
+  }
+  async function fsDelete(col, id) {
+    await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}`, { method:'DELETE' });
+  }
 
   // ── WC API ────────────────────────────────────────────────────────
   const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
@@ -213,7 +261,7 @@
 
   function fmtDate(ts) {
     if (!ts) return '—';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const d = ts instanceof Date ? ts : new Date(ts);
     return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }
 
@@ -466,14 +514,14 @@
 
     if (!items.length) { btn.disabled = false; btn.textContent = 'Submit Job Order'; return; }
 
-    const countSnap = await db.collection('job_orders').get();
-    const nextNum = String(countSnap.size + 1).padStart(3, '0');
+    const allDocs = await fsGetAll('job_orders');
+    const nextNum = String(allDocs.length + 1).padStart(3, '0');
     const ref = `JO_${nextNum}`;
 
     try {
-      await db.collection('job_orders').add({
+      await fsAdd('job_orders', {
         ref,
-        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        created_at: new Date().toISOString(),
         status: 'open',
         items
       });
@@ -499,8 +547,7 @@
 
   async function openEdit(docId) {
     _editDocId = docId;
-    const doc = await db.collection('job_orders').doc(docId).get();
-    const jo = doc.data();
+    const jo = await fsGet('job_orders', docId);
     document.getElementById('editTitle').textContent = `Edit ${jo.ref || docId}`;
     _editItems = JSON.parse(JSON.stringify(jo.items || []));
     renderEditBody();
@@ -549,7 +596,7 @@
     const btn = document.getElementById('editSaveBtn');
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
-      await db.collection('job_orders').doc(_editDocId).update({ items: _editItems });
+      await fsUpdate('job_orders', _editDocId, { items: _editItems });
       closeEdit();
       renderHistory();
     } catch(e) {
@@ -563,8 +610,7 @@
     const btn = event.target;
     btn.textContent = '…'; btn.disabled = true;
     try {
-      const doc = await db.collection('job_orders').doc(docId).get();
-      const jo = doc.data();
+      const jo = await fsGet('job_orders', docId);
       const items = jo.items || [];
 
       // Fetch WC product prices in one call
@@ -658,7 +704,7 @@
   async function deleteJO(docId, ref) {
     if (!confirm(`Delete ${ref}? This cannot be undone.`)) return;
     try {
-      await db.collection('job_orders').doc(docId).delete();
+      await fsDelete('job_orders', docId);
       document.getElementById(`jo-${docId}`)?.remove();
       const badge = document.getElementById('histBadge');
       badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
@@ -672,12 +718,11 @@
     const wrap = document.getElementById('histWrap');
     wrap.innerHTML = '<div class="state-msg">Loading history…</div>';
     try {
-      const snap = await db.collection('job_orders').orderBy('created_at', 'desc').get();
-      document.getElementById('histBadge').textContent = snap.size;
-      if (snap.empty) { wrap.innerHTML = '<div class="state-msg">No job orders yet</div>'; return; }
+      const docs = await fsQuery('job_orders');
+      document.getElementById('histBadge').textContent = docs.length;
+      if (!docs.length) { wrap.innerHTML = '<div class="state-msg">No job orders yet</div>'; return; }
 
-      const html = snap.docs.map(doc => {
-        const jo = doc.data();
+      const html = docs.map(jo => {
         const itemCount = (jo.items || []).length;
         const totalQty = (jo.items || []).reduce((s, i) => s + (i.total_qty || 0), 0);
         const statusCls = jo.status === 'open' ? 'status-open' : 'status-done';
@@ -706,15 +751,15 @@
         }).join('');
 
         return `
-          <div class="jo-card" id="jo-${doc.id}">
+          <div class="jo-card" id="jo-${jo._id}">
             <div class="jo-top" onclick="this.closest('.jo-card').classList.toggle('open')">
               <span class="jo-ref">${jo.ref || '—'}</span>
               <span class="jo-date">${fmtDate(jo.created_at)}</span>
               <span class="jo-count">${itemCount} products · ${totalQty} units</span>
               <span class="status-badge ${statusCls}">${statusLbl}</span>
-              <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${doc.id}')">PDF</button>
-              <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${doc.id}')">Edit</button>
-              <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${doc.id}','${jo.ref||''}')">Delete</button>
+              <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${jo._id}')">PDF</button>
+              <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${jo._id}')">Edit</button>
+              <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${jo._id}','${jo.ref||''}')">Delete</button>
               <span class="jo-chev">▼</span>
             </div>
             <div class="jo-body">${itemsHtml}</div>
