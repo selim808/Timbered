@@ -613,6 +613,9 @@
   async function exportPDF(docId) {
     const btn = event.target;
     btn.textContent = '…'; btn.disabled = true;
+    // Open window synchronously before any await — required for iOS Safari
+    const w = window.open('', '_blank');
+    if (w) w.document.write('<html><body style="font-family:sans-serif;padding:20px;color:#aaa">Generating PDF…</body></html>');
     try {
       const jo = await fsGet('job_orders', docId);
       const items = jo.items || [];
@@ -695,10 +698,10 @@
         <script>window.onload=()=>window.print();<\/script>
       </body></html>`;
 
-      const w = window.open('', '_blank');
-      w.document.write(html);
-      w.document.close();
+      if (w) { w.document.write(html); w.document.close(); }
+      else { const a=document.createElement('a'); a.href='data:text/html;charset=utf-8,'+encodeURIComponent(html); a.download=`${jo.ref||'JO'}.html`; a.click(); }
     } catch(e) {
+      if (w) w.close();
       alert('Error generating PDF: ' + e.message);
     }
     btn.textContent = 'PDF'; btn.disabled = false;
