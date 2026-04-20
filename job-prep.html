@@ -60,29 +60,33 @@
 
     /* JO HISTORY CARDS */
     .jo-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-    .jo-top { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none; }
+    .jo-top { display: flex; flex-direction: column; padding: 10px 12px; cursor: pointer; user-select: none; gap: 6px; }
     .jo-top:hover { background: #fdf8f4; }
-    .jo-ref { font-size: 12px; font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .jo-top-row1 { display: flex; align-items: center; gap: 8px; }
+    .jo-top-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .jo-ref { font-size: 13px; font-weight: 800; color: #7A4610; flex-shrink: 0; }
     .jo-date { font-size: 11px; color: #aaa; flex: 1; }
-    .jo-count { font-size: 11px; color: #555; flex-shrink: 0; }
-    .jo-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
+    .jo-count { font-size: 11px; color: #555; flex-shrink: 0; white-space: nowrap; }
+    .jo-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; margin-left: auto; }
     .jo-card.open .jo-chev { transform: rotate(180deg); }
     .jo-body { display: none; border-top: 1px solid #f5f0eb; }
     .jo-card.open .jo-body { display: block; }
 
     .jo-item { padding: 10px 12px; border-bottom: 1px solid #f5f0eb; }
     .jo-item:last-child { border-bottom: none; }
-    .jo-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-    .jo-item-thumb { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
-    .jo-item-thumb-ph { width: 32px; height: 32px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .jo-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .jo-item-thumb { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .jo-item-thumb-ph { width: 36px; height: 36px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
     .jo-item-name { font-size: 12px; font-weight: 700; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .jo-qty-row { display: flex; gap: 16px; padding-left: 40px; }
-    .jo-qty-chip { font-size: 11px; color: #666; }
+    .jo-qty-row { display: flex; gap: 8px; padding-left: 44px; flex-wrap: wrap; }
+    .jo-qty-chip { font-size: 11px; color: #666; background: #f5f0eb; border-radius: 6px; padding: 2px 8px; }
     .jo-qty-chip span { font-weight: 700; color: #333; }
+    .jo-qty-chip.mts { background: #fef3e2; }
     .jo-qty-chip.mts span { color: #7A4610; }
-    .jo-qty-chip.total span { color: #222; }
-    .jo-orders-list { margin-top: 4px; padding-left: 40px; }
-    .jo-order-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 1px 7px; margin: 2px 2px 0 0; font-weight: 600; }
+    .jo-qty-chip.total { background: #7A4610; color: #fff; }
+    .jo-qty-chip.total span { color: #fff; font-weight: 800; }
+    .jo-orders-list { margin-top: 6px; padding-left: 44px; }
+    .jo-order-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; margin: 2px 2px 0 0; font-weight: 600; }
 
     /* STATUS BADGE */
     .status-badge { font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 8px; flex-shrink: 0; }
@@ -753,14 +757,18 @@
         return `
           <div class="jo-card" id="jo-${jo._id}">
             <div class="jo-top" onclick="this.closest('.jo-card').classList.toggle('open')">
-              <span class="jo-ref">${jo.ref || '—'}</span>
-              <span class="jo-date">${fmtDate(jo.created_at)}</span>
-              <span class="jo-count">${itemCount} products · ${totalQty} units</span>
-              <span class="status-badge ${statusCls}">${statusLbl}</span>
-              <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${jo._id}')">PDF</button>
-              <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${jo._id}')">Edit</button>
-              <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${jo._id}','${jo.ref||''}')">Delete</button>
-              <span class="jo-chev">▼</span>
+              <div class="jo-top-row1">
+                <span class="jo-ref">${jo.ref || '—'}</span>
+                <span class="status-badge ${statusCls}">${statusLbl}</span>
+                <span class="jo-date">${fmtDate(jo.created_at)}</span>
+                <span class="jo-chev">▼</span>
+              </div>
+              <div class="jo-top-row2">
+                <span class="jo-count">${itemCount} products · ${totalQty} units</span>
+                <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${jo._id}')">PDF</button>
+                <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${jo._id}')">Edit</button>
+                <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${jo._id}','${jo.ref||''}')">Delete</button>
+              </div>
             </div>
             <div class="jo-body">${itemsHtml}</div>
           </div>`;
