@@ -809,8 +809,11 @@
         cardsHtml = joCards.map(card => {
           const phaseLabel = card.shipped ? 'Shipped' : card.phase;
           const pCls  = card.shipped ? 'phase-shipped' : phaseClass(card.phase);
-          const split = card.split_total > 1
-            ? `<span class="pc-split-badge" style="margin-left:4px;">${card.split_index}/${card.split_total}</span>`
+          const splitGroup = card.split_group || card._id;
+          const hasSiblings = joCards.some(c => c._id !== card._id &&
+            (c.split_group === splitGroup || c._id === splitGroup));
+          const split = (card.split_label && hasSiblings)
+            ? `<span class="pc-split-badge" style="margin-right:4px;">${card.split_label}</span>`
             : '';
           const shpRef = card.shipped && card.shipment_ref
             ? `<span style="font-size:9px;color:#2980b9;margin-left:4px;">${card.shipment_ref}</span>` : '';
