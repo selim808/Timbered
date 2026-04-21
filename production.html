@@ -28,7 +28,7 @@
     .kanban-scroll::-webkit-scrollbar { height: 6px; }
     .kanban-scroll::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 3px; }
 
-    .k-col { background: #ece5de; border-radius: 10px; width: 210px; flex-shrink: 0; display: flex; flex-direction: column; max-height: 100%; }
+    .k-col { background: #ece5de; border-radius: 10px; width: 210px; flex-shrink: 0; display: flex; flex-direction: column; height: calc(100vh - 127px); }
     .k-col-hdr { font-size: 10px; font-weight: 800; color: #7A4610; padding: 10px 10px 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
     .k-col-count { font-size: 10px; background: #7A4610; color: #fff; border-radius: 10px; padding: 1px 7px; font-weight: 700; }
     .k-col-body { flex: 1; overflow-y: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -53,9 +53,7 @@
     .pc-split-badge { font-size: 9px; font-weight: 800; background: #3498db; color: #fff; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
     .pc-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
 
-    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; max-height: 55vh; overflow-y: auto; }
-    .pc-body::-webkit-scrollbar { width: 3px; }
-    .pc-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
+    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; }
     .pc-items { margin-bottom: 8px; }
     .pc-item-wrap { border-bottom: 1px solid #f5f0eb; }
     .pc-item-wrap:last-child { border-bottom: none; }
