@@ -24,7 +24,7 @@
 
     /* ── KANBAN ── */
     .kanban-outer { height: calc(100vh - 103px); overflow: hidden; display: flex; flex-direction: column; }
-    .kanban-scroll { display: flex; gap: 10px; padding: 12px; overflow-x: auto; height: 100%; align-items: stretch; }
+    .kanban-scroll { display: flex; gap: 10px; padding: 12px; overflow-x: auto; height: 100%; align-items: flex-start; }
     .kanban-scroll::-webkit-scrollbar { height: 6px; }
     .kanban-scroll::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 3px; }
 
@@ -53,7 +53,9 @@
     .pc-split-badge { font-size: 9px; font-weight: 800; background: #3498db; color: #fff; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
     .pc-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
 
-    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; }
+    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; max-height: 55vh; overflow-y: auto; }
+    .pc-body::-webkit-scrollbar { width: 3px; }
+    .pc-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
     .pc-items { margin-bottom: 8px; }
     .pc-item-wrap { border-bottom: 1px solid #f5f0eb; }
     .pc-item-wrap:last-child { border-bottom: none; }
