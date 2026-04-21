@@ -422,7 +422,7 @@
       ).join('');
 
       const expandBody = `
-        <div class="pc-item-body" id="${iid}">
+        <div class="pc-item-body" id="${iid}" style="display:none">
           ${mto ? `<div class="pc-mto-block">
             <div class="pc-mto-hdr"><span class="pc-chip pc-chip-mto" style="font-size:9px;">×${mto} MTO</span></div>
             ${orderRows}
@@ -453,7 +453,7 @@
         </div>
         <span class="pc-chev">▾</span>
       </div>
-      <div class="pc-body" id="pcbody-${card._id}">
+      <div class="pc-body" id="pcbody-${card._id}" style="display:none">
         <div class="pc-items">${itemRows}</div>
         <div class="pc-actions" style="flex-direction:column;">
           <select class="pc-phase-select" style="width:100%;" onchange="moveCard('${card._id}',this.value,this)">
