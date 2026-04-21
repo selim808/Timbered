@@ -551,15 +551,15 @@
       </div>
       <div class="pc-body" id="pcbody-${card._id}" style="display:none">
         <div class="pc-items">${itemRows}</div>
-        <div class="pc-actions" style="flex-direction:column;">
-          <select class="pc-phase-select" style="width:100%;" onchange="moveCard('${card._id}',this.value,this)">
-            <option value="">→ Move to…</option>
-            ${phaseOptions}
-          </select>
-          <div style="display:flex;gap:4px;margin-top:4px;">
-            <button class="pc-btn pc-btn-split" style="flex:1;" onclick="openSplit('${card._id}')">⚡ Split</button>
-            <button class="pc-btn pc-btn-merge" style="flex:1;" onclick="openMerge('${card._id}')">⇌ Merge</button>
-          </div>
+      </div>
+      <div class="pc-actions" id="pcact-${card._id}" style="display:none;flex-direction:column;padding:8px 10px;border-top:1px solid #f5f0eb;">
+        <select class="pc-phase-select" style="width:100%;" onchange="moveCard('${card._id}',this.value,this)">
+          <option value="">→ Move to…</option>
+          ${phaseOptions}
+        </select>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="pc-btn pc-btn-split" style="flex:1;" onclick="openSplit('${card._id}')">⚡ Split</button>
+          <button class="pc-btn pc-btn-merge" style="flex:1;" onclick="openMerge('${card._id}')">⇌ Merge</button>
         </div>
       </div>
     </div>`;
@@ -567,10 +567,12 @@
 
   function toggleCard(cardId) {
     const body = document.getElementById(`pcbody-${cardId}`);
+    const actions = document.getElementById(`pcact-${cardId}`);
     const card = document.getElementById(`pcard-${cardId}`);
     if (!body) return;
     const open = body.style.display !== 'none';
     body.style.display = open ? 'none' : 'block';
+    if (actions) actions.style.display = open ? 'none' : 'flex';
     const chev = card?.querySelector('.pc-chev');
     if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
   }
