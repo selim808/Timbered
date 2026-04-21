@@ -673,7 +673,12 @@
           existing.mto_qty    = (existing.mto_qty || 0) + (tItem.mto_qty || 0);
           existing.mts_qty    = (existing.mts_qty || 0) + (tItem.mts_qty || 0);
           existing.total_qty  = existing.mto_qty + existing.mts_qty;
-          existing.mto_orders = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
+          const combined = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
+          const seen = new Set();
+          existing.mto_orders = combined.filter(o => {
+            if (seen.has(o.order_id)) return false;
+            seen.add(o.order_id); return true;
+          });
         } else {
           merged.push({ ...tItem });
         }
