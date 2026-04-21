@@ -331,13 +331,15 @@
     }
     queueJos.forEach(jo => {
       const items = jo.items || [];
-      const itemRows = items.slice(0, 4).map(it =>
-        `<div class="q-jo-item-row">
+      const itemRows = items.slice(0, 4).map(it => {
+        const n = it.name || it.product_name || '—';
+        const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
+        return `<div class="q-jo-item-row">
           <div class="q-jo-item-dot"></div>
-          <span class="q-jo-item-name">${it.name}</span>
-          <span class="q-jo-item-qty">×${(it.mto_qty||0)+(it.mts_qty||0)}</span>
-        </div>`
-      ).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
+          <span class="q-jo-item-name">${n}</span>
+          <span class="q-jo-item-qty">×${q}</span>
+        </div>`;
+      }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
       html += `<div class="q-jo-card">
         <div class="q-jo-ref">${jo.ref || '—'}</div>
         <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
@@ -412,17 +414,22 @@
     const jo = _jos.find(j => j._id === joId);
     if (!jo) return;
     try {
-      const newCards = await Promise.all((jo.items || []).map(item =>
-        fsAdd('production_cards', {
+      const newCards = await Promise.all((jo.items || []).map(item => {
+        const mtoQty = item.mto_qty ?? (item.mto?.qty ?? 0);
+        const mtsQty = item.mts_qty ?? (item.mts?.qty ?? 0);
+        const mtoOrders = item.mto_orders ?? (item.mto?.orders ?? []);
+        const name  = item.name || item.product_name || '';
+        const image = item.image || item.product_image || '';
+        return fsAdd('production_cards', {
           jo_ref:        jo.ref || '—',
           jo_id:         joId,
           product_id:    item.product_id || 0,
-          product_name:  item.name || '',
-          product_image: item.image || '',
-          mto_qty:       item.mto_qty || 0,
-          mts_qty:       item.mts_qty || 0,
-          total_qty:     (item.mto_qty||0) + (item.mts_qty||0),
-          mto_orders:    item.mto_orders || [],
+          product_name:  name,
+          product_image: image,
+          mto_qty:       mtoQty,
+          mts_qty:       mtsQty,
+          total_qty:     mtoQty + mtsQty,
+          mto_orders:    mtoOrders,
           phase:         'Cutting',
           split_index:   1,
           split_total:   1,
