@@ -340,6 +340,7 @@
   let _selectedCardIds = new Set();
   let _currentTab = 'kanban';
   let _dragCardId = null;
+  let _dwgMap = { ...DRAWING_URLS }; // product_id → dwg_url, seeded with hardcoded fallbacks
 
   // ── Helpers ──────────────────────────────────────────────────────────
   function fmtDate(ts) {
@@ -385,7 +386,22 @@
         fsQuery('shipments')
       ]);
       _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
-      console.log('JOs loaded:', _jos.map(j => ({ ref: j.ref, _id: j._id, items: j.items, itemsType: typeof j.items, keys: Object.keys(j) })));
+
+      // Fetch tg_drawing_url for all product IDs in current cards
+      const allProductIds = [...new Set(
+        _cards.flatMap(c => (c.items || []).map(i => i.product_id)).filter(Boolean)
+      )];
+      if (allProductIds.length) {
+        try {
+          const res   = await fetch(`${WC_BASE}/products?${WC_CREDS}&include=${allProductIds.join(',')}&per_page=100`);
+          const prods = await res.json();
+          prods.forEach(p => {
+            const dwg = (p.meta_data || []).find(m => m.key === 'tg_drawing_url')?.value || '';
+            if (dwg) _dwgMap[p.id] = dwg;
+          });
+        } catch(_) {}
+      }
+
       document.getElementById('statusBadge').textContent = _jos.length;
       document.getElementById('shipBadge').textContent   = _shipments.length;
       document.getElementById('stateMsg').style.display  = 'none';
@@ -586,7 +602,7 @@
       const mto    = it.mto_qty || 0;
       const mts    = it.mts_qty || 0;
       const iid    = `${card._id}-item-${idx}`;
-      const dwgUrl = it.dwg_url || DRAWING_URLS[it.product_id] || '';
+      const dwgUrl = it.dwg_url || _dwgMap[it.product_id] || '';
       // Deduplicate by order_id — keep first occurrence only
       const ordersMap = {};
       (it.mto_orders || []).forEach(o => {
