@@ -45,6 +45,11 @@
     /* Production card */
     /* Production card — collapsible */
     .prod-card { background: #fff; border-radius: 8px; border: 1px solid #e8ddd4; overflow: hidden; }
+    .prod-card.expanded { display: flex; flex-direction: column; max-height: calc(100vh - 160px); }
+    .prod-card.expanded .pc-body { flex: 1; overflow-y: auto; }
+    .prod-card.expanded .pc-body::-webkit-scrollbar { width: 3px; }
+    .prod-card.expanded .pc-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
+    .prod-card.expanded .pc-actions { flex-shrink: 0; }
     .pc-summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; user-select: none; }
     .pc-summary:hover { background: #fdf8f4; }
     .pc-summary-main { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; flex-wrap: wrap; }
@@ -775,9 +780,13 @@
         }
       });
 
-      // Update surviving card with merged items (label stays as-is)
-      await fsUpdate('production_cards', _mergeCard._id, { items: merged });
+      // Surviving card takes the earlier letter
+      const aLabel = _mergeCard.split_label || 'Z';
+      const bLabel = _mergeTarget.split_label || 'Z';
+      const winLabel = aLabel < bLabel ? aLabel : bLabel;
+      await fsUpdate('production_cards', _mergeCard._id, { items: merged, split_label: winLabel });
       _mergeCard.items = merged;
+      _mergeCard.split_label = winLabel;
 
       // Delete the target card
       await fsDelete('production_cards', _mergeTarget._id);
