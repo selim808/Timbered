@@ -298,7 +298,9 @@
           };
         }
         map[item.product_id].mto_qty += item.quantity;
-        map[item.product_id].mto_orders.push({ order_id: order.id, customer, qty: item.quantity });
+        const existing = map[item.product_id].mto_orders.find(o => o.order_id === order.id);
+        if (existing) existing.qty += item.quantity;
+        else map[item.product_id].mto_orders.push({ order_id: order.id, customer, qty: item.quantity });
       });
     });
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
