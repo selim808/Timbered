@@ -455,7 +455,6 @@
           <td>${i + 1}</td>
           <td>${item.name}</td>
           <td style="text-align:center">×${item.quantity}</td>
-          <td style="text-align:right;color:#7A4610;font-weight:600">${fmt(item.total)} EGP</td>
         </tr>`).join('');
       document.getElementById('ordHDate').textContent = date;
       document.getElementById('ordBody').innerHTML = `
@@ -472,12 +471,11 @@
         <div class="ord-section">
           <div class="ord-lbl">Items</div>
           <table class="ord-tbl">
-            <thead><tr><th>#</th><th>Product</th><th>Qty</th><th>Price</th></tr></thead>
-            <tbody>${itemsHtml || '<tr><td colspan="4" style="color:#aaa;padding:8px">No items</td></tr>'}</tbody>
+            <thead><tr><th>#</th><th>Product</th><th>Qty</th></tr></thead>
+            <tbody>${itemsHtml || '<tr><td colspan="3" style="color:#aaa;padding:8px">No items</td></tr>'}</tbody>
           </table>
         </div>
-        ${o.customer_note ? `<div class="ord-section"><div class="ord-lbl">Note</div><div class="ord-val">${o.customer_note}</div></div>` : ''}
-        <div class="ord-total"><span>Total</span><span>${fmt(o.total)} EGP</span></div>`;
+        ${o.customer_note ? `<div class="ord-section"><div class="ord-lbl">Note</div><div class="ord-val">${o.customer_note}</div></div>` : ''}`;
     } catch(e) {
       document.getElementById('ordBody').innerHTML = `<div class="ord-loading">Error loading order</div>`;
     }
