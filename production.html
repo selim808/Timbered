@@ -404,7 +404,11 @@
   function cardHTML(card) {
     const items    = card.items || [];
     const totalQty = items.reduce((s, i) => s + (i.total_qty || 0), 0);
-    const splitLabel = card.split_total > 1 ? `${card.split_index}/${card.split_total}` : '';
+    // Show split label (letter) only when siblings exist in _cards
+    const splitGroup = card.split_group || card._id;
+    const hasSiblings = _cards.some(c => c._id !== card._id &&
+      (c.split_group === splitGroup || c._id === splitGroup));
+    const splitLabel = (card.split_label && hasSiblings) ? card.split_label : '';
 
     const itemRows = items.map((it, idx) => {
       const mto    = it.mto_qty || 0;
@@ -684,23 +688,9 @@
         }
       });
 
-      // Update current card with merged items, recalc split
-      const splitGroup = _mergeCard.split_group || _mergeCard._id;
-      const remaining  = _cards.filter(c =>
-        c._id !== _mergeTarget._id &&
-        (c.split_group === splitGroup || c._id === splitGroup)
-      );
-      const newTotal = remaining.length;
-
-      await fsUpdate('production_cards', _mergeCard._id, { items: merged, split_total: newTotal });
+      // Update surviving card with merged items (label stays as-is)
+      await fsUpdate('production_cards', _mergeCard._id, { items: merged });
       _mergeCard.items = merged;
-      _mergeCard.split_total = newTotal;
-
-      // Update other siblings' split_total
-      await Promise.all(remaining.filter(c => c._id !== _mergeCard._id).map(c => {
-        c.split_total = newTotal;
-        return fsUpdate('production_cards', c._id, { split_total: newTotal });
-      }));
 
       // Delete the target card
       await fsDelete('production_cards', _mergeTarget._id);
@@ -753,30 +743,37 @@
 
     try {
       const splitGroup = card.split_group || card._id;
-      const newTotal   = card.split_total + 1;
 
-      // Update siblings' split_total
-      const siblings = _cards.filter(c => c._id !== card._id &&
-        (c.split_group === splitGroup || c._id === splitGroup));
-      await Promise.all(siblings.map(sib => {
-        sib.split_total = newTotal;
-        return fsUpdate('production_cards', sib._id, { split_total: newTotal });
-      }));
+      // Determine letter labels
+      const groupCards = _cards.filter(c =>
+        c._id === splitGroup || c.split_group === splitGroup);
+      const usedLabels = groupCards.map(c => c.split_label).filter(Boolean);
 
-      // Update original card with remaining items
+      // Assign 'A' to original card if first split
+      let origLabel = card.split_label;
+      if (!origLabel) {
+        origLabel = 'A';
+        usedLabels.push('A');
+      }
+      // Next unused letter for new card
+      let code = 65; // 'A'
+      while (usedLabels.includes(String.fromCharCode(code))) code++;
+      const newLabel = String.fromCharCode(code);
+
+      // Update original card with remaining items + label
       await fsUpdate('production_cards', card._id, {
-        items: keepItems, split_group: splitGroup, split_total: newTotal
+        items: keepItems, split_group: splitGroup, split_label: origLabel
       });
       card.items = keepItems;
       card.split_group = splitGroup;
-      card.split_total = newTotal;
+      card.split_label = origLabel;
 
       // Create new card for moved items
       const newCard = await fsAdd('production_cards', {
         jo_ref: card.jo_ref, jo_id: card.jo_id,
         items: newItems,
         phase: card.phase,
-        split_index: newTotal, split_total: newTotal, split_group: splitGroup,
+        split_group: splitGroup, split_label: newLabel,
         shipped: false, created_at: new Date().toISOString()
       });
       _cards.push(newCard);
