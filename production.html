@@ -673,12 +673,7 @@
           existing.mto_qty    = (existing.mto_qty || 0) + (tItem.mto_qty || 0);
           existing.mts_qty    = (existing.mts_qty || 0) + (tItem.mts_qty || 0);
           existing.total_qty  = existing.mto_qty + existing.mts_qty;
-          const combined = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
-          const seen = new Set();
-          existing.mto_orders = combined.filter(o => {
-            if (seen.has(o.order_id)) return false;
-            seen.add(o.order_id); return true;
-          });
+          existing.mto_orders = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
         } else {
           merged.push({ ...tItem });
         }
@@ -720,18 +715,29 @@
     const card  = _splitCard;
     const items = card.items || [];
 
-    // Build new-batch items and remaining items using explicit MTO/MTS inputs
+    // Build new-batch items — distribute MTO order qty by greedy allocation
     const newItems  = [];
     const keepItems = [];
     items.forEach((it, idx) => {
       const mtoMove = Math.min(parseInt(document.getElementById(`split-mto-${idx}`)?.value) || 0, it.mto_qty || 0);
       const mtsMove = Math.min(parseInt(document.getElementById(`split-mts-${idx}`)?.value) || 0, it.mts_qty || 0);
+      const mtoKeep  = (it.mto_qty || 0) - mtoMove;
+      const mtsKeep  = (it.mts_qty || 0) - mtsMove;
       const totalMove = mtoMove + mtsMove;
-      const mtoKeep = (it.mto_qty || 0) - mtoMove;
-      const mtsKeep = (it.mts_qty || 0) - mtsMove;
       const totalKeep = mtoKeep + mtsKeep;
-      if (totalMove > 0) newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: totalMove });
-      if (totalKeep > 0) keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: totalKeep });
+
+      // Distribute mtoMove across orders greedily (preserves order lineage)
+      const moveOrders = [], keepOrders = [];
+      let remaining = mtoMove;
+      (it.mto_orders || []).forEach(o => {
+        const take = Math.min(o.qty || 0, remaining);
+        remaining -= take;
+        if (take > 0)           moveOrders.push({ ...o, qty: take });
+        if ((o.qty || 0) > take) keepOrders.push({ ...o, qty: (o.qty || 0) - take });
+      });
+
+      if (totalMove > 0) newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: totalMove, mto_orders: moveOrders });
+      if (totalKeep > 0) keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: totalKeep, mto_orders: keepOrders });
     });
 
     if (!newItems.length) { alert('No items selected to move'); return; }
