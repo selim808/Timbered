@@ -131,6 +131,8 @@
     .shp-item-qty { font-weight: 700; color: #333; flex-shrink: 0; }
 
     .section-lbl { font-size: 11px; font-weight: 700; color: #555; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .jo-reset-btn { font-size: 10px; font-weight: 700; color: #e74c3c; border: 1.5px solid #e74c3c; border-radius: 20px; padding: 2px 9px; background: none; cursor: pointer; flex-shrink: 0; }
+    .jo-reset-btn:hover { background: #e74c3c; color: #fff; }
 
     /* ── SPLIT MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
@@ -175,17 +177,10 @@
 
 <!-- Split Modal -->
 <div class="modal-overlay" id="splitModal" onclick="if(event.target===this)closeSplit()">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:420px;max-height:90vh;display:flex;flex-direction:column;">
     <div class="modal-title">Split Card</div>
     <div class="modal-sub" id="splitSub"></div>
-    <div class="modal-field">
-      <label class="modal-label">Qty — first batch</label>
-      <input class="modal-input" type="number" id="splitQty1" min="1" oninput="updateSplitPreview()">
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Qty — second batch (remaining)</label>
-      <input class="modal-input" type="number" id="splitQty2" readonly>
-    </div>
+    <div id="splitItemsBody" style="flex:1;overflow-y:auto;margin-bottom:12px;"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeSplit()">Cancel</button>
       <button class="modal-confirm" id="splitConfirmBtn" onclick="confirmSplit()">Split</button>
@@ -306,6 +301,7 @@
         fsQuery('shipments')
       ]);
       _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
+      console.log('JOs loaded:', _jos.map(j => ({ ref: j.ref, _id: j._id, items: j.items, itemsType: typeof j.items, keys: Object.keys(j) })));
       document.getElementById('statusBadge').textContent = _jos.length;
       document.getElementById('shipBadge').textContent   = _shipments.length;
       document.getElementById('stateMsg').style.display  = 'none';
@@ -359,7 +355,6 @@
       if (!activeCards.length) {
         html += `<div class="k-col-empty">Empty</div>`;
       }
-      activeCards.forEach(card => renderCardHTML(card, html => { html; }));
       html += activeCards.map(card => cardHTML(card)).join('');
       html += '</div></div>';
     });
@@ -371,9 +366,18 @@
     const splitBadge = card.split_total > 1
       ? `<span class="pc-split-badge">${card.split_index}/${card.split_total}</span>`
       : '';
-    const thumb = card.product_image
-      ? `<img class="pc-thumb" src="${card.product_image}" alt="" onerror="this.outerHTML='<div class=pc-thumb-ph></div>'">`
-      : `<div class="pc-thumb-ph"></div>`;
+    const items = card.items || [];
+    const totalQty = items.reduce((s, i) => s + (i.total_qty || 0), 0);
+    const itemRows = items.map(it => {
+      const mto = it.mto_qty || 0;
+      const mts = it.mts_qty || 0;
+      return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f0eb;">
+        <span style="flex:1;font-size:10px;font-weight:600;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.product_name}</span>
+        ${mto ? `<span class="pc-chip pc-chip-mto" style="font-size:9px;">MTO ×${mto}</span>` : ''}
+        ${mts ? `<span class="pc-chip pc-chip-mts" style="font-size:9px;">MTS ×${mts}</span>` : ''}
+        <span class="pc-chip pc-chip-total" style="font-size:9px;">×${it.total_qty}</span>
+      </div>`;
+    }).join('');
 
     const next = nextPhase(card.phase);
     let actionBtn = '';
@@ -386,18 +390,13 @@
 
     return `<div class="prod-card" id="pcard-${card._id}">
       <div class="pc-header">
-        ${thumb}
         <div class="pc-info">
-          <div class="pc-name" title="${card.product_name}">${card.product_name}</div>
-          <div class="pc-jo">${card.jo_ref || '—'}</div>
+          <div class="pc-name" style="font-size:12px;font-weight:800;">${card.jo_ref || '—'}</div>
+          <div style="font-size:9px;color:#aaa;">${items.length} product${items.length!==1?'s':''} · ${totalQty} units</div>
         </div>
         ${splitBadge}
       </div>
-      <div class="pc-qty-row">
-        ${(card.mto_qty||0) > 0 ? `<span class="pc-chip pc-chip-mto">MTO ×${card.mto_qty}</span>` : ''}
-        ${(card.mts_qty||0) > 0 ? `<span class="pc-chip pc-chip-mts">MTS ×${card.mts_qty}</span>` : ''}
-        <span class="pc-chip pc-chip-total">×${card.total_qty}</span>
-      </div>
+      <div style="margin-bottom:8px;">${itemRows}</div>
       <div class="pc-actions">
         ${actionBtn}
         <button class="pc-btn pc-btn-split" onclick="openSplit('${card._id}')">⚡ Split</button>
@@ -405,40 +404,34 @@
     </div>`;
   }
 
-  function renderCardHTML(card, cb) { cb(cardHTML(card)); }
-
-  // ── Start Production ─────────────────────────────────────────────────
+  // ── Start Production — ONE card per JO ───────────────────────────────
   async function startProduction(joId, btn) {
     btn.disabled = true;
     btn.textContent = 'Starting…';
     const jo = _jos.find(j => j._id === joId);
     if (!jo) return;
     try {
-      const newCards = await Promise.all((jo.items || []).map(item => {
-        const mtoQty = item.mto_qty ?? (item.mto?.qty ?? 0);
-        const mtsQty = item.mts_qty ?? (item.mts?.qty ?? 0);
-        const mtoOrders = item.mto_orders ?? (item.mto?.orders ?? []);
-        const name  = item.name || item.product_name || '';
-        const image = item.image || item.product_image || '';
-        return fsAdd('production_cards', {
-          jo_ref:        jo.ref || '—',
-          jo_id:         joId,
-          product_id:    item.product_id || 0,
-          product_name:  name,
-          product_image: image,
-          mto_qty:       mtoQty,
-          mts_qty:       mtsQty,
-          total_qty:     mtoQty + mtsQty,
-          mto_orders:    mtoOrders,
-          phase:         'Cutting',
-          split_index:   1,
-          split_total:   1,
-          split_group:   null,
-          shipped:       false,
-          created_at:    new Date().toISOString()
-        });
+      const items = (jo.items || []).map(item => ({
+        product_id:   item.product_id || 0,
+        product_name: item.name || item.product_name || '',
+        product_image:item.image || item.product_image || '',
+        mto_qty:      item.mto_qty ?? (item.mto?.qty ?? 0),
+        mts_qty:      item.mts_qty ?? (item.mts?.qty ?? 0),
+        total_qty:    (item.mto_qty ?? item.mto?.qty ?? 0) + (item.mts_qty ?? item.mts?.qty ?? 0),
+        mto_orders:   item.mto_orders ?? (item.mto?.orders ?? [])
       }));
-      _cards = _cards.concat(newCards);
+      const newCard = await fsAdd('production_cards', {
+        jo_ref:      jo.ref || '—',
+        jo_id:       joId,
+        items,
+        phase:       'Cutting',
+        split_index: 1,
+        split_total: 1,
+        split_group: null,
+        shipped:     false,
+        created_at:  new Date().toISOString()
+      });
+      _cards.push(newCard);
       _startedJoIds.add(joId);
       renderKanban();
     } catch(e) {
@@ -468,22 +461,38 @@
   function openSplit(cardId) {
     _splitCard = _cards.find(c => c._id === cardId);
     if (!_splitCard) return;
+    const items = _splitCard.items || [];
     document.getElementById('splitSub').textContent =
-      `${_splitCard.product_name} · ${_splitCard.jo_ref} · Total: ${_splitCard.total_qty} units`;
-    const q1 = document.getElementById('splitQty1');
-    q1.max   = _splitCard.total_qty - 1;
-    q1.value = Math.floor(_splitCard.total_qty / 2);
-    updateSplitPreview();
+      `${_splitCard.jo_ref} · Enter qty to move to new batch (0 = keep all here)`;
+
+    const rows = items.map((it, idx) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f0eb;">
+        <span style="flex:1;font-size:11px;font-weight:600;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.product_name}</span>
+        <span style="font-size:10px;color:#aaa;flex-shrink:0;">×${it.total_qty}</span>
+        <input type="number" min="0" max="${it.total_qty}" value="0"
+          id="split-item-${idx}"
+          style="width:54px;font-size:14px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
+          oninput="validateSplitInputs()"
+          onfocus="this.style.borderColor='#7A4610'" onblur="this.style.borderColor='#e8ddd4'">
+      </div>`).join('');
+
+    document.getElementById('splitItemsBody').innerHTML = rows || '<div style="color:#aaa;font-size:12px;padding:12px 0;">No items</div>';
+    document.getElementById('splitConfirmBtn').disabled = true;
     document.getElementById('splitModal').classList.add('open');
-    q1.focus();
   }
 
-  function updateSplitPreview() {
-    const total = _splitCard ? _splitCard.total_qty : 0;
-    const q1    = parseInt(document.getElementById('splitQty1').value) || 0;
-    const q2    = total - q1;
-    document.getElementById('splitQty2').value = q2 >= 0 ? q2 : '';
-    document.getElementById('splitConfirmBtn').disabled = q1 < 1 || q2 < 1;
+  function validateSplitInputs() {
+    if (!_splitCard) return;
+    const items = _splitCard.items || [];
+    let anyMoved = false, valid = true;
+    items.forEach((it, idx) => {
+      const inp = document.getElementById(`split-item-${idx}`);
+      const v = parseInt(inp?.value) || 0;
+      if (v > it.total_qty) { inp.style.borderColor = '#e74c3c'; valid = false; }
+      else { inp.style.borderColor = '#e8ddd4'; }
+      if (v > 0) anyMoved = true;
+    });
+    document.getElementById('splitConfirmBtn').disabled = !anyMoved || !valid;
   }
 
   function closeSplit() {
@@ -493,33 +502,36 @@
 
   async function confirmSplit() {
     if (!_splitCard) return;
-    const q1 = parseInt(document.getElementById('splitQty1').value) || 0;
-    const q2 = _splitCard.total_qty - q1;
-    if (q1 < 1 || q2 < 1) return;
+    const card  = _splitCard;
+    const items = card.items || [];
+
+    // Build new-batch items and remaining items
+    const newItems  = [];
+    const keepItems = [];
+    items.forEach((it, idx) => {
+      const moveQty = parseInt(document.getElementById(`split-item-${idx}`)?.value) || 0;
+      const keepQty = it.total_qty - moveQty;
+      if (moveQty > 0) {
+        const mtoMove = Math.round((it.mto_qty || 0) * moveQty / it.total_qty);
+        const mtsMove = moveQty - mtoMove;
+        newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: moveQty });
+      }
+      if (keepQty > 0) {
+        const mtoKeep = (it.mto_qty || 0) - (moveQty > 0 ? Math.round((it.mto_qty||0)*moveQty/it.total_qty) : 0);
+        const mtsKeep = keepQty - mtoKeep;
+        keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: keepQty });
+      }
+    });
+
+    if (!newItems.length) { alert('No items selected to move'); return; }
 
     const btn = document.getElementById('splitConfirmBtn');
     btn.disabled = true;
     btn.textContent = 'Splitting…';
 
     try {
-      const card = _splitCard;
-      // Proportionally split MTO/MTS
-      const ratio = card.total_qty > 0 ? q1 / card.total_qty : 0;
-      const mto1  = Math.round((card.mto_qty || 0) * ratio);
-      const mts1  = q1 - mto1;
-      const mto2  = (card.mto_qty || 0) - mto1;
-      const mts2  = (card.mts_qty || 0) - mts1;
-
       const splitGroup = card.split_group || card._id;
       const newTotal   = card.split_total + 1;
-
-      // Update this card's qty + split info
-      await fsUpdate('production_cards', card._id, {
-        total_qty: q1, mto_qty: mto1, mts_qty: mts1,
-        split_group: splitGroup, split_total: newTotal
-      });
-      card.total_qty = q1; card.mto_qty = mto1; card.mts_qty = mts1;
-      card.split_group = splitGroup; card.split_total = newTotal;
 
       // Update siblings' split_total
       const siblings = _cards.filter(c => c._id !== card._id &&
@@ -529,12 +541,18 @@
         return fsUpdate('production_cards', sib._id, { split_total: newTotal });
       }));
 
-      // Create second card
+      // Update original card with remaining items
+      await fsUpdate('production_cards', card._id, {
+        items: keepItems, split_group: splitGroup, split_total: newTotal
+      });
+      card.items = keepItems;
+      card.split_group = splitGroup;
+      card.split_total = newTotal;
+
+      // Create new card for moved items
       const newCard = await fsAdd('production_cards', {
         jo_ref: card.jo_ref, jo_id: card.jo_id,
-        product_id: card.product_id, product_name: card.product_name, product_image: card.product_image,
-        mto_qty: mto2, mts_qty: mts2, total_qty: q2,
-        mto_orders: card.mto_orders || [],
+        items: newItems,
         phase: card.phase,
         split_index: newTotal, split_total: newTotal, split_group: splitGroup,
         shipped: false, created_at: new Date().toISOString()
@@ -573,28 +591,54 @@
           const phaseLabel = card.shipped ? 'Shipped' : card.phase;
           const pCls  = card.shipped ? 'phase-shipped' : phaseClass(card.phase);
           const split = card.split_total > 1
-            ? `<span style="font-size:9px;color:#3498db;font-weight:700;margin-left:4px;">${card.split_index}/${card.split_total}</span>`
+            ? `<span class="pc-split-badge" style="margin-left:4px;">${card.split_index}/${card.split_total}</span>`
             : '';
           const shpRef = card.shipped && card.shipment_ref
             ? `<span style="font-size:9px;color:#2980b9;margin-left:4px;">${card.shipment_ref}</span>` : '';
-          return `<div class="jos-card-row">
-            <span class="jos-card-name">${card.product_name}${split}</span>
-            <span class="jos-card-qty">×${card.total_qty}</span>
+          const cardItems = (card.items || []);
+          const totalQty  = cardItems.reduce((s,i)=>s+(i.total_qty||0),0);
+          const itemNames = cardItems.map(i=>i.product_name).join(', ');
+          return `<div class="jos-card-row" style="flex-wrap:wrap;gap:4px;">
+            <span class="jos-card-name" title="${itemNames}" style="flex-basis:100%;margin-bottom:2px;">${split}${cardItems.length} product${cardItems.length!==1?'s':''}: ${itemNames}</span>
+            <span class="jos-card-qty">×${totalQty} units</span>
             <span class="jos-phase-badge ${pCls}">${phaseLabel}</span>${shpRef}
           </div>`;
         }).join('');
       }
 
+      const resetBtn = started && !allShipped
+        ? `<button class="jo-reset-btn" onclick="resetToQueue('${jo._id}',this)">↩ Reset</button>`
+        : '';
       return `<div class="jo-status-card">
         <div class="jos-header">
           <span class="jos-ref">${jo.ref || '—'}</span>
           <span class="jos-date">${fmtDate(jo.created_at)}</span>
           <span class="jos-status ${statusCls}">${statusLabel}</span>
+          ${resetBtn}
         </div>
         <div class="jos-cards">${cardsHtml}</div>
       </div>`;
     }).join('');
     wrap.innerHTML = html;
+  }
+
+  // ── Reset JO to Queue ────────────────────────────────────────────────
+  async function resetToQueue(joId, btn) {
+    if (!confirm('Reset this JO to Queue? All production cards will be deleted.')) return;
+    btn.disabled = true;
+    btn.textContent = '…';
+    const joCards = _cards.filter(c => c.jo_id === joId);
+    try {
+      await Promise.all(joCards.map(c => fsDelete('production_cards', c._id)));
+      _cards = _cards.filter(c => c.jo_id !== joId);
+      _startedJoIds.delete(joId);
+      renderStatus();
+      if (_currentTab === 'kanban') renderKanban();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '↩ Reset';
+    }
   }
 
   // ── SHIPMENTS ────────────────────────────────────────────────────────
@@ -611,22 +655,17 @@
     if (readyCards.length) {
       html += `<div class="section-lbl">Ready to Ship — select items</div>`;
       readyCards.forEach(card => {
-        const thumb = card.product_image
-          ? `<img class="ready-thumb" src="${card.product_image}" alt="" onerror="this.outerHTML='<div class=ready-thumb-ph></div>'">`
-          : `<div class="ready-thumb-ph"></div>`;
+        const cardItems = card.items || [];
+        const totalQty  = cardItems.reduce((s,i)=>s+(i.total_qty||0),0);
         const splitLabel = card.split_total > 1 ? ` · ${card.split_index}/${card.split_total}` : '';
-        const chips = [
-          card.mto_qty ? `MTO ×${card.mto_qty}` : null,
-          card.mts_qty ? `MTS ×${card.mts_qty}` : null
-        ].filter(Boolean).join(' · ');
+        const itemSummary = cardItems.map(i=>i.product_name).join(', ');
         html += `<div class="ready-card" id="rcard-${card._id}" onclick="toggleSelect('${card._id}')">
           <div class="ready-check" id="rcheck-${card._id}"></div>
-          ${thumb}
           <div class="ready-info">
-            <div class="ready-name">${card.product_name}</div>
-            <div class="ready-meta">${card.jo_ref}${splitLabel}${chips?' · '+chips:''}</div>
+            <div class="ready-name">${card.jo_ref}${splitLabel}</div>
+            <div class="ready-meta">${cardItems.length} product${cardItems.length!==1?'s':''} · ${itemSummary}</div>
           </div>
-          <div class="ready-qty">${card.total_qty}</div>
+          <div class="ready-qty">${totalQty}</div>
         </div>`;
       });
     } else {
@@ -637,10 +676,11 @@
       html += `<div class="section-lbl">Shipment History</div>`;
       _shipments.forEach(shp => {
         const items = shp.items || [];
+        const totalShpQty = items.reduce((s,i)=>s+(i.total_qty||0),0);
         const itemsHtml = items.map(it =>
           `<div class="shp-item-row">
             <span class="shp-item-name">${it.product_name || '—'}</span>
-            <span class="shp-item-jo">${it.jo_ref || ''}</span>
+            <span class="shp-item-jo">${it.jo_ref || ''}${(it.split_total||1)>1?` ${it.split_index}/${it.split_total}`:''}</span>
             <span class="shp-item-qty">×${it.total_qty || 0}</span>
           </div>`
         ).join('');
@@ -648,7 +688,7 @@
           <div class="shp-hist-top" onclick="this.closest('.shp-hist-card').classList.toggle('open')">
             <span class="shp-ref">${shp.ref || '—'}</span>
             <span class="shp-date">${fmtDate(shp.created_at)}</span>
-            <span class="shp-count">${items.length} item${items.length!==1?'s':''}</span>
+            <span class="shp-count">${items.length} item${items.length!==1?'s':''} · ×${totalShpQty}</span>
             <button class="shp-pdf-btn" onclick="event.stopPropagation();exportShipmentPDF('${shp._id}')">PDF</button>
           </div>
           <div class="shp-body">${itemsHtml}</div>
@@ -686,20 +726,23 @@
     const nextNum  = String(_shipments.length + 1).padStart(3, '0');
     const ref      = `SHP_${nextNum}`;
 
-    const items = selected.map(c => ({
-      card_id:       c._id,
-      jo_ref:        c.jo_ref,
-      jo_id:         c.jo_id,
-      product_id:    c.product_id,
-      product_name:  c.product_name,
-      product_image: c.product_image || '',
-      mto_qty:       c.mto_qty || 0,
-      mts_qty:       c.mts_qty || 0,
-      total_qty:     c.total_qty,
-      mto_orders:    c.mto_orders || [],
-      split_index:   c.split_index || 1,
-      split_total:   c.split_total || 1
-    }));
+    // Flatten: each card → one row per product item
+    const items = selected.flatMap(c =>
+      (c.items || []).map(it => ({
+        card_id:       c._id,
+        jo_ref:        c.jo_ref,
+        jo_id:         c.jo_id,
+        split_index:   c.split_index || 1,
+        split_total:   c.split_total || 1,
+        product_id:    it.product_id,
+        product_name:  it.product_name,
+        product_image: it.product_image || '',
+        mto_qty:       it.mto_qty || 0,
+        mts_qty:       it.mts_qty || 0,
+        total_qty:     it.total_qty || 0,
+        mto_orders:    it.mto_orders || []
+      }))
+    );
 
     try {
       const shp = await fsAdd('shipments', { ref, items, created_at: new Date().toISOString() });
