@@ -319,7 +319,7 @@
       const thumb = p.image
         ? `<img class="prod-thumb" src="${p.image}" alt="">`
         : `<div class="prod-thumb-ph"></div>`;
-      const dwg = DRAWING_URLS[p.product_id];
+      const dwg = p.dwg_url || DRAWING_URLS[p.product_id] || '';
       const ordersHtml = p.mto_orders.map(o =>
         `<div class="mto-order-row">
           <span class="mto-order-id">#${o.order_id}</span>
@@ -329,7 +329,8 @@
       ).join('');
 
       return `
-        <div class="prod-card" data-pid="${p.product_id}">
+        <div class="prod-card" data-pid="${p.product_id}" data-dwg="${dwg}">
+
           <div class="prod-top">
             ${thumb}
             <div class="prod-info">
@@ -455,7 +456,7 @@
       const thumb = p.image
         ? `<img class="prod-thumb" src="${p.image}" alt="">`
         : `<div class="prod-thumb-ph"></div>`;
-      const dwg = DRAWING_URLS[p.product_id];
+      const dwg = p.dwg_url || DRAWING_URLS[p.product_id] || '';
       return `<div class="mts-only-card">
         <div class="mts-only-top">
           ${thumb}
@@ -500,6 +501,7 @@
         product_id: pid,
         product_name: card.querySelector('.prod-name').textContent,
         image: card.querySelector('.prod-thumb')?.src || '',
+        dwg_url: card.dataset.dwg || '',
         mto: { qty: mtoQty, orders: mtoOrders },
         mts: { qty: mtsQty },
         total_qty: mtoQty + mtsQty
@@ -801,14 +803,30 @@
   document.getElementById('tabHistory').addEventListener('click', () => setTab('tabHistory'));
 
   // ── Init ──────────────────────────────────────────────────────────
-  fetchAllOrders().then(orders => {
-    _wcProducts = groupByProduct(orders);
-    document.getElementById('stateMsg').style.display = 'none';
-    document.getElementById('newWrap').style.display = 'block';
-    renderNew(_wcProducts);
-  }).catch(e => {
-    document.getElementById('stateMsg').textContent = 'Error loading orders: ' + e.message;
-  });
+  (async () => {
+    try {
+      const orders = await fetchAllOrders();
+      _wcProducts = groupByProduct(orders);
+
+      // Fetch tg_drawing_url from WC products in one batch
+      if (_wcProducts.length) {
+        const ids = _wcProducts.map(p => p.product_id).join(',');
+        const res  = await fetch(`https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&include=${ids}&per_page=100`);
+        const prods = await res.json();
+        prods.forEach(p => {
+          const dwg  = (p.meta_data || []).find(m => m.key === 'tg_drawing_url')?.value || '';
+          const prod = _wcProducts.find(x => x.product_id === p.id);
+          if (prod) prod.dwg_url = dwg;
+        });
+      }
+
+      document.getElementById('stateMsg').style.display = 'none';
+      document.getElementById('newWrap').style.display = 'block';
+      renderNew(_wcProducts);
+    } catch(e) {
+      document.getElementById('stateMsg').textContent = 'Error loading orders: ' + e.message;
+    }
+  })();
 </script>
 </body>
 </html>
