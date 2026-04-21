@@ -436,8 +436,8 @@
           split_group:   null,
           shipped:       false,
           created_at:    new Date().toISOString()
-        })
-      ));
+        });
+      }));
       _cards = _cards.concat(newCards);
       _startedJoIds.add(joId);
       renderKanban();
