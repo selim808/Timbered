@@ -795,7 +795,8 @@
       return;
     }
     const html = _jos.map(jo => {
-      const joCards = _cards.filter(c => c.jo_id === jo._id);
+      const joCards = _cards.filter(c => c.jo_id === jo._id)
+        .sort((a, b) => (a.split_label || '').localeCompare(b.split_label || ''));
       const started   = joCards.length > 0;
       const allShipped = started && joCards.every(c => c.shipped);
       const statusKey  = !started ? 'queue' : allShipped ? 'done' : 'active';
