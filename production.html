@@ -727,7 +727,7 @@
         const items = c.items || [];
         const qty   = items.reduce((s,i)=>s+(i.total_qty||0),0);
         const names = items.map(i=>i.product_name).join(', ');
-        const splitLbl = c.split_total > 1 ? ` · ${c.split_index}/${c.split_total}` : '';
+        const splitLbl = c.split_label ? ` · ${c.split_label}` : '';
         return `<div class="merge-option" id="mopt-${c._id}" onclick="selectMerge('${c._id}')">
           <div class="merge-opt-ref">${c.jo_ref}${splitLbl}</div>
           <div class="merge-opt-phase">${c.phase}</div>
