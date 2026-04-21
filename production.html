@@ -411,11 +411,10 @@
       const mts    = it.mts_qty || 0;
       const iid    = `${card._id}-item-${idx}`;
       const dwgUrl = DRAWING_URLS[it.product_id];
-      // Consolidate duplicate order_ids (can occur in older stored cards)
+      // Deduplicate by order_id — keep first occurrence only
       const ordersMap = {};
       (it.mto_orders || []).forEach(o => {
-        if (ordersMap[o.order_id]) ordersMap[o.order_id].qty += (o.qty || 0);
-        else ordersMap[o.order_id] = { ...o };
+        if (!ordersMap[o.order_id]) ordersMap[o.order_id] = { ...o };
       });
       const orders = Object.values(ordersMap);
 
