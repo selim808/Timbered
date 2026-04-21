@@ -37,30 +37,48 @@
     .k-col-empty { font-size: 11px; color: #bbb; padding: 10px; text-align: center; }
 
     /* Production card */
-    .prod-card { background: #fff; border-radius: 8px; padding: 10px; border: 1px solid #e8ddd4; }
-    .pc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-    .pc-thumb { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
-    .pc-thumb-ph { width: 32px; height: 32px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
-    .pc-info { flex: 1; min-width: 0; }
-    .pc-name { font-size: 11px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pc-jo { font-size: 10px; color: #7A4610; font-weight: 700; }
+    /* Production card — collapsible */
+    .prod-card { background: #fff; border-radius: 8px; border: 1px solid #e8ddd4; overflow: hidden; }
+    .pc-summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; user-select: none; }
+    .pc-summary:hover { background: #fdf8f4; }
+    .pc-summary-main { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; flex-wrap: wrap; }
+    .pc-jo-ref { font-size: 12px; font-weight: 800; color: #7A4610; flex-shrink: 0; }
+    .pc-summary-meta { font-size: 10px; color: #aaa; flex-shrink: 0; }
     .pc-split-badge { font-size: 9px; font-weight: 800; background: #3498db; color: #fff; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+    .pc-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
 
-    .pc-qty-row { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
-    .pc-chip { font-size: 10px; border-radius: 5px; padding: 2px 6px; font-weight: 600; }
+    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; }
+    .pc-items { margin-bottom: 8px; }
+    .pc-item-wrap { border-bottom: 1px solid #f5f0eb; }
+    .pc-item-wrap:last-child { border-bottom: none; }
+    .pc-item-row { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .pc-item-clickable { cursor: pointer; }
+    .pc-item-clickable:hover { background: #fdf8f4; }
+    .pc-item-name { flex: 1; font-size: 10px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pc-item-chev { font-size: 9px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
+    .pc-item-body { display: none; background: #fdf8f4; border-radius: 5px; padding: 6px 8px; margin: 2px 0 4px; }
+    .pc-mto-block { margin-bottom: 4px; }
+    .pc-mto-hdr { margin-bottom: 3px; }
+    .pc-mts-block { margin-top: 4px; padding-top: 4px; border-top: 1px solid #e8ddd4; }
+    .pc-order-row { display: flex; align-items: center; gap: 6px; padding: 2px 0 2px 8px; font-size: 10px; color: #666; }
+    .pc-order-id { font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .pc-order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pc-order-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+    .pc-dwg-link { font-size: 9px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 3px; padding: 1px 4px; text-decoration: none; flex-shrink: 0; line-height: 1.4; }
+    .pc-dwg-link:hover { background: #7A4610; color: #fff; }
+    .pc-chip { font-size: 10px; border-radius: 5px; padding: 2px 6px; font-weight: 600; flex-shrink: 0; }
     .pc-chip-mto { background: #fef3e2; color: #7A4610; }
     .pc-chip-mts { background: #eafaf1; color: #27ae60; }
     .pc-chip-total { background: #333; color: #fff; }
 
     .pc-actions { display: flex; gap: 4px; }
-    .pc-btn { font-size: 10px; font-weight: 700; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; white-space: nowrap; }
-    .pc-btn-next { background: #7A4610; color: #fff; flex: 1; }
-    .pc-btn-next:hover { background: #5a3209; }
-    .pc-btn-next:disabled { background: #ccc; cursor: not-allowed; }
-    .pc-btn-split { background: #f5f0eb; color: #555; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .pc-btn { font-size: 10px; font-weight: 700; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .pc-btn-split { background: #f5f0eb; color: #555; border: 1px solid #e8ddd4; }
     .pc-btn-split:hover { background: #e8ddd4; }
-    .pc-btn-ship { background: #27ae60; color: #fff; flex: 1; }
-    .pc-btn-ship:hover { background: #1e8449; }
+    .pc-phase-select { flex: 1; font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border: none; border-radius: 6px; padding: 5px 6px; cursor: pointer; outline: none; min-width: 0; }
+    .pc-phase-select:disabled { background: #ccc; cursor: not-allowed; }
+    .pc-btn-merge { background: #f5f0eb; color: #7A4610; border: 1.5px solid #7A4610; }
+    .pc-btn-merge:hover { background: #7A4610; color: #fff; }
 
     /* Queue JO card */
     .q-jo-card { background: #fff; border-radius: 8px; padding: 10px; border: 1.5px solid #e8ddd4; }
@@ -133,6 +151,13 @@
     .section-lbl { font-size: 11px; font-weight: 700; color: #555; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.3px; }
     .jo-reset-btn { font-size: 10px; font-weight: 700; color: #e74c3c; border: 1.5px solid #e74c3c; border-radius: 20px; padding: 2px 9px; background: none; cursor: pointer; flex-shrink: 0; }
     .jo-reset-btn:hover { background: #e74c3c; color: #fff; }
+    .merge-option { border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+    .merge-option:hover { border-color: #7A4610; background: #fdf8f4; }
+    .merge-option.selected { border-color: #7A4610; background: #fef3e2; }
+    .merge-opt-ref { font-size: 12px; font-weight: 800; color: #7A4610; }
+    .merge-opt-phase { font-size: 10px; font-weight: 700; background: #fef3e2; color: #7A4610; border-radius: 4px; padding: 1px 6px; text-align: center; align-self: center; }
+    .merge-opt-items { font-size: 10px; color: #888; grid-column: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .merge-opt-qty { font-size: 13px; font-weight: 800; color: #333; text-align: right; align-self: end; }
 
     /* ── SPLIT MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
@@ -184,6 +209,19 @@
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeSplit()">Cancel</button>
       <button class="modal-confirm" id="splitConfirmBtn" onclick="confirmSplit()">Split</button>
+    </div>
+  </div>
+</div>
+
+<!-- Merge Modal -->
+<div class="modal-overlay" id="mergeModal" onclick="if(event.target===this)closeMerge()">
+  <div class="modal-box" style="max-width:400px;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-title">Merge Card</div>
+    <div class="modal-sub" id="mergeSub"></div>
+    <div id="mergeBody" style="flex:1;overflow-y:auto;margin-bottom:12px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeMerge()">Cancel</button>
+      <button class="modal-confirm" id="mergeConfirmBtn" onclick="confirmMerge()" disabled>Merge</button>
     </div>
   </div>
 </div>
@@ -247,6 +285,7 @@
 
   // ── Constants ────────────────────────────────────────────────────────
   const PROD_PHASES = ["Cutting","CNC","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint & inspec.","Rdy for ship"];
+  const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
 
   // ── State ────────────────────────────────────────────────────────────
   let _jos       = [];
@@ -363,45 +402,90 @@
   }
 
   function cardHTML(card) {
-    const splitBadge = card.split_total > 1
-      ? `<span class="pc-split-badge">${card.split_index}/${card.split_total}</span>`
-      : '';
-    const items = card.items || [];
+    const items    = card.items || [];
     const totalQty = items.reduce((s, i) => s + (i.total_qty || 0), 0);
-    const itemRows = items.map(it => {
-      const mto = it.mto_qty || 0;
-      const mts = it.mts_qty || 0;
-      return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid #f5f0eb;">
-        <span style="flex:1;font-size:10px;font-weight:600;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.product_name}</span>
-        ${mto ? `<span class="pc-chip pc-chip-mto" style="font-size:9px;">MTO ×${mto}</span>` : ''}
-        ${mts ? `<span class="pc-chip pc-chip-mts" style="font-size:9px;">MTS ×${mts}</span>` : ''}
-        <span class="pc-chip pc-chip-total" style="font-size:9px;">×${it.total_qty}</span>
+    const splitLabel = card.split_total > 1 ? `${card.split_index}/${card.split_total}` : '';
+
+    const itemRows = items.map((it, idx) => {
+      const mto    = it.mto_qty || 0;
+      const mts    = it.mts_qty || 0;
+      const iid    = `${card._id}-item-${idx}`;
+      const orders = it.mto_orders || [];
+      const dwgUrl = DRAWING_URLS[it.product_id];
+
+      const orderRows = orders.map(o =>
+        `<div class="pc-order-row">
+          <span class="pc-order-id">#${o.order_id}</span>
+          <span class="pc-order-name">${o.customer || ''}</span>
+          <span class="pc-order-qty">×${o.qty}</span>
+        </div>`
+      ).join('');
+
+      const expandBody = `
+        <div class="pc-item-body" id="${iid}">
+          ${mto ? `<div class="pc-mto-block">
+            <div class="pc-mto-hdr"><span class="pc-chip pc-chip-mto" style="font-size:9px;">×${mto} MTO</span></div>
+            ${orderRows}
+          </div>` : ''}
+          ${mts ? `<div class="pc-mts-block"><span class="pc-chip pc-chip-mts" style="font-size:9px;">×${mts} MTS</span></div>` : ''}
+        </div>`;
+
+      return `<div class="pc-item-wrap">
+        <div class="pc-item-row pc-item-clickable" onclick="toggleItem('${iid}')">
+          <span class="pc-item-name">${it.product_name}</span>
+          <span class="pc-chip pc-chip-total" style="font-size:9px;margin-left:auto;">×${it.total_qty}</span>
+          ${dwgUrl ? `<a class="pc-dwg-link" href="${dwgUrl}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : ''}
+          <span class="pc-item-chev" id="${iid}-chev">▾</span>
+        </div>
+        ${expandBody}
       </div>`;
     }).join('');
 
-    const next = nextPhase(card.phase);
-    let actionBtn = '';
-    if (next) {
-      const label = next.length > 14 ? next.slice(0,12)+'…' : next;
-      actionBtn = `<button class="pc-btn pc-btn-next" onclick="moveCard('${card._id}','${next}',this)">→ ${label}</button>`;
-    } else {
-      actionBtn = `<button class="pc-btn pc-btn-ship" onclick="switchTab('ship')">📦 Ship</button>`;
-    }
+    const otherPhases = PROD_PHASES.filter(p => p !== card.phase);
+    const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
 
     return `<div class="prod-card" id="pcard-${card._id}">
-      <div class="pc-header">
-        <div class="pc-info">
-          <div class="pc-name" style="font-size:12px;font-weight:800;">${card.jo_ref || '—'}</div>
-          <div style="font-size:9px;color:#aaa;">${items.length} product${items.length!==1?'s':''} · ${totalQty} units</div>
+      <div class="pc-summary" onclick="toggleCard('${card._id}')">
+        <div class="pc-summary-main">
+          <span class="pc-jo-ref">${card.jo_ref || '—'}</span>
+          <span class="pc-summary-meta">${items.length} prod · ×${totalQty}</span>
+          ${splitLabel ? `<span class="pc-split-badge">${splitLabel}</span>` : ''}
         </div>
-        ${splitBadge}
+        <span class="pc-chev">▾</span>
       </div>
-      <div style="margin-bottom:8px;">${itemRows}</div>
-      <div class="pc-actions">
-        ${actionBtn}
-        <button class="pc-btn pc-btn-split" onclick="openSplit('${card._id}')">⚡ Split</button>
+      <div class="pc-body" id="pcbody-${card._id}">
+        <div class="pc-items">${itemRows}</div>
+        <div class="pc-actions" style="flex-direction:column;">
+          <select class="pc-phase-select" style="width:100%;" onchange="moveCard('${card._id}',this.value,this)">
+            <option value="">→ Move to…</option>
+            ${phaseOptions}
+          </select>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="pc-btn pc-btn-split" style="flex:1;" onclick="openSplit('${card._id}')">⚡ Split</button>
+            <button class="pc-btn pc-btn-merge" style="flex:1;" onclick="openMerge('${card._id}')">⇌ Merge</button>
+          </div>
+        </div>
       </div>
     </div>`;
+  }
+
+  function toggleCard(cardId) {
+    const body = document.getElementById(`pcbody-${cardId}`);
+    const card = document.getElementById(`pcard-${cardId}`);
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    const chev = card?.querySelector('.pc-chev');
+    if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+  }
+
+  function toggleItem(iid) {
+    const body = document.getElementById(iid);
+    const chev = document.getElementById(`${iid}-chev`);
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
   }
 
   // ── Start Production — ONE card per JO ───────────────────────────────
@@ -442,8 +526,9 @@
   }
 
   // ── Move card ────────────────────────────────────────────────────────
-  async function moveCard(cardId, newPhase, btn) {
-    btn.disabled = true;
+  async function moveCard(cardId, newPhase, el) {
+    if (!newPhase) return;
+    el.disabled = true;
     const card = _cards.find(c => c._id === cardId);
     if (!card) return;
     try {
@@ -453,7 +538,8 @@
       if (_currentTab === 'status') renderStatus();
     } catch(e) {
       alert('Error: ' + e.message);
-      btn.disabled = false;
+      el.disabled = false;
+      if (el.tagName === 'SELECT') el.value = '';
     }
   }
 
@@ -465,16 +551,34 @@
     document.getElementById('splitSub').textContent =
       `${_splitCard.jo_ref} · Enter qty to move to new batch (0 = keep all here)`;
 
-    const rows = items.map((it, idx) => `
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5f0eb;">
-        <span style="flex:1;font-size:11px;font-weight:600;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.product_name}</span>
-        <span style="font-size:10px;color:#aaa;flex-shrink:0;">×${it.total_qty}</span>
-        <input type="number" min="0" max="${it.total_qty}" value="0"
-          id="split-item-${idx}"
-          style="width:54px;font-size:14px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
-          oninput="validateSplitInputs()"
-          onfocus="this.style.borderColor='#7A4610'" onblur="this.style.borderColor='#e8ddd4'">
-      </div>`).join('');
+    const rows = items.map((it, idx) => {
+      const mto = it.mto_qty || 0;
+      const mts = it.mts_qty || 0;
+      const mtoRow = mto > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding-left:8px;">
+          <span class="pc-chip pc-chip-mto" style="font-size:9px;flex-shrink:0;">MTO ×${mto}</span>
+          <span style="font-size:10px;color:#aaa;flex-shrink:0;">→ move</span>
+          <input type="number" min="0" max="${mto}" value="0"
+            id="split-mto-${idx}"
+            style="width:54px;font-size:13px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
+            oninput="validateSplitInputs()"
+            onfocus="this.style.borderColor='#7A4610'" onblur="this.style.borderColor='#e8ddd4'">
+        </div>` : `<input type="hidden" id="split-mto-${idx}" value="0">`;
+      const mtsRow = mts > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:8px;">
+          <span class="pc-chip pc-chip-mts" style="font-size:9px;flex-shrink:0;">MTS ×${mts}</span>
+          <span style="font-size:10px;color:#aaa;flex-shrink:0;">→ move</span>
+          <input type="number" min="0" max="${mts}" value="0"
+            id="split-mts-${idx}"
+            style="width:54px;font-size:13px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
+            oninput="validateSplitInputs()"
+            onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e8ddd4'">
+        </div>` : `<input type="hidden" id="split-mts-${idx}" value="0">`;
+      return `<div style="padding:8px 0;border-bottom:1px solid #f5f0eb;">
+        <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:2px;">${it.product_name}</div>
+        ${mtoRow}${mtsRow}
+      </div>`;
+    }).join('');
 
     document.getElementById('splitItemsBody').innerHTML = rows || '<div style="color:#aaa;font-size:12px;padding:12px 0;">No items</div>';
     document.getElementById('splitConfirmBtn').disabled = true;
@@ -486,11 +590,15 @@
     const items = _splitCard.items || [];
     let anyMoved = false, valid = true;
     items.forEach((it, idx) => {
-      const inp = document.getElementById(`split-item-${idx}`);
-      const v = parseInt(inp?.value) || 0;
-      if (v > it.total_qty) { inp.style.borderColor = '#e74c3c'; valid = false; }
-      else { inp.style.borderColor = '#e8ddd4'; }
-      if (v > 0) anyMoved = true;
+      const mtoInp = document.getElementById(`split-mto-${idx}`);
+      const mtsInp = document.getElementById(`split-mts-${idx}`);
+      const mtoV = parseInt(mtoInp?.value) || 0;
+      const mtsV = parseInt(mtsInp?.value) || 0;
+      if (mtoV > (it.mto_qty||0)) { if(mtoInp) mtoInp.style.borderColor='#e74c3c'; valid=false; }
+      else { if(mtoInp) mtoInp.style.borderColor='#e8ddd4'; }
+      if (mtsV > (it.mts_qty||0)) { if(mtsInp) mtsInp.style.borderColor='#e74c3c'; valid=false; }
+      else { if(mtsInp) mtsInp.style.borderColor='#e8ddd4'; }
+      if (mtoV > 0 || mtsV > 0) anyMoved = true;
     });
     document.getElementById('splitConfirmBtn').disabled = !anyMoved || !valid;
   }
@@ -500,27 +608,125 @@
     _splitCard = null;
   }
 
+  // ── Merge ────────────────────────────────────────────────────────────
+  let _mergeCard   = null;
+  let _mergeTarget = null;
+
+  function openMerge(cardId) {
+    _mergeCard   = _cards.find(c => c._id === cardId);
+    _mergeTarget = null;
+    if (!_mergeCard) return;
+
+    const siblings = _cards.filter(c =>
+      c._id !== cardId && c.jo_id === _mergeCard.jo_id && !c.shipped
+    );
+
+    document.getElementById('mergeSub').textContent =
+      `${_mergeCard.jo_ref} · Select a card to merge into this one`;
+
+    if (!siblings.length) {
+      document.getElementById('mergeBody').innerHTML =
+        '<div style="font-size:12px;color:#aaa;padding:12px 0;">No other cards for this JO</div>';
+      document.getElementById('mergeConfirmBtn').disabled = true;
+    } else {
+      const rows = siblings.map(c => {
+        const items = c.items || [];
+        const qty   = items.reduce((s,i)=>s+(i.total_qty||0),0);
+        const names = items.map(i=>i.product_name).join(', ');
+        const splitLbl = c.split_total > 1 ? ` · ${c.split_index}/${c.split_total}` : '';
+        return `<div class="merge-option" id="mopt-${c._id}" onclick="selectMerge('${c._id}')">
+          <div class="merge-opt-ref">${c.jo_ref}${splitLbl}</div>
+          <div class="merge-opt-phase">${c.phase}</div>
+          <div class="merge-opt-items">${names}</div>
+          <div class="merge-opt-qty">×${qty}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('mergeBody').innerHTML = rows;
+      document.getElementById('mergeConfirmBtn').disabled = true;
+    }
+    document.getElementById('mergeModal').classList.add('open');
+  }
+
+  function selectMerge(targetId) {
+    _mergeTarget = _cards.find(c => c._id === targetId);
+    document.querySelectorAll('.merge-option').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`mopt-${targetId}`)?.classList.add('selected');
+    document.getElementById('mergeConfirmBtn').disabled = false;
+  }
+
+  function closeMerge() {
+    document.getElementById('mergeModal').classList.remove('open');
+    _mergeCard = _mergeTarget = null;
+  }
+
+  async function confirmMerge() {
+    if (!_mergeCard || !_mergeTarget) return;
+    const btn = document.getElementById('mergeConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Merging…';
+
+    try {
+      // Combine items: same product_id → add quantities
+      const merged = [...(_mergeCard.items || [])];
+      (_mergeTarget.items || []).forEach(tItem => {
+        const existing = merged.find(m => m.product_id === tItem.product_id);
+        if (existing) {
+          existing.mto_qty    = (existing.mto_qty || 0) + (tItem.mto_qty || 0);
+          existing.mts_qty    = (existing.mts_qty || 0) + (tItem.mts_qty || 0);
+          existing.total_qty  = existing.mto_qty + existing.mts_qty;
+          existing.mto_orders = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
+        } else {
+          merged.push({ ...tItem });
+        }
+      });
+
+      // Update current card with merged items, recalc split
+      const splitGroup = _mergeCard.split_group || _mergeCard._id;
+      const remaining  = _cards.filter(c =>
+        c._id !== _mergeTarget._id &&
+        (c.split_group === splitGroup || c._id === splitGroup)
+      );
+      const newTotal = remaining.length;
+
+      await fsUpdate('production_cards', _mergeCard._id, { items: merged, split_total: newTotal });
+      _mergeCard.items = merged;
+      _mergeCard.split_total = newTotal;
+
+      // Update other siblings' split_total
+      await Promise.all(remaining.filter(c => c._id !== _mergeCard._id).map(c => {
+        c.split_total = newTotal;
+        return fsUpdate('production_cards', c._id, { split_total: newTotal });
+      }));
+
+      // Delete the target card
+      await fsDelete('production_cards', _mergeTarget._id);
+      _cards = _cards.filter(c => c._id !== _mergeTarget._id);
+
+      closeMerge();
+      renderKanban();
+      if (_currentTab === 'status') renderStatus();
+    } catch(e) {
+      alert('Error merging: ' + e.message);
+    }
+    btn.disabled = false; btn.textContent = 'Merge';
+  }
+
   async function confirmSplit() {
     if (!_splitCard) return;
     const card  = _splitCard;
     const items = card.items || [];
 
-    // Build new-batch items and remaining items
+    // Build new-batch items and remaining items using explicit MTO/MTS inputs
     const newItems  = [];
     const keepItems = [];
     items.forEach((it, idx) => {
-      const moveQty = parseInt(document.getElementById(`split-item-${idx}`)?.value) || 0;
-      const keepQty = it.total_qty - moveQty;
-      if (moveQty > 0) {
-        const mtoMove = Math.round((it.mto_qty || 0) * moveQty / it.total_qty);
-        const mtsMove = moveQty - mtoMove;
-        newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: moveQty });
-      }
-      if (keepQty > 0) {
-        const mtoKeep = (it.mto_qty || 0) - (moveQty > 0 ? Math.round((it.mto_qty||0)*moveQty/it.total_qty) : 0);
-        const mtsKeep = keepQty - mtoKeep;
-        keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: keepQty });
-      }
+      const mtoMove = Math.min(parseInt(document.getElementById(`split-mto-${idx}`)?.value) || 0, it.mto_qty || 0);
+      const mtsMove = Math.min(parseInt(document.getElementById(`split-mts-${idx}`)?.value) || 0, it.mts_qty || 0);
+      const totalMove = mtoMove + mtsMove;
+      const mtoKeep = (it.mto_qty || 0) - mtoMove;
+      const mtsKeep = (it.mts_qty || 0) - mtsMove;
+      const totalKeep = mtoKeep + mtsKeep;
+      if (totalMove > 0) newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: totalMove });
+      if (totalKeep > 0) keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: totalKeep });
     });
 
     if (!newItems.length) { alert('No items selected to move'); return; }
