@@ -629,8 +629,8 @@
 
       return `<div class="pc-item-wrap">
         <div class="pc-item-row pc-item-clickable" onclick="toggleItem('${iid}')">
-          <span class="pc-item-name">${it.product_name}</span>
-          <span class="pc-chip pc-chip-total" style="font-size:9px;margin-left:auto;">×${it.total_qty}</span>
+          <span class="pc-chip pc-chip-total" style="font-size:9px;flex-shrink:0;">×${it.total_qty}</span>
+          <span class="pc-item-name" style="flex:1;min-width:0;">${it.product_name}</span>
           ${dwgUrl ? `<a class="pc-dwg-link" href="${dwgUrl}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : ''}
           <span class="pc-item-chev" id="${iid}-chev">▾</span>
         </div>
