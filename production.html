@@ -36,6 +36,12 @@
     .k-col-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
     .k-col-empty { font-size: 11px; color: #bbb; padding: 10px; text-align: center; }
 
+    /* Drag and drop */
+    .prod-card[draggable] { cursor: grab; }
+    .prod-card.dragging { opacity: 0.4; }
+    .k-col-body.drag-over { background: #f5ede4; border-radius: 6px; }
+    .drop-indicator { height: 3px; background: #7A4610; border-radius: 2px; margin: 0 4px; pointer-events: none; }
+
     /* Production card */
     /* Production card — collapsible */
     .prod-card { background: #fff; border-radius: 8px; border: 1px solid #e8ddd4; overflow: hidden; }
@@ -295,6 +301,7 @@
   let _splitCard = null;
   let _selectedCardIds = new Set();
   let _currentTab = 'kanban';
+  let _dragCardId = null;
 
   // ── Helpers ──────────────────────────────────────────────────────────
   function fmtDate(ts) {
@@ -352,6 +359,81 @@
   }
 
   // ── KANBAN ───────────────────────────────────────────────────────────
+  // ── Drag & Drop ──────────────────────────────────────────────────────
+  function dragAfterElement(col, y) {
+    const cards = [...col.querySelectorAll('.prod-card:not(.dragging)')];
+    return cards.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      return offset < 0 && offset > closest.offset ? { offset, el: child } : closest;
+    }, { offset: -Infinity }).el;
+  }
+
+  function initDrag() {
+    document.querySelectorAll('.prod-card[data-card-id]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        _dragCardId = el.dataset.cardId;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => el.classList.add('dragging'), 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        document.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        document.querySelectorAll('.k-col-body.drag-over').forEach(x => x.classList.remove('drag-over'));
+      });
+    });
+
+    document.querySelectorAll('.k-col-body[data-phase]').forEach(col => {
+      col.addEventListener('dragover', e => {
+        e.preventDefault();
+        col.classList.add('drag-over');
+        col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        const after = dragAfterElement(col, e.clientY);
+        const ind = document.createElement('div');
+        ind.className = 'drop-indicator';
+        after ? col.insertBefore(ind, after) : col.appendChild(ind);
+      });
+      col.addEventListener('dragleave', e => {
+        if (!col.contains(e.relatedTarget)) {
+          col.classList.remove('drag-over');
+          col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        }
+      });
+      col.addEventListener('drop', async e => {
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        if (!_dragCardId) return;
+
+        const card = _cards.find(c => c._id === _dragCardId);
+        if (!card) return;
+        const newPhase = col.dataset.phase;
+
+        // Compute sort_order: midpoint between neighbours
+        const after = dragAfterElement(col, e.clientY);
+        const afterId = after?.dataset.cardId;
+        const colCards = _cards
+          .filter(c => c.phase === newPhase && !c.shipped && c._id !== _dragCardId)
+          .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
+        const afterIdx = afterId ? colCards.findIndex(c => c._id === afterId) : colCards.length;
+        const prev = afterIdx > 0 ? (colCards[afterIdx - 1].sort_order ?? Date.parse(colCards[afterIdx - 1].created_at) ?? 0) : 0;
+        const next = afterIdx < colCards.length ? (colCards[afterIdx].sort_order ?? Date.parse(colCards[afterIdx].created_at) ?? 0) : prev + 2000;
+        const newOrder = prev === 0 && afterIdx === 0 ? (next - 1000) : (prev + next) / 2;
+
+        const updates = { sort_order: newOrder };
+        if (card.phase !== newPhase) updates.phase = newPhase;
+
+        try {
+          await fsUpdate('production_cards', card._id, updates);
+          Object.assign(card, updates);
+          renderKanban();
+          if (_currentTab === 'status') renderStatus();
+        } catch(e) { alert('Error moving card: ' + e.message); }
+        _dragCardId = null;
+      });
+    });
+  }
+
   function renderKanban() {
     const scroll = document.getElementById('kanbanScroll');
     const queueJos = _jos.filter(jo => !_startedJoIds.has(jo._id));
@@ -386,11 +468,13 @@
 
     // Phase columns
     PROD_PHASES.forEach(phase => {
-      const activeCards = _cards.filter(c => c.phase === phase && !c.shipped);
+      const activeCards = _cards
+        .filter(c => c.phase === phase && !c.shipped)
+        .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
       const colId = 'col_' + phase.replace(/[^a-z0-9]/gi, '_');
       html += `<div class="k-col">
         <div class="k-col-hdr">${phase} <span class="k-col-count">${activeCards.length}</span></div>
-        <div class="k-col-body" id="${colId}">`;
+        <div class="k-col-body" id="${colId}" data-phase="${phase}">`;
       if (!activeCards.length) {
         html += `<div class="k-col-empty">Empty</div>`;
       }
@@ -399,6 +483,7 @@
     });
 
     scroll.innerHTML = html;
+    initDrag();
   }
 
   function cardHTML(card) {
@@ -453,7 +538,7 @@
     const otherPhases = PROD_PHASES.filter(p => p !== card.phase);
     const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
 
-    return `<div class="prod-card" id="pcard-${card._id}">
+    return `<div class="prod-card" id="pcard-${card._id}" draggable="true" data-card-id="${card._id}">
       <div class="pc-summary" onclick="toggleCard('${card._id}')">
         <div class="pc-summary-main">
           <span class="pc-jo-ref">${card.jo_ref || '—'}</span>
