@@ -299,8 +299,8 @@
         }
         map[item.product_id].mto_qty += item.quantity;
         const existing = map[item.product_id].mto_orders.find(o => o.order_id === order.id);
-        if (existing) existing.qty += item.quantity;
-        else map[item.product_id].mto_orders.push({ order_id: order.id, customer, qty: item.quantity });
+        if (existing) { existing.qty += item.quantity; existing._lineItemIds.push(item.id); }
+        else map[item.product_id].mto_orders.push({ order_id: order.id, customer, qty: item.quantity, _lineItemIds: [item.id] });
       });
     });
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
@@ -533,6 +533,28 @@
         status: 'open',
         items
       });
+
+      // Advance WC line items out of JO_PHASE so they won't reappear
+      const wcUpdates = {};
+      items.forEach(item => {
+        const wcProd = _wcProducts.find(p => p.product_id === item.product_id);
+        (wcProd?.mto_orders || []).forEach(o => {
+          if (!wcUpdates[o.order_id]) wcUpdates[o.order_id] = [];
+          wcUpdates[o.order_id].push(...(o._lineItemIds || []));
+        });
+      });
+      await Promise.all(Object.entries(wcUpdates).map(([orderId, ids]) =>
+        fetch(`https://timberedgroup.com/wp-json/wc/v3/orders/${orderId}?${WC_CREDS}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            line_items: ids.map(id => ({
+              id,
+              meta_data: [{ key: 'tg_phase', value: 'In production' }]
+            }))
+          })
+        })
+      ));
 
       btn.textContent = '✓ Submitted!';
       btn.style.background = '#27ae60';
