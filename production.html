@@ -242,7 +242,9 @@
 </header>
 
 <nav class="sub-nav">
-  <button class="sub-nav-btn active" id="tabKanban" onclick="switchTab('kanban')">Kanban</button>
+  <button class="sub-nav-btn active" id="tabProduction" onclick="switchTab('production')">Production <span class="badge" id="prodBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabRepair" onclick="switchTab('repair')">Repair <span class="badge" id="repairBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabDispatch" onclick="switchTab('dispatch')">Dispatch <span class="badge" id="dispatchBadge">—</span></button>
   <button class="sub-nav-btn" id="tabStatus" onclick="switchTab('status')">JO Status <span class="badge" id="statusBadge">—</span></button>
   <button class="sub-nav-btn" id="tabShip" onclick="switchTab('ship')">Shipments <span class="badge" id="shipBadge">—</span></button>
 </nav>
@@ -342,7 +344,9 @@
   }
 
   // ── Constants ────────────────────────────────────────────────────────
-  const PROD_PHASES = ["JO released","Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint & inspec.","Rdy for ship"];
+  const PROD_PHASES     = ["JO released","Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint & inspec.","Rdy for ship"];
+  const REPAIR_PHASES   = ["Received from WH","QC-Rejected","R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet","R-Assemble & label","R-Paint & inspec."];
+  const DISPATCH_PHASES = ["Packaging","Ready to Ship"];
   const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
 
   // ── State ────────────────────────────────────────────────────────────
@@ -352,7 +356,7 @@
   let _startedJoIds = new Set();
   let _splitCard = null;
   let _selectedCardIds = new Set();
-  let _currentTab = 'kanban';
+  let _currentTab = 'production';
   let _dragCardId = null;
   let _dwgMap = { ...DRAWING_URLS }; // product_id → dwg_url, seeded with hardcoded fallbacks
 
@@ -372,19 +376,29 @@
     if (phase === 'Shipped') return 'phase-shipped';
     return 'phase-active';
   }
+  function currentKanbanPhases() {
+    if (_currentTab === 'repair')   return REPAIR_PHASES;
+    if (_currentTab === 'dispatch') return DISPATCH_PHASES;
+    return PROD_PHASES;
+  }
+  function groupPhasesForCard(card) {
+    if (REPAIR_PHASES.includes(card.phase))   return REPAIR_PHASES;
+    if (DISPATCH_PHASES.includes(card.phase)) return DISPATCH_PHASES;
+    return PROD_PHASES;
+  }
 
   // ── Tab switching ────────────────────────────────────────────────────
   function switchTab(tab) {
     _currentTab = tab;
-    ['kanban','status','ship'].forEach(t => {
-      const id = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
-      document.getElementById(id).classList.toggle('active', t === tab);
+    const isKanban = ['production','repair','dispatch'].includes(tab);
+    ['production','repair','dispatch','status','ship'].forEach(t => {
+      document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle('active', t === tab);
     });
-    document.getElementById('kanbanWrap').style.display = tab === 'kanban' ? 'flex' : 'none';
+    document.getElementById('kanbanWrap').style.display = isKanban ? 'flex' : 'none';
     document.getElementById('statusWrap').style.display = tab === 'status' ? 'block' : 'none';
     document.getElementById('shipWrap').style.display   = tab === 'ship'   ? 'block' : 'none';
     document.getElementById('stateMsg').style.display   = 'none';
-    if (tab === 'kanban') renderKanban();
+    if (isKanban)         renderKanban();
     if (tab === 'status') renderStatus();
     if (tab === 'ship')   renderShip();
   }
@@ -416,10 +430,14 @@
         } catch(_) {}
       }
 
-      document.getElementById('statusBadge').textContent = _jos.length;
-      document.getElementById('shipBadge').textContent   = _shipments.length;
-      document.getElementById('stateMsg').style.display  = 'none';
-      document.getElementById('kanbanWrap').style.display = 'flex';
+      document.getElementById('statusBadge').textContent   = _jos.length;
+      document.getElementById('shipBadge').textContent     = _shipments.length;
+      const ac = _cards.filter(c => !c.shipped);
+      document.getElementById('prodBadge').textContent     = ac.filter(c => PROD_PHASES.includes(c.phase)).length;
+      document.getElementById('repairBadge').textContent   = ac.filter(c => REPAIR_PHASES.includes(c.phase)).length;
+      document.getElementById('dispatchBadge').textContent = ac.filter(c => DISPATCH_PHASES.includes(c.phase)).length;
+      document.getElementById('stateMsg').style.display    = 'none';
+      document.getElementById('kanbanWrap').style.display  = 'flex';
       renderKanban();
     } catch(e) {
       document.getElementById('stateMsg').textContent = 'Error loading: ' + e.message;
@@ -560,11 +578,14 @@
   }
 
   function renderKanban() {
-    const scroll = document.getElementById('kanbanScroll');
-    const queueJos = _jos.filter(jo => !_startedJoIds.has(jo._id));
+    const scroll  = document.getElementById('kanbanScroll');
+    const phases  = currentKanbanPhases();
+    const showQueue = _currentTab === 'production';
+    const queueJos  = _jos.filter(jo => !_startedJoIds.has(jo._id));
     let html = '';
 
-    // Queue column
+    // Queue column — Production tab only
+    if (showQueue) {
     html += `<div class="k-col">
       <div class="k-col-hdr">Queue <span class="k-col-count">${queueJos.length}</span></div>
       <div class="k-col-body">`;
@@ -590,9 +611,10 @@
       </div>`;
     });
     html += '</div></div>';
+    } // end if (showQueue)
 
     // Phase columns
-    PROD_PHASES.forEach(phase => {
+    phases.forEach(phase => {
       const activeCards = _cards
         .filter(c => c.phase === phase && !c.shipped)
         .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
@@ -669,7 +691,7 @@
       </div>`;
     }).join('');
 
-    const otherPhases = PROD_PHASES.filter(p => p !== card.phase);
+    const otherPhases = groupPhasesForCard(card).filter(p => p !== card.phase);
     const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
 
     return `<div class="prod-card" id="pcard-${card._id}" draggable="true" data-card-id="${card._id}">
@@ -1082,7 +1104,7 @@
       _cards = _cards.filter(c => c.jo_id !== joId);
       _startedJoIds.delete(joId);
       renderStatus();
-      if (_currentTab === 'kanban') renderKanban();
+      if (['production','repair','dispatch'].includes(_currentTab)) renderKanban();
     } catch(e) {
       alert('Error: ' + e.message);
       btn.disabled = false;
