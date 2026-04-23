@@ -578,40 +578,12 @@
   }
 
   function renderKanban() {
-    const scroll  = document.getElementById('kanbanScroll');
-    const phases  = currentKanbanPhases();
-    const showQueue = _currentTab === 'production';
-    const queueJos  = _jos.filter(jo => !_startedJoIds.has(jo._id));
+    const scroll   = document.getElementById('kanbanScroll');
+    const phases   = currentKanbanPhases();
+    const queueJos = _currentTab === 'production'
+      ? _jos.filter(jo => !_startedJoIds.has(jo._id))
+      : [];
     let html = '';
-
-    // Queue column — Production tab only
-    if (showQueue) {
-    html += `<div class="k-col">
-      <div class="k-col-hdr">Queue <span class="k-col-count">${queueJos.length}</span></div>
-      <div class="k-col-body">`;
-    if (!queueJos.length) {
-      html += `<div class="k-col-empty">No pending JOs</div>`;
-    }
-    queueJos.forEach(jo => {
-      const items = jo.items || [];
-      const itemRows = items.slice(0, 4).map(it => {
-        const n = it.name || it.product_name || '—';
-        const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
-        return `<div class="q-jo-item-row">
-          <div class="q-jo-item-dot"></div>
-          <span class="q-jo-item-name">${n}</span>
-          <span class="q-jo-item-qty">×${q}</span>
-        </div>`;
-      }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
-      html += `<div class="q-jo-card">
-        <div class="q-jo-ref">${jo.ref || '—'}</div>
-        <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
-        <div class="q-jo-items">${itemRows}</div>
-        <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
-      </div>`;
-    });
-    html += '</div></div>';
-    } // end if (showQueue)
 
     // Phase columns
     phases.forEach(phase => {
@@ -619,12 +591,39 @@
         .filter(c => c.phase === phase && !c.shipped)
         .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
       const colId = 'col_' + phase.replace(/[^a-z0-9]/gi, '_');
+      const isJoReleased = phase === 'JO released';
+      const colCount = isJoReleased ? queueJos.length + activeCards.length : activeCards.length;
       html += `<div class="k-col">
-        <div class="k-col-hdr">${phase} <span class="k-col-count">${activeCards.length}</span></div>
+        <div class="k-col-hdr">${phase} <span class="k-col-count">${colCount}</span></div>
         <div class="k-col-body" id="${colId}" data-phase="${phase}">`;
-      if (!activeCards.length) {
+
+      // Pending JOs at the top of "JO released" column
+      if (isJoReleased) {
+        if (!queueJos.length && !activeCards.length) {
+          html += `<div class="k-col-empty">Empty</div>`;
+        }
+        queueJos.forEach(jo => {
+          const items = jo.items || [];
+          const itemRows = items.slice(0, 4).map(it => {
+            const n = it.name || it.product_name || '—';
+            const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
+            return `<div class="q-jo-item-row">
+              <div class="q-jo-item-dot"></div>
+              <span class="q-jo-item-name">${n}</span>
+              <span class="q-jo-item-qty">×${q}</span>
+            </div>`;
+          }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
+          html += `<div class="q-jo-card">
+            <div class="q-jo-ref">${jo.ref || '—'}</div>
+            <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
+            <div class="q-jo-items">${itemRows}</div>
+            <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
+          </div>`;
+        });
+      } else if (!activeCards.length) {
         html += `<div class="k-col-empty">Empty</div>`;
       }
+
       html += activeCards.map(card => cardHTML(card)).join('');
       html += '</div></div>';
     });
