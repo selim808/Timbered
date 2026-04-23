@@ -309,13 +309,8 @@
   // ── Render New JO tab ─────────────────────────────────────────────
   function renderNew(products) {
     document.getElementById('newBadge').textContent = products.length;
-    if (!products.length) {
-      document.getElementById('newWrap').innerHTML = '<div class="state-msg">No items in Job Order Preparation phase</div>';
-      document.getElementById('submitBar').style.display = 'none';
-      return;
-    }
 
-    const html = products.map(p => {
+    const html = products.length ? products.map(p => {
       const thumb = p.image
         ? `<img class="prod-thumb" src="${p.image}" alt="">`
         : `<div class="prod-thumb-ph"></div>`;
@@ -355,7 +350,7 @@
           </div>
           <div class="mto-orders">${ordersHtml}</div>
         </div>`;
-    }).join('');
+    }).join('') : '<div class="state-msg" style="padding:20px 0 8px;font-size:12px;">No MTO items in JO Preparation phase</div>';
 
     document.getElementById('newWrap').innerHTML = html + `
       <div class="section-hdr">
@@ -395,6 +390,8 @@
     });
     _mtsOnly.forEach(p => { totalQty += parseInt(p.qty) || 1; });
     document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units`;
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.disabled = totalItems === 0;
   }
 
   // ── MTS-only product search & list ───────────────────────────────
