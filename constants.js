@@ -15,7 +15,7 @@ const PLANNING_PHASES = [
 ];
 
 const PROD_PHASES = [
-  "Upholstery","Cutting","CNC","Shaping & Joint prep.","Sand-fillet",
+  "Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet",
   "Assemble & label","Paint & inspec."
 ];
 
@@ -25,7 +25,7 @@ const DISPATCH_PHASES = [
 
 const REPAIR_PHASES = [
   "Received from WH","QC-Rejected",
-  "R-Assessment","R-Upholstery","R-Cutting","R-CNC","R-Shaping & Joint prep.","R-Sand-fillet",
+  "R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet",
   "R-Assemble & label","R-Paint & inspec."
 ];
 
