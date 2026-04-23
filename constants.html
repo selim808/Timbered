@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TG Constants</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: #111; }
+
+  .section { background: #fff; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .section-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
+
+  /* phase group colors */
+  .group-order   { border-left: 4px solid #f59e0b; }
+  .group-plan    { border-left: 4px solid #f97316; }
+  .group-fab     { border-left: 4px solid #3b82f6; }
+  .group-dispatch { border-left: 4px solid #14b8a6; }
+  .group-repair  { border-left: 4px solid #f43f5e; }
+  .group-iface   { border-left: 4px solid #8b5cf6; }
+  .group-wh      { border-left: 4px solid #ef4444; }
+  .group-dlv     { border-left: 4px solid #10b981; }
+
+  .group-order   .section-title { color: #b45309; }
+  .group-plan    .section-title { color: #c2410c; }
+  .group-fab     .section-title { color: #1d4ed8; }
+  .group-dispatch .section-title { color: #0f766e; }
+  .group-repair  .section-title { color: #be123c; }
+  .group-iface   .section-title { color: #6d28d9; }
+  .group-wh      .section-title { color: #b91c1c; }
+  .group-dlv     .section-title { color: #047857; }
+
+  .phases { display: flex; flex-wrap: wrap; gap: 8px; }
+  .phase-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  }
+  .phase-num { font-size: 10px; opacity: .5; font-weight: 400; }
+
+  .group-order .phase-badge { background: #fef3c7; color: #92400e; }
+  .group-plan  .phase-badge { background: #ffedd5; color: #9a3412; }
+  .group-fab   .phase-badge { background: #dbeafe; color: #1e40af; }
+  .group-dispatch .phase-badge { background: #ccfbf1; color: #0f766e; }
+  .group-repair .phase-badge { background: #ffe4e6; color: #9f1239; }
+  .group-iface .phase-badge { background: #ede9fe; color: #5b21b6; }
+  .group-wh    .phase-badge { background: #fee2e2; color: #991b1b; }
+  .group-dlv   .phase-badge { background: #d1fae5; color: #065f46; }
+
+  /* WC section */
+  .group-wc { border-left: 4px solid #96588a; }
+  .group-wc .section-title { color: #6d3c6b; }
+  .kv { display: flex; flex-direction: column; gap: 8px; }
+  .kv-row { display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+  .kv-key { font-weight: 600; min-width: 80px; color: #555; }
+  .kv-val { font-family: monospace; font-size: 12px; color: #374151; word-break: break-all; }
+
+  /* DWG section */
+  .group-dwg { border-left: 4px solid #64748b; }
+  .group-dwg .section-title { color: #334155; }
+  .dwg-count { font-size: 28px; font-weight: 700; color: #334155; }
+  .dwg-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .dwg-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .dwg-chip {
+    font-size: 12px; font-family: monospace;
+    background: #f1f5f9; color: #475569;
+    padding: 3px 8px; border-radius: 6px;
+    text-decoration: none;
+  }
+  .dwg-chip:hover { background: #e2e8f0; }
+</style>
+</head>
+<body>
+<h1>TG Constants</h1>
+
+<div class="section group-order">
+  <div class="section-title">Order Review <span class="phase-num" id="cnt-order"></span></div>
+  <div class="phases" id="ph-order"></div>
+</div>
+
+<div class="section group-plan">
+  <div class="section-title">Planning <span class="phase-num" id="cnt-plan"></span></div>
+  <div class="phases" id="ph-plan"></div>
+</div>
+
+<div class="section group-fab">
+  <div class="section-title">Production <span class="phase-num" id="cnt-fab"></span></div>
+  <div class="phases" id="ph-fab"></div>
+</div>
+
+<div class="section group-repair">
+  <div class="section-title">Repair <span class="phase-num" id="cnt-repair"></span></div>
+  <div class="phases" id="ph-repair"></div>
+</div>
+
+<div class="section group-dispatch">
+  <div class="section-title">Dispatch <span class="phase-num" id="cnt-dispatch"></span></div>
+  <div class="phases" id="ph-dispatch"></div>
+</div>
+
+<div class="section group-iface">
+  <div class="section-title">Interface <span class="phase-num" id="cnt-iface"></span></div>
+  <div class="phases" id="ph-iface"></div>
+</div>
+
+<div class="section group-wh">
+  <div class="section-title">Warehouse <span class="phase-num" id="cnt-wh"></span></div>
+  <div class="phases" id="ph-wh"></div>
+</div>
+
+<div class="section group-dlv">
+  <div class="section-title">Delivery <span class="phase-num" id="cnt-dlv"></span></div>
+  <div class="phases" id="ph-dlv"></div>
+</div>
+
+<div class="section group-wc">
+  <div class="section-title">WooCommerce API</div>
+  <div class="kv" id="wc-info"></div>
+</div>
+
+<div class="section group-dwg">
+  <div class="section-title">Drawing URLs (fallback map)</div>
+  <div class="dwg-count" id="dwg-count"></div>
+  <div class="dwg-sub">product IDs with hardcoded DWG links</div>
+  <div class="dwg-list" id="dwg-list"></div>
+</div>
+
+<script src="constants.js"></script>
+<script>
+  function renderPhases(containerId, countId, phases) {
+    const el = document.getElementById(containerId);
+    document.getElementById(countId).textContent = phases.length + ' phases';
+    el.innerHTML = phases.map((p, i) =>
+      `<span class="phase-badge"><span class="phase-num">${i + 1}</span>${p}</span>`
+    ).join('');
+  }
+
+  renderPhases('ph-order', 'cnt-order', ORDER_REVIEW_PHASES);
+  renderPhases('ph-plan',  'cnt-plan',  PLANNING_PHASES);
+  renderPhases('ph-fab',      'cnt-fab',      PROD_PHASES);
+  renderPhases('ph-dispatch', 'cnt-dispatch', DISPATCH_PHASES);
+  renderPhases('ph-repair',   'cnt-repair',   REPAIR_PHASES);
+  renderPhases('ph-iface',  'cnt-iface',  INTERFACE_PHASES);
+  renderPhases('ph-wh',    'cnt-wh',    WH_PHASES);
+  renderPhases('ph-dlv',   'cnt-dlv',   DLV_PHASES);
+
+  document.getElementById('wc-info').innerHTML = [
+    { k: 'Domain',  v: WC_DOMAIN },
+    { k: 'Key',     v: WC_KEY.slice(0,8) + '••••••••••••••••••••••••••••••••••' },
+    { k: 'Secret',  v: WC_SECRET.slice(0,8) + '••••••••••••••••••••••••••••••••••' },
+    { k: 'Total phases', v: ALL_PHASES.length + ' across all groups' },
+  ].map(r => `<div class="kv-row"><span class="kv-key">${r.k}</span><span class="kv-val">${r.v}</span></div>`).join('');
+
+  const ids = Object.keys(DRAWING_URLS);
+  document.getElementById('dwg-count').textContent = ids.length;
+  document.getElementById('dwg-list').innerHTML = ids.map(id =>
+    `<a class="dwg-chip" href="${DRAWING_URLS[id]}" target="_blank">#${id}</a>`
+  ).join('');
+</script>
+</body>
+</html>
