@@ -119,6 +119,34 @@
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
   const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
 
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  let _phasesFS = {}; // `${orderId}_${lineItemId}` → phase
+
+  async function loadPhasesFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f = r.document.fields || {};
+        const oid = f.order_id?.stringValue || '';
+        const lid = f.line_item_id?.stringValue || '';
+        const ph  = f.phase?.stringValue || '';
+        if (oid && lid && ph) _phasesFS[`${oid}_${lid}`] = ph;
+      });
+    } catch(_) {}
+  }
+
+  function resolvePhase(orderId, item) {
+    return _phasesFS[`${orderId}_${item.id}`]
+        || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
+        || 'Created';
+  }
+
   const ALL_PHASES = [
     "Created","WA msg","Call","No Confirmation","Confirmed",
     "Check Inventory","Model & DWG","JO preparation","Procurement","Material Received","JO released",
@@ -143,11 +171,10 @@
     "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
-  // ── Phase helpers (WC API meta_data only) ────────────────────────
+  // ── Phase helpers ────────────────────────────────────────────────
   function setItemPhase(orderId, itemId, phase) {
-    // Update in-memory so UI stays consistent without reload
-    const allOrders = [...(completedOrders || []), ...(noResponseOrders || [])];
-    const order = allOrders.find(o => String(o.id) === String(orderId));
+    const allO = [...(completedOrders || []), ...(noResponseOrders || [])];
+    const order = allO.find(o => String(o.id) === String(orderId));
     if (order) {
       const item = order.line_items.find(i => String(i.id) === String(itemId));
       if (item) {
@@ -156,10 +183,17 @@
         else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
       }
     }
-    fetch(WC_PUT(orderId), {
+    _phasesFS[`${orderId}_${itemId}`] = phase;
+    const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
+    fetch(`${FS_BASE}/order_phases/${orderId}_${itemId}?key=${FS_KEY}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ line_items: [{ id: parseInt(itemId), meta_data: [{ key: 'tg_phase', value: phase }] }] })
+      body: JSON.stringify({ fields: {
+        order_id:     { stringValue: String(orderId) },
+        line_item_id: { stringValue: String(itemId) },
+        product_id:   { integerValue: String(productId) },
+        phase:        { stringValue: phase }
+      }})
     }).catch(() => {});
   }
 
@@ -247,8 +281,7 @@
     const thumb = imgSrc
       ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
       : `<span class="item-thumb-placeholder"></span>`;
-    const phaseMeta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-    const phase = phaseMeta?.value || 'Created';
+    const phase = resolvePhase(order.id, item);
     const phaseTag = showPhase ? phaseSelHtml(phase, order.id, item.id) : '';
     return `<div class="item-row">
       ${thumb}
@@ -312,10 +345,7 @@
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
       const days  = daysSince(o.date_created);
-      const nrItems = o.line_items.filter((item) => {
-        const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        return (meta?.value || 'Created') === 'WH-No_Response';
-      });
+      const nrItems = o.line_items.filter(item => resolvePhase(o.id, item) === 'WH-No_Response');
       const itemsHtml = nrItems.map((item, idx) => itemRowHtml(o, item, idx, true)).join('');
       return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
@@ -435,16 +465,14 @@
 
   Promise.all([
     fetchOrders('completed'),
-    fetchOrders('processing')
+    fetchOrders('processing'),
+    loadPhasesFS()
   ]).then(([completed, processing]) => {
     completedOrders = completed;
 
     // Filter processing orders to only those with at least one WH-No_Response item
     noResponseOrders = processing.filter(o =>
-      o.line_items.some(item => {
-        const meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        return (meta?.value || 'Created') === 'WH-No_Response';
-      })
+      o.line_items.some(item => resolvePhase(o.id, item) === 'WH-No_Response')
     );
 
     document.getElementById('state').style.display = 'none';

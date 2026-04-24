@@ -255,6 +255,47 @@
   const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  let _phasesFS   = {}; // `${orderId}_${lineItemId}` → phase
+  let _productsFS = {}; // productId → { drawing_url, stock_qty, ... }
+
+  async function loadPhasesFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f = r.document.fields || {};
+        const oid = f.order_id?.stringValue || '';
+        const lid = f.line_item_id?.stringValue || '';
+        const ph  = f.phase?.stringValue || '';
+        if (oid && lid && ph) _phasesFS[`${oid}_${lid}`] = ph;
+      });
+    } catch(_) {}
+  }
+
+  async function loadProductsFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'products' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f = r.document.fields || {};
+        const pid = f.product_id?.integerValue;
+        if (pid) _productsFS[parseInt(pid)] = {
+          drawing_url: f.drawing_url?.stringValue || '',
+          stock_qty:   parseInt(f.stock_qty?.integerValue ?? 0),
+          name:        f.name?.stringValue || '',
+          image_url:   f.image_url?.stringValue || ''
+        };
+      });
+    } catch(_) {}
+  }
+
   function fromFsVal(v) {
     if (!v) return null;
     if ('nullValue'   in v) return null;
@@ -339,9 +380,10 @@
   let dlvGroupByState  = true;
 
   // ── Phase helpers ─────────────────────────────────────────────────
-  function getPhase(item) {
-    const m = (item.meta_data || []).find(x => x.key === 'tg_phase');
-    return m?.value || 'Created';
+  function getPhase(orderId, item) {
+    return _phasesFS[`${orderId}_${item.id}`]
+        || (item.meta_data || []).find(x => x.key === 'tg_phase')?.value
+        || 'Created';
   }
   function setPhase(orderId, itemId, phase) {
     const order = allOrders.find(o => String(o.id) === String(orderId));
@@ -352,9 +394,17 @@
         if (m) m.value = phase; else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key:'tg_phase', value: phase }); }
       }
     }
-    fetch(WC_PUT(orderId), { method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ line_items:[{ id: parseInt(itemId), meta_data:[{ key:'tg_phase', value: phase }] }] })
-    }).catch(()=>{});
+    _phasesFS[`${orderId}_${itemId}`] = phase;
+    const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
+    fetch(`${FS_BASE}/order_phases/${orderId}_${itemId}?key=${FS_KEY}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: {
+        order_id:     { stringValue: String(orderId) },
+        line_item_id: { stringValue: String(itemId) },
+        product_id:   { integerValue: String(productId) },
+        phase:        { stringValue: phase }
+      }})
+    }).catch(() => {});
   }
 
   // ── Fetch ─────────────────────────────────────────────────────────
@@ -391,8 +441,9 @@
     const date = order.date_created ? order.date_created.replace('T',' ').slice(0,16) : '—';
     const address = [b.address_1, b.address_2, b.city].filter(Boolean).join(', ');
     const itemsHtml = order.line_items.map((item, i) => {
-      const phase = getPhase(item);
-      const dwg = DRAWING_URLS[item.product_id] ? `<a class="dwg-icon" href="${DRAWING_URLS[item.product_id]}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : '';
+      const phase = getPhase(order.id, item);
+      const dwgUrl = _productsFS[item.product_id]?.drawing_url || DRAWING_URLS[item.product_id] || '';
+      const dwg = dwgUrl ? `<a class="dwg-icon" href="${dwgUrl}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : '';
       return `<tr>
         <td>${i+1}</td>
         <td>${item.name} ${dwg}</td>
@@ -448,13 +499,13 @@
   }
 
   function itemRowHtml(o, item, idx) {
-    const phase = getPhase(item);
+    const phase = getPhase(o.id, item);
     const opts  = ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('');
     return `<div class="item-row">
       ${thumbHtml(item)}
       <span class="item-id" style="cursor:pointer" onclick="event.stopPropagation();showOrderDetail(${o.id})">${o.id}.${idx+1}</span>
       <a class="item-name" href="https://timberedgroup.com/?p=${item.product_id}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
-      ${DRAWING_URLS[item.product_id] ? `<a class="dwg-icon" href="${DRAWING_URLS[item.product_id]}" target="_blank" onclick="event.stopPropagation()" title="Drawing">DWG</a>` : ''}
+      ${(_productsFS[item.product_id]?.drawing_url || DRAWING_URLS[item.product_id]) ? `<a class="dwg-icon" href="${_productsFS[item.product_id]?.drawing_url || DRAWING_URLS[item.product_id]}" target="_blank" onclick="event.stopPropagation()" title="Drawing">DWG</a>` : ''}
       <span class="item-qty">×${item.quantity}</span>
       <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
       <select class="phase-sel" data-order="${o.id}" data-item="${item.id}" onclick="event.stopPropagation()">${opts}</select>
@@ -523,13 +574,14 @@
     const card = _mtsCards.find(c => c._id === cardId);
     if (newPhase === 'WH-Stock' && card) {
       await Promise.all((card.items || []).filter(it => (it.mts_qty || 0) > 0).map(async it => {
-        const res  = await fetch(`https://timberedgroup.com/wp-json/wc/v3/products/${it.product_id}?${WC_CREDS}`);
-        const prod = await res.json();
-        const newQty = (prod.stock_quantity || 0) + it.mts_qty;
-        await fetch(`https://timberedgroup.com/wp-json/wc/v3/products/${it.product_id}?${WC_CREDS}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ manage_stock: true, stock_quantity: newQty })
-        });
+        const pid = it.product_id;
+        const currentQty = _productsFS[pid]?.stock_qty ?? 0;
+        const newQty = currentQty + it.mts_qty;
+        if (_productsFS[pid]) _productsFS[pid].stock_qty = newQty;
+        await fetch(`${FS_BASE}/products/${pid}?key=${FS_KEY}&updateMask.fieldPaths=stock_qty`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { stock_qty: { integerValue: String(newQty) } } })
+        }).catch(() => {});
       }));
     }
     await fetch(`${FS_BASE}/production_cards/${cardId}?key=${FS_KEY}&updateMask.fieldPaths=phase`, {
@@ -551,7 +603,7 @@
     let html = sections.map(({ phase, label, groups }) => {
       const items = [];
       allOrders.forEach(o => o.line_items.forEach((item, idx) => {
-        if (getPhase(item) !== phase) return;
+        if (getPhase(o.id, item) !== phase) return;
         if (q && !item.name.toLowerCase().includes(q) && !String(o.id).includes(q)) return;
         items.push({ o, item, idx });
       }));
@@ -629,7 +681,7 @@
 
     const byState = {};
     allOrders.forEach(o => {
-      if (!o.line_items.some(i => ordersFilters.has(getPhase(i)))) return;
+      if (!o.line_items.some(i => ordersFilters.has(getPhase(o.id, i)))) return;
       const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
       if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
       const sk = o.billing.state || '—';
@@ -644,7 +696,7 @@
       const orders = byState[sk];
       total += orders.length;
       const cardsHtml = orders.map(o => {
-        const vis = o.line_items.filter(i => ordersFilters.has(getPhase(i)));
+        const vis = o.line_items.filter(i => ordersFilters.has(getPhase(o.id, i)));
         return orderCardHtml(o, vis);
       }).join('');
       return groupHtml(sk, EG_STATES[sk]||sk, cardsHtml, orders.length + ' orders', wasOpen);
@@ -661,7 +713,7 @@
     const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
 
     const matchingOrders = allOrders.filter(o => {
-      if (!o.line_items.some(i => dlvFilters.has(getPhase(i)))) return false;
+      if (!o.line_items.some(i => dlvFilters.has(getPhase(o.id, i)))) return false;
       const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
       return !q || String(o.id).includes(q) || nm.includes(q) || (o.billing.phone||'').includes(q);
     });
@@ -676,7 +728,7 @@
         label = EG_STATES[key] || key;
       } else {
         // Primary delivery method = first DLV phase found on any item
-        const method = o.line_items.map(i => getPhase(i)).find(p => dlvFilters.has(p)) || '—';
+        const method = o.line_items.map(i => getPhase(o.id, i)).find(p => dlvFilters.has(p)) || '—';
         key   = method;
         label = DLV_METHOD_LABELS[method] || method;
       }
@@ -689,7 +741,7 @@
       const { label, orders } = groups[k];
       total += orders.length;
       const cardsHtml = orders.map(o => {
-        const vis = o.line_items.filter(i => dlvFilters.has(getPhase(i)));
+        const vis = o.line_items.filter(i => dlvFilters.has(getPhase(o.id, i)));
         return orderCardHtml(o, vis);
       }).join('');
       return groupHtml(k, label, cardsHtml, orders.length + ' orders', wasOpen);
@@ -706,7 +758,7 @@
     const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
     const byState = {};
     allOrders.forEach(o => {
-      if (!o.line_items.some(i => whFilters.has(getPhase(i)))) return;
+      if (!o.line_items.some(i => whFilters.has(getPhase(o.id, i)))) return;
       const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
       if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
       const sk = o.billing.state || '—';
@@ -718,7 +770,7 @@
     wrap.innerHTML = keys.map(sk => {
       const orders = byState[sk]; total += orders.length;
       return groupHtml(sk, EG_STATES[sk]||sk,
-        orders.map(o => orderCardHtml(o, o.line_items.filter(i => whFilters.has(getPhase(i))))).join(''),
+        orders.map(o => orderCardHtml(o, o.line_items.filter(i => whFilters.has(getPhase(o.id, i))))).join(''),
         orders.length + ' orders', wasOpen);
     }).join('');
     attachGroupToggles(wrap);
@@ -732,7 +784,7 @@
     const wasOpen = new Set([...wrap.querySelectorAll('.group-hdr.open')].map(h => h.dataset.key));
     const byState = {};
     allOrders.forEach(o => {
-      if (!o.line_items.some(i => deliveredFilters.has(getPhase(i)))) return;
+      if (!o.line_items.some(i => deliveredFilters.has(getPhase(o.id, i)))) return;
       const nm = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
       if (q && !String(o.id).includes(q) && !nm.includes(q) && !(o.billing.phone||'').includes(q)) return;
       const sk = o.billing.state || '—';
@@ -744,7 +796,7 @@
     wrap.innerHTML = keys.map(sk => {
       const orders = byState[sk]; total += orders.length;
       return groupHtml(sk, EG_STATES[sk]||sk,
-        orders.map(o => orderCardHtml(o, o.line_items.filter(i => deliveredFilters.has(getPhase(i))))).join(''),
+        orders.map(o => orderCardHtml(o, o.line_items.filter(i => deliveredFilters.has(getPhase(o.id, i))))).join(''),
         orders.length + ' orders', wasOpen);
     }).join('');
     attachGroupToggles(wrap);
@@ -810,7 +862,7 @@
     ];
 
     let html = sections.map(({ phase, label, desc }) => {
-      const orders = allOrders.filter(o => o.line_items.some(i => getPhase(i) === phase))
+      const orders = allOrders.filter(o => o.line_items.some(i => getPhase(o.id, i) === phase))
                               .sort((a,b) => daysSince(b.date_created) - daysSince(a.date_created));
       const cardsHtml = orders.map(o => callsOrderCardHtml(o, cl)).join('');
       const openCls = '';
@@ -845,7 +897,7 @@
     });
 
     const total = sections.reduce((s, { phase }) =>
-      s + allOrders.filter(o => o.line_items.some(i => getPhase(i) === phase)).length, 0);
+      s + allOrders.filter(o => o.line_items.some(i => getPhase(o.id, i) === phase)).length, 0);
   }
 
   // ── TAB SWITCHING ─────────────────────────────────────────────────
@@ -952,7 +1004,7 @@
   document.getElementById('recvSearch').addEventListener('input', renderReceiving);
 
   // ── INIT ──────────────────────────────────────────────────────────
-  fetchAllOrders().then(orders => {
+  Promise.all([fetchAllOrders(), loadPhasesFS(), loadProductsFS()]).then(([orders]) => {
     allOrders = orders;
     document.getElementById('state-msg').style.display = 'none';
   }).catch(e => {

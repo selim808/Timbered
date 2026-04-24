@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migrate — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; padding: 20px; }
+    h1 { color: #7A4610; font-size: 20px; margin-bottom: 4px; }
+    .subtitle { color: #999; font-size: 13px; margin-bottom: 24px; }
+    .card { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; padding: 20px; margin-bottom: 16px; max-width: 640px; }
+    .card h2 { font-size: 14px; font-weight: 800; color: #7A4610; margin: 0 0 6px; }
+    .card p { font-size: 12px; color: #777; margin: 0 0 14px; line-height: 1.5; }
+    .btn { font-size: 13px; font-weight: 700; padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; background: #7A4610; color: #fff; }
+    .btn:hover { background: #5e340c; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .log { margin-top: 14px; background: #f5f0eb; border-radius: 6px; padding: 12px; font-size: 11px; font-family: monospace; color: #555; max-height: 300px; overflow-y: auto; display: none; }
+    .log.visible { display: block; }
+    .log-line { margin: 0; line-height: 1.6; }
+    .log-line.ok  { color: #27ae60; }
+    .log-line.err { color: #e74c3c; }
+    .log-line.info { color: #7A4610; font-weight: 700; }
+    .progress { font-size: 12px; color: #888; margin-top: 8px; }
+    .done-badge { display: inline-block; background: #27ae60; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; margin-left: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Timbered — Data Migration</h1>
+<p class="subtitle">One-time tool to seed Firestore from WooCommerce data. Run each step once.</p>
+
+<div class="card">
+  <h2>Step 1 — Seed <code>products</code> collection</h2>
+  <p>Fetches all published WooCommerce products and writes each to Firestore <code>products/{product_id}</code> with name, image_url, drawing_url, stock_qty, dimensions, and material attributes.</p>
+  <button class="btn" id="btnProducts" onclick="migrateProducts()">Run Products Migration</button>
+  <div class="progress" id="progressProducts"></div>
+  <div class="log" id="logProducts"></div>
+</div>
+
+<div class="card">
+  <h2>Step 2 — Seed <code>order_phases</code> collection</h2>
+  <p>Fetches all processing WooCommerce orders and writes each line item's <code>tg_phase</code> to Firestore <code>order_phases/{order_id}_{line_item_id}</code>. Only writes items that already have a tg_phase set.</p>
+  <button class="btn" id="btnPhases" onclick="migratePhases()">Run Phases Migration</button>
+  <div class="progress" id="progressPhases"></div>
+  <div class="log" id="logPhases"></div>
+</div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const WC_CREDS = 'consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de';
+  const WC_BASE  = 'https://timberedgroup.com/wp-json/wc/v3';
+
+  const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
+
+  function log(panelId, msg, cls = '') {
+    const el = document.getElementById(panelId);
+    el.classList.add('visible');
+    const p = document.createElement('p');
+    p.className = 'log-line' + (cls ? ' ' + cls : '');
+    p.textContent = msg;
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setProgress(id, text) {
+    document.getElementById(id).textContent = text;
+  }
+
+  async function fsWrite(col, docId, fields) {
+    const res = await fetch(`${FS_BASE}/${col}/${docId}?key=${FS_KEY}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  }
+
+  // ── STEP 1: Migrate products ──────────────────────────────────────
+  async function migrateProducts() {
+    const btn = document.getElementById('btnProducts');
+    btn.disabled = true;
+    document.getElementById('logProducts').innerHTML = '';
+    log('logProducts', '→ Fetching all WC products…', 'info');
+
+    try {
+      let page = 1, allProducts = [];
+      while (true) {
+        setProgress('progressProducts', `Fetching products page ${page}…`);
+        const res = await fetch(`${WC_BASE}/products?${WC_CREDS}&status=publish&per_page=100&page=${page}`);
+        const batch = await res.json();
+        if (!batch.length) break;
+        allProducts = allProducts.concat(batch);
+        if (batch.length < 100) break;
+        page++;
+      }
+      log('logProducts', `✓ Found ${allProducts.length} products`, 'ok');
+
+      let ok = 0, fail = 0;
+      for (let i = 0; i < allProducts.length; i++) {
+        const p = allProducts[i];
+        setProgress('progressProducts', `Writing product ${i + 1} / ${allProducts.length} — #${p.id}`);
+
+        const d = p.dimensions || {};
+        const drawingUrl = (p.meta_data || []).find(m => m.key === 'tg_drawing_url')?.value
+                        || DRAWING_URLS[p.id] || '';
+        const material = (p.attributes || []).find(a =>
+          /material|خامة|wood/i.test(a.name))?.options?.join(', ') || '';
+
+        const fields = {
+          product_id:  { integerValue: String(p.id) },
+          name:        { stringValue: p.name || '' },
+          image_url:   { stringValue: p.images?.[0]?.src || '' },
+          drawing_url: { stringValue: drawingUrl },
+          stock_qty:   { integerValue: String(p.stock_quantity ?? 0) },
+          manage_stock:{ booleanValue: !!p.manage_stock },
+          dim_length:  { stringValue: d.length || '' },
+          dim_width:   { stringValue: d.width  || '' },
+          dim_height:  { stringValue: d.height || '' },
+          material:    { stringValue: material },
+          sku:         { stringValue: p.sku || '' },
+          status:      { stringValue: p.status || '' },
+        };
+
+        try {
+          await fsWrite('products', String(p.id), fields);
+          ok++;
+        } catch(e) {
+          log('logProducts', `✗ Product #${p.id} failed: ${e.message}`, 'err');
+          fail++;
+        }
+
+        if ((i + 1) % 20 === 0) log('logProducts', `  … ${i + 1} done`);
+      }
+
+      log('logProducts', `✓ Products done: ${ok} written, ${fail} failed`, 'ok');
+      setProgress('progressProducts', `Done — ${ok} products written`);
+    } catch(e) {
+      log('logProducts', `✗ Fatal error: ${e.message}`, 'err');
+      setProgress('progressProducts', 'Error — see log');
+    }
+
+    btn.disabled = false;
+  }
+
+  // ── STEP 2: Migrate order_phases ─────────────────────────────────
+  async function migratePhases() {
+    const btn = document.getElementById('btnPhases');
+    btn.disabled = true;
+    document.getElementById('logPhases').innerHTML = '';
+    log('logPhases', '→ Fetching all processing orders…', 'info');
+
+    try {
+      let page = 1, allOrders = [];
+      while (true) {
+        setProgress('progressPhases', `Fetching orders page ${page}…`);
+        const res = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=processing&per_page=100&page=${page}`);
+        const batch = await res.json();
+        if (!batch.length) break;
+        allOrders = allOrders.concat(batch);
+        if (batch.length < 100) break;
+        page++;
+      }
+      log('logPhases', `✓ Found ${allOrders.length} orders`, 'ok');
+
+      let ok = 0, skipped = 0, fail = 0;
+      let docIdx = 0;
+      const totalItems = allOrders.reduce((s, o) => s + o.line_items.length, 0);
+
+      for (const order of allOrders) {
+        for (const item of order.line_items) {
+          docIdx++;
+          setProgress('progressPhases', `Writing phase ${docIdx} / ${totalItems} — order #${order.id}`);
+
+          const phase = (item.meta_data || []).find(m => m.key === 'tg_phase')?.value || '';
+          if (!phase) { skipped++; continue; }
+
+          const docId = `${order.id}_${item.id}`;
+          const fields = {
+            order_id:     { stringValue: String(order.id) },
+            line_item_id: { stringValue: String(item.id) },
+            product_id:   { integerValue: String(item.product_id || 0) },
+            phase:        { stringValue: phase }
+          };
+
+          try {
+            await fsWrite('order_phases', docId, fields);
+            ok++;
+          } catch(e) {
+            log('logPhases', `✗ ${docId} failed: ${e.message}`, 'err');
+            fail++;
+          }
+        }
+      }
+
+      log('logPhases', `✓ Phases done: ${ok} written, ${skipped} skipped (no tg_phase), ${fail} failed`, 'ok');
+      setProgress('progressPhases', `Done — ${ok} phases written`);
+    } catch(e) {
+      log('logPhases', `✗ Fatal error: ${e.message}`, 'err');
+      setProgress('progressPhases', 'Error — see log');
+    }
+
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>

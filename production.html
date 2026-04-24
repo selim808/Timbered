@@ -350,6 +350,22 @@
     await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}`, { method:'DELETE' });
   }
 
+  let _phasesFS = {};
+  async function loadPhasesFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f = r.document.fields || {};
+        const key = `${f.order_id?.stringValue}_${f.line_item_id?.stringValue}`;
+        _phasesFS[key] = f.phase?.stringValue || '';
+      });
+    } catch(_) {}
+  }
+
   // ── Constants ────────────────────────────────────────────────────────
   const PROD_PHASES     = ["JO released","Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint","Inspection"];
   const REPAIR_PHASES   = ["Received from WH","QC-Rejected","R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet","R-Assemble & label","R-Paint","R-Inspection"];
@@ -419,7 +435,8 @@
       [_jos, _cards, _shipments] = await Promise.all([
         fsQuery('job_orders'),
         fsQuery('production_cards'),
-        fsQuery('shipments')
+        fsQuery('shipments'),
+        loadPhasesFS()
       ]);
       _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
 
@@ -439,7 +456,7 @@
         }
         _wcReleasedOrders = allWC.filter(o =>
           !activeOrderIds.has(String(o.id)) &&
-          o.line_items.some(i => (i.meta_data||[]).find(m => m.key==='tg_phase')?.value === 'JO released')
+          o.line_items.some(i => (_phasesFS[`${o.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released')
         );
       } catch(_) { _wcReleasedOrders = []; }
 
@@ -650,7 +667,7 @@
           </div>`;
         });
         wcReleased.forEach(order => {
-          const relItems = order.line_items.filter(i => (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value === 'JO released');
+          const relItems = order.line_items.filter(i => (_phasesFS[`${order.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
           const b = order.billing;
           const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
           const itemRows = relItems.slice(0, 4).map(it =>
@@ -822,17 +839,20 @@
       });
       _cards.push(newCard);
       _startedJoIds.add(joId);
-      // Sync WC item phases to Cutting so Orders page stays in sync
-      const wcUpdates = {};
-      items.forEach(it => (it.mto_orders||[]).forEach(o => {
-        if (!wcUpdates[o.order_id]) wcUpdates[o.order_id] = [];
-        (o._lineItemIds||[]).forEach(lid => wcUpdates[o.order_id].push(lid));
-      }));
-      Promise.all(Object.entries(wcUpdates).map(([oid, lids]) =>
-        fetch(`${WC_BASE}/orders/${oid}?${WC_CREDS}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ line_items: [...new Set(lids)].map(id => ({ id: parseInt(id), meta_data: [{ key:'tg_phase', value:'Cutting' }] })) })
-        }).catch(()=>{})
+      // Sync item phases to Cutting in Firestore so other pages stay in sync
+      items.forEach(it => (it.mto_orders||[]).forEach(o =>
+        (o._lineItemIds||[]).forEach(lid => {
+          _phasesFS[`${o.order_id}_${lid}`] = 'Cutting';
+          fetch(`${FS_BASE}/order_phases/${o.order_id}_${lid}?key=${FS_KEY}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: {
+              order_id:     { stringValue: String(o.order_id) },
+              line_item_id: { stringValue: String(lid) },
+              product_id:   { integerValue: String(it.product_id || 0) },
+              phase:        { stringValue: 'Cutting' }
+            }})
+          }).catch(()=>{});
+        })
       ));
       renderKanban();
     } catch(e) {
@@ -850,7 +870,7 @@
     try {
       const b = order.billing;
       const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
-      const relItems = order.line_items.filter(i => (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value === 'JO released');
+      const relItems = order.line_items.filter(i => (_phasesFS[`${orderId}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
       const items = relItems.map(it => ({
         product_id:    it.product_id,
         product_name:  it.name,
@@ -873,10 +893,18 @@
         created_at:  new Date().toISOString()
       });
       _cards.push(newCard);
-      // Update WC item phases to Cutting
-      await fetch(`${WC_BASE}/orders/${orderId}?${WC_CREDS}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ line_items: relItems.map(it => ({ id: it.id, meta_data: [{ key:'tg_phase', value:'Cutting' }] })) })
+      // Update Firestore phases to Cutting so other pages stay in sync
+      relItems.forEach(it => {
+        _phasesFS[`${orderId}_${it.id}`] = 'Cutting';
+        fetch(`${FS_BASE}/order_phases/${orderId}_${it.id}?key=${FS_KEY}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {
+            order_id:     { stringValue: String(orderId) },
+            line_item_id: { stringValue: String(it.id) },
+            product_id:   { integerValue: String(it.product_id || 0) },
+            phase:        { stringValue: 'Cutting' }
+          }})
+        }).catch(()=>{});
       });
       _wcReleasedOrders = _wcReleasedOrders.filter(o => o.id !== orderId);
       renderKanban();
@@ -1367,26 +1395,27 @@
   }
 
   async function wcSetPhaseForCards(cards, phase) {
-    // Group line item IDs by order ID across all card items
-    const byOrder = {};
+    const writes = [];
     cards.forEach(c => (c.items || []).forEach(it =>
-      (it.mto_orders || []).forEach(o => {
-        if (!byOrder[o.order_id]) byOrder[o.order_id] = [];
-        (o._lineItemIds || []).forEach(lid => byOrder[o.order_id].push(lid));
-      })
-    ));
-    await Promise.all(Object.entries(byOrder).map(([orderId, lineItemIds]) =>
-      fetch(`${WC_BASE}/orders/${orderId}?${WC_CREDS}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          line_items: [...new Set(lineItemIds)].map(id => ({
-            id: parseInt(id),
-            meta_data: [{ key: 'tg_phase', value: phase }]
-          }))
+      (it.mto_orders || []).forEach(o =>
+        (o._lineItemIds || []).forEach(lid => {
+          _phasesFS[`${o.order_id}_${lid}`] = phase;
+          writes.push(
+            fetch(`${FS_BASE}/order_phases/${o.order_id}_${lid}?key=${FS_KEY}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fields: {
+                order_id:     { stringValue: String(o.order_id) },
+                line_item_id: { stringValue: String(lid) },
+                product_id:   { integerValue: String(it.product_id || 0) },
+                phase:        { stringValue: phase }
+              }})
+            }).catch(() => {})
+          );
         })
-      }).catch(() => {})
+      )
     ));
+    await Promise.all(writes);
   }
 
   async function editShipment(shipId) {
