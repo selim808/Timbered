@@ -1253,9 +1253,12 @@
       document.getElementById('shipBadge').textContent = _shipments.length;
 
       await Promise.all(selected.map(c =>
-        fsUpdate('production_cards', c._id, { shipped: true, shipment_ref: ref })
+        fsUpdate('production_cards', c._id, { shipped: true, shipment_ref: ref, phase: 'Sent to WH' })
       ));
-      selected.forEach(c => { c.shipped = true; c.shipment_ref = ref; });
+      selected.forEach(c => { c.shipped = true; c.shipment_ref = ref; c.phase = 'Sent to WH'; });
+
+      // Update WC order line items so they appear in warehouse Receiving tab
+      await wcSetPhaseForCards(selected, 'Sent to WH');
 
       renderShip();
       if (_currentTab === 'status') renderStatus();
@@ -1264,6 +1267,29 @@
       btn.disabled = false;
       btn.textContent = 'Create Shipment';
     }
+  }
+
+  async function wcSetPhaseForCards(cards, phase) {
+    // Group line item IDs by order ID across all card items
+    const byOrder = {};
+    cards.forEach(c => (c.items || []).forEach(it =>
+      (it.mto_orders || []).forEach(o => {
+        if (!byOrder[o.order_id]) byOrder[o.order_id] = [];
+        (o._lineItemIds || []).forEach(lid => byOrder[o.order_id].push(lid));
+      })
+    ));
+    await Promise.all(Object.entries(byOrder).map(([orderId, lineItemIds]) =>
+      fetch(`${WC_BASE}/orders/${orderId}?${WC_CREDS}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          line_items: [...new Set(lineItemIds)].map(id => ({
+            id: parseInt(id),
+            meta_data: [{ key: 'tg_phase', value: phase }]
+          }))
+        })
+      }).catch(() => {})
+    ));
   }
 
   async function editShipment(shipId) {
