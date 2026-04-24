@@ -72,6 +72,14 @@
     .cl-part-total { font-weight: 700; color: #7A4610; }
     .cl-no-bom-card { padding: 12px 16px; color: #aaa; font-style: italic; font-size: 12px; }
 
+    .cl-cards-wrap { padding: 3px 4px; }
+
+    @media (max-width: 640px) {
+      .cl-cards-wrap { padding: 2px 3px; }
+      .cl-cards { gap: 6px; }
+      #cutlist-display { padding: 16px 10px; }
+    }
+
     @media print {
       .site-header, .controls { display: none !important; }
       body { background: #fff; }
@@ -293,7 +301,7 @@
     return `<table class="cl-table">
       <thead><tr>
         <th>Product</th><th>QTY</th><th>Picture</th>
-        <th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+        <th>Name</th><th>Thk<br><span style="font-size:9px;font-weight:400;opacity:0.8">(mm)</span></th><th>X (cm)</th><th>Y (cm)</th>
         <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -310,7 +318,7 @@
       const partsHtml = bom.length
         ? `<table class="cl-parts-table">
             <thead><tr>
-              <th>#</th><th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+              <th>#</th><th>Name</th><th>Thk<br><span style="font-size:9px;font-weight:400;opacity:0.8">(mm)</span></th><th>X (cm)</th><th>Y (cm)</th>
               <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
             </tr></thead>
             <tbody>${bom.map((part, i) => {
@@ -318,7 +326,7 @@
               return `<tr>
                 <td>${i + 1}</td>
                 <td class="cl-part-name-td">${part.name || ''}</td>
-                <td>${part.thx || ''}</td>
+                <td>${(part.thx || '').replace(/\s*mm\s*$/i, '')}</td>
                 <td>${part.x || ''}</td>
                 <td>${part.y || ''}</td>
                 <td>${part.qty || ''}</td>
@@ -340,7 +348,7 @@
       </div>`;
     }).join('');
 
-    return `<div class="cl-cards">${cards}</div>`;
+    return `<div class="cl-cards-wrap"><div class="cl-cards">${cards}</div></div>`;
   }
 
   async function imgToDataURL(src, w, h) {
@@ -383,9 +391,10 @@
     const fullH = el.scrollHeight;
     const clone = el.cloneNode(true);
     Object.assign(clone.style, {
-      position: 'fixed', top: '0', left: '-99999px',
+      position: 'fixed', top: '0', left: '0',
       width: fullW + 'px', minWidth: 'unset',
-      overflow: 'visible', zIndex: '-1'
+      overflow: 'visible', zIndex: '-9999',
+      opacity: '0.001', pointerEvents: 'none'
     });
     document.body.appendChild(clone);
     await inlineImages(clone);
