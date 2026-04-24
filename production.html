@@ -361,6 +361,7 @@
   let _cards     = [];
   let _shipments = [];
   let _startedJoIds = new Set();
+  let _wcReleasedOrders = [];
   let _splitCard = null;
   let _selectedCardIds = new Set();
   let _currentTab = 'production';
@@ -421,6 +422,26 @@
         fsQuery('shipments')
       ]);
       _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
+
+      // Fetch WC orders with JO released items (not already covered by Firestore job_orders)
+      try {
+        const coveredOrderIds = new Set(_jos.flatMap(jo =>
+          (jo.items||[]).flatMap(it => (it.mto_orders||[]).map(o => String(o.order_id)))
+        ));
+        let page = 1, allWC = [];
+        while (true) {
+          const r = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=processing&per_page=100&page=${page}`);
+          const b = await r.json();
+          if (!b.length) break;
+          allWC = allWC.concat(b);
+          if (b.length < 100) break;
+          page++;
+        }
+        _wcReleasedOrders = allWC.filter(o =>
+          !coveredOrderIds.has(String(o.id)) &&
+          o.line_items.some(i => (i.meta_data||[]).find(m => m.key==='tg_phase')?.value === 'JO released')
+        );
+      } catch(_) { _wcReleasedOrders = []; }
 
       // Fetch tg_drawing_url for all product IDs in current cards
       const allProductIds = [...new Set(
@@ -590,6 +611,7 @@
     const queueJos = _currentTab === 'production'
       ? _jos.filter(jo => !_startedJoIds.has(jo._id))
       : [];
+    const wcReleased = _currentTab === 'production' ? _wcReleasedOrders : [];
     let html = '';
 
     // Phase columns
@@ -599,14 +621,14 @@
         .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
       const colId = 'col_' + phase.replace(/[^a-z0-9]/gi, '_');
       const isJoReleased = phase === 'JO released';
-      const colCount = isJoReleased ? queueJos.length + activeCards.length : activeCards.length;
+      const colCount = isJoReleased ? queueJos.length + wcReleased.length + activeCards.length : activeCards.length;
       html += `<div class="k-col">
         <div class="k-col-hdr">${phase} <span class="k-col-count">${colCount}</span></div>
         <div class="k-col-body" id="${colId}" data-phase="${phase}">`;
 
       // Pending JOs at the top of "JO released" column
       if (isJoReleased) {
-        if (!queueJos.length && !activeCards.length) {
+        if (!queueJos.length && !wcReleased.length && !activeCards.length) {
           html += `<div class="k-col-empty">Empty</div>`;
         }
         queueJos.forEach(jo => {
@@ -625,6 +647,24 @@
             <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
             <div class="q-jo-items">${itemRows}</div>
             <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
+          </div>`;
+        });
+        wcReleased.forEach(order => {
+          const relItems = order.line_items.filter(i => (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value === 'JO released');
+          const b = order.billing;
+          const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
+          const itemRows = relItems.slice(0, 4).map(it =>
+            `<div class="q-jo-item-row">
+              <div class="q-jo-item-dot"></div>
+              <span class="q-jo-item-name">${it.name}</span>
+              <span class="q-jo-item-qty">×${it.quantity}</span>
+            </div>`
+          ).join('') + (relItems.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${relItems.length-4} more</div>` : '');
+          html += `<div class="q-jo-card">
+            <div class="q-jo-ref">#${order.id} · ${customer}</div>
+            <div class="q-jo-meta">${relItems.length} product${relItems.length!==1?'s':''}</div>
+            <div class="q-jo-items">${itemRows}</div>
+            <button class="start-btn" onclick="startProductionFromWC(${order.id},this)">▶ Start Production</button>
           </div>`;
         });
       } else if (!activeCards.length) {
@@ -782,6 +822,51 @@
       });
       _cards.push(newCard);
       _startedJoIds.add(joId);
+      renderKanban();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '▶ Start Production';
+    }
+  }
+
+  async function startProductionFromWC(orderId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    const order = _wcReleasedOrders.find(o => o.id === orderId);
+    if (!order) return;
+    try {
+      const b = order.billing;
+      const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
+      const relItems = order.line_items.filter(i => (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value === 'JO released');
+      const items = relItems.map(it => ({
+        product_id:    it.product_id,
+        product_name:  it.name,
+        product_image: it.image?.src || '',
+        mto_qty:       it.quantity,
+        mts_qty:       0,
+        total_qty:     it.quantity,
+        mto_orders:    [{ order_id: orderId, customer, qty: it.quantity, _lineItemIds: [it.id] }],
+        dwg_url:       ''
+      }));
+      const newCard = await fsAdd('production_cards', {
+        jo_ref:      `#${orderId}`,
+        jo_id:       null,
+        items,
+        phase:       'Cutting',
+        split_index: 1,
+        split_total: 1,
+        split_group: null,
+        shipped:     false,
+        created_at:  new Date().toISOString()
+      });
+      _cards.push(newCard);
+      // Update WC item phases to Cutting
+      await fetch(`${WC_BASE}/orders/${orderId}?${WC_CREDS}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line_items: relItems.map(it => ({ id: it.id, meta_data: [{ key:'tg_phase', value:'Cutting' }] })) })
+      });
+      _wcReleasedOrders = _wcReleasedOrders.filter(o => o.id !== orderId);
       renderKanban();
     } catch(e) {
       alert('Error: ' + e.message);

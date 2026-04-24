@@ -297,6 +297,16 @@
   const ALREADY_IN_WH_NEXT = ["WH-Ready","WH-No_Response","WH-Postponed","WH-Returned","WH-Defected",
                                "Not Received in WH","Not available in WH",
                                "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially"];
+  const RECV_DROPDOWN_GROUPS = [
+    { label: 'Interface', phases: ["Not Received in WH","Not available in WH","Sent to Production"] },
+    { label: 'Warehouse', phases: ["WH-Stock","WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"] },
+    { label: 'Delivery',  phases: ["DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially","Delivered Fully"] },
+  ];
+  function recvOpts(groups) {
+    return groups.map(g =>
+      `<optgroup label="${g.label}">${g.phases.map(p=>`<option value="${p}">${p}</option>`).join('')}</optgroup>`
+    ).join('');
+  }
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -510,6 +520,18 @@
   }
 
   async function moveMTSCard(cardId, newPhase) {
+    const card = _mtsCards.find(c => c._id === cardId);
+    if (newPhase === 'WH-Stock' && card) {
+      await Promise.all((card.items || []).filter(it => (it.mts_qty || 0) > 0).map(async it => {
+        const res  = await fetch(`https://timberedgroup.com/wp-json/wc/v3/products/${it.product_id}?${WC_CREDS}`);
+        const prod = await res.json();
+        const newQty = (prod.stock_quantity || 0) + it.mts_qty;
+        await fetch(`https://timberedgroup.com/wp-json/wc/v3/products/${it.product_id}?${WC_CREDS}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ manage_stock: true, stock_quantity: newQty })
+        });
+      }));
+    }
     await fetch(`${FS_BASE}/production_cards/${cardId}?key=${FS_KEY}&updateMask.fieldPaths=phase`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: { phase: { stringValue: newPhase } } })
@@ -522,11 +544,11 @@
     const q    = document.getElementById('recvSearch').value.toLowerCase();
     const wrap = document.getElementById('recv-wrap');
     const sections = [
-      { phase:'Sent to WH',    label:'Sent to WH',    next: SENT_TO_WH_NEXT },
-      { phase:'Already in WH', label:'Already in WH', next: ALREADY_IN_WH_NEXT },
+      { phase:'Sent to WH',    label:'Sent to WH',    groups: RECV_DROPDOWN_GROUPS },
+      { phase:'Already in WH', label:'Already in WH', groups: RECV_DROPDOWN_GROUPS },
     ];
     let pendingTotal = 0;
-    let html = sections.map(({ phase, label, next }) => {
+    let html = sections.map(({ phase, label, groups }) => {
       const items = [];
       allOrders.forEach(o => o.line_items.forEach((item, idx) => {
         if (getPhase(item) !== phase) return;
@@ -534,7 +556,7 @@
         items.push({ o, item, idx });
       }));
       const mtoRows = items.map(({ o, item, idx }) => {
-        const opts = next.map(p => `<option value="${p}">${p}</option>`).join('');
+        const opts = recvOpts(groups);
         return `<div class="recv-item">
           ${thumbHtml(item, 32)}
           <div class="recv-item-info">
@@ -554,7 +576,7 @@
         _mtsCards.forEach(card => (card.items || []).forEach(it => {
           if ((it.mts_qty || 0) === 0) return;
           if (q && !(it.product_name||'').toLowerCase().includes(q) && !(card.jo_ref||'').toLowerCase().includes(q)) return;
-          const opts = next.map(p => `<option value="${p}">${p}</option>`).join('');
+          const opts = recvOpts(groups);
           const imgHtml = it.product_image
             ? `<img class="recv-item-thumb" style="width:32px;height:32px;" src="${it.product_image}" alt="">`
             : `<span class="recv-item-thumb-ph" style="width:32px;height:32px;"></span>`;
