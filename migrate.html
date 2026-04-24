@@ -204,6 +204,650 @@
 
     btn.disabled = false;
   }
+
+  // ── Firestore value encoder ───────────────────────────────────────────
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') { const f={}; Object.entries(v).forEach(([k,x])=>f[k]=toFsVal(x)); return { mapValue:{fields:f} }; }
+    return { stringValue: String(v) };
+  }
+
+  // ── BOM data (qty = qty per product, not total) ───────────────────────
+  const BOM_DATA = {
+    'Mini World Organizer': [
+      {name:'قوايم',thx:'20 mm',x:6.9,y:90.5,qty:4,material:'زان',remarks:''},
+      {name:'روس',thx:'20 mm',x:6.9,y:16,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'8 mm',x:18,y:46,qty:6,material:'كنتر طبقات',remarks:''},
+      {name:'جناب',thx:'8 mm',x:18,y:35,qty:6,material:'كنتر طبقات',remarks:''},
+      {name:'قطوع',thx:'8 mm',x:17,y:33.2,qty:3,material:'كنتر طبقات',remarks:''},
+      {name:'قواعد ابلكاش',thx:'3 mm',x:45.2,y:34.2,qty:3,material:'أبلكاش',remarks:''},
+    ],
+    'Kids story house': [
+      {name:'جنبين',thx:'25 mm',x:7.5,y:124.5,qty:2,material:'موسكي',remarks:''},
+      {name:'رف',thx:'17 mm',x:7.5,y:76,qty:5,material:'موسكي',remarks:''},
+      {name:'ستاره',thx:'17 mm',x:3,y:76,qty:4,material:'موسكي',remarks:''},
+      {name:'راسين',thx:'17 mm',x:7.5,y:63,qty:2,material:'موسكي',remarks:''},
+      {name:'ديكور',thx:'17 mm',x:7.5,y:26.5,qty:1,material:'موسكي',remarks:''},
+    ],
+    'Sofa Side Saver': [
+      {name:'جنبين',thx:'18 mm',x:19.5,y:55,qty:1,material:'موسكي',remarks:''},
+      {name:'قرصه',thx:'18 mm',x:19.5,y:58,qty:2,material:'موسكي',remarks:''},
+      {name:'رف سفلي',thx:'18 mm',x:16.4,y:51.4,qty:1,material:'موسكي',remarks:''},
+      {name:'جنبين تحت',thx:'18 mm',x:15,y:51.4,qty:2,material:'موسكي',remarks:''},
+      {name:'ستاره',thx:'18 mm',x:7,y:51.4,qty:1,material:'موسكي',remarks:''},
+    ],
+    'Luxe Beauty Tower': [
+      {name:'جناب',thx:'8 mm',x:12,y:20.3,qty:6,material:'كنتر طبقات',remarks:''},
+      {name:'جناب',thx:'8 mm',x:12,y:25.4,qty:6,material:'كنتر طبقات',remarks:''},
+      {name:'قواعد',thx:'3 mm',x:24.4,y:19.4,qty:3,material:'أبلكاش',remarks:''},
+      {name:'جنبين',thx:'18 mm',x:4,y:86,qty:2,material:'موسكي',remarks:''},
+      {name:'راس',thx:'18 mm',x:4,y:20.5,qty:1,material:'موسكي',remarks:''},
+    ],
+    'Femme Beauty Stand': [
+      {name:'جناب',thx:'10 mm',x:16,y:20.5,qty:2,material:'زان',remarks:'cnc'},
+      {name:'قواعد',thx:'10 mm',x:16,y:35.5,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:3,y:35.5,qty:2,material:'زان',remarks:''},
+    ],
+    'Cube Charm Organizer': [
+      {name:'',thx:'18 mm',x:89,y:29.8,qty:6,material:'ميلامين',remarks:''},
+      {name:'',thx:'18 mm',x:92.5,y:29.8,qty:2,material:'ميلامين',remarks:''},
+    ],
+    'Circle Harmony Shelf': [
+      {name:'دايره',thx:'18 mm',x:30,y:0,qty:1,material:'زان',remarks:'30 سم دايره'},
+      {name:'رف',thx:'18 mm',x:7,y:30,qty:1,material:'زان',remarks:''},
+    ],
+    'Kiddie Wardrobe Hub': [
+      {name:'رف صغير',thx:'12 mm',x:38,y:34,qty:4,material:'كنتر طبقات',remarks:''},
+      {name:'رف كبير',thx:'12 mm',x:76,y:34,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'سلخه',thx:'12 mm',x:38,y:5,qty:4,material:'كنتر طبقات',remarks:''},
+      {name:'سلخه',thx:'12 mm',x:76,y:5,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'عصايه',thx:'24 mm Dia',x:77,y:0,qty:1,material:'موسكي',remarks:''},
+    ],
+    'The Rotary Library': [
+      {name:'رف',thx:'12 mm',x:45,y:33,qty:3,material:'كنتر طبقات',remarks:''},
+      {name:'رف علوي',thx:'12 mm',x:36.5,y:33,qty:1,material:'كنتر طبقات',remarks:''},
+    ],
+    'Beauty Bliss Organizer': [
+      {name:'قايمين',thx:'10 mm',x:5,y:33,qty:2,material:'زان',remarks:''},
+      {name:'ضهر',thx:'10 mm',x:3,y:25,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:4,y:16,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:4,y:11.5,qty:2,material:'زان',remarks:''},
+      {name:'قعده',thx:'10 mm',x:25,y:11.5,qty:1,material:'زان',remarks:''},
+      {name:'قعده',thx:'10 mm',x:25,y:16,qty:1,material:'زان',remarks:''},
+    ],
+    'Modern Sunglass Stand': [
+      {name:'قايم',thx:'25 mm',x:2.5,y:28,qty:1,material:'زان',remarks:''},
+      {name:'قعده',thx:'20 mm',x:10,y:10,qty:1,material:'زان',remarks:''},
+      {name:'كوايل',thx:'8 mm dia',x:10.5,y:0,qty:4,material:'زان',remarks:''},
+      {name:'كوايل',thx:'8 mm dia',x:17,y:0,qty:4,material:'زان',remarks:''},
+    ],
+    'Junior Jungle Gym': [
+      {name:'قايم',thx:'25 mm',x:4.5,y:120,qty:7,material:'زان',remarks:''},
+      {name:'قايم',thx:'25 mm',x:4.5,y:118,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'25 mm',x:10,y:120,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'30 mm',x:10,y:74,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'25 mm',x:5.5,y:114,qty:2,material:'زان',remarks:''},
+    ],
+    'Dreamy Reads Organizer': [
+      {name:'جناب',thx:'17 mm',x:7.5,y:119,qty:2,material:'موسكي',remarks:''},
+      {name:'رف',thx:'17 mm',x:7.5,y:56.5,qty:4,material:'موسكي',remarks:''},
+      {name:'ستاره',thx:'17 mm',x:3,y:56.5,qty:4,material:'موسكي',remarks:''},
+    ],
+    'Entryway Shoe Bench': [
+      {name:'',thx:'22 mm',x:4,y:20,qty:2,material:'زان',remarks:''},
+      {name:'',thx:'22 mm',x:4.7,y:23,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'22 mm',x:12,y:61,qty:4,material:'زان',remarks:'cnc'},
+      {name:'',thx:'22 mm',x:3.5,y:95,qty:6,material:'زان',remarks:'تفريز'},
+      {name:'',thx:'10 mm',x:5,y:30.5,qty:16,material:'زان',remarks:''},
+      {name:'',thx:'10 mm',x:5,y:32,qty:16,material:'زان',remarks:''},
+      {name:'',thx:'10 mm',x:5,y:34,qty:16,material:'زان',remarks:''},
+    ],
+    'Smart Clothes Hanger': [
+      {name:'عواميد طويله',thx:'40 mm',x:4,y:5,qty:15,material:'زان',remarks:'لسهولة التصنيع ثم اعادة التقطيع'},
+      {name:'عواميد طويله',thx:'40 mm',x:5,y:5.5,qty:2,material:'زان',remarks:'لسهولة التصنيع ثم اعادة التقطيع'},
+      {name:'عصايه',thx:'18 mm',x:30,y:0,qty:0,material:'زان',remarks:'150 كويله 16 او 18'},
+      {name:'شريحه طويله',thx:'10 mm',x:5,y:5.5,qty:2,material:'زان',remarks:'لسهولة التصنيع ثم اعادة التقطيع'},
+    ],
+    'Eco-Luxe Clothing Organizer': [
+      {name:'قوايم',thx:'25 mm',x:4.5,y:167,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'25 mm',x:4.5,y:165,qty:2,material:'زان',remarks:''},
+      {name:'روس',thx:'25 mm',x:4.5,y:16,qty:2,material:'زان',remarks:''},
+      {name:'روس',thx:'25 mm',x:4.5,y:28.5,qty:2,material:'زان',remarks:''},
+      {name:'روس',thx:'25 mm',x:4.5,y:36.5,qty:2,material:'زان',remarks:''},
+      {name:'وزر',thx:'25 mm',x:4.5,y:85.5,qty:7,material:'زان',remarks:''},
+      {name:'ورق',thx:'10 mm',x:5,y:22.5,qty:15,material:'زان',remarks:''},
+      {name:'ورق',thx:'10 mm',x:5,y:39.5,qty:15,material:'زان',remarks:''},
+      {name:'ورق',thx:'10 mm',x:5,y:43.5,qty:15,material:'زان',remarks:''},
+      {name:'عصايه',thx:'25 mm',x:85.5,y:0,qty:1,material:'زان',remarks:''},
+    ],
+    'Eye Glasses Stand': [
+      {name:'قعده',thx:'25 mm',x:9,y:15,qty:1,material:'زان',remarks:''},
+      {name:'قايم',thx:'40 mm',x:5,y:8.5,qty:1,material:'زان',remarks:''},
+    ],
+    'SpaceSaver Shoe Shelf': [
+      {name:'',thx:'12 mm',x:2.5,y:31.5,qty:20,material:'زان',remarks:''},
+      {name:'',thx:'12 mm',x:2.5,y:22,qty:16,material:'زان',remarks:''},
+      {name:'',thx:'12 mm',x:2.5,y:28.5,qty:30,material:'زان',remarks:''},
+      {name:'',thx:'12 mm',x:2.5,y:24,qty:2,material:'زان',remarks:''},
+    ],
+    'MiniCar Garage': [
+      {name:'-',thx:'10 mm',x:5,y:89,qty:6,material:'موسكي',remarks:''},
+      {name:'-',thx:'10 mm',x:5,y:69,qty:14,material:'موسكي',remarks:''},
+      {name:'X',thx:'15 mm',x:5.5,y:73,qty:1,material:'موسكي',remarks:''},
+      {name:'Y',thx:'15 mm',x:5.5,y:89,qty:2,material:'موسكي',remarks:''},
+      {name:'X',thx:'15 mm',x:7,y:73,qty:1,material:'موسكي',remarks:''},
+      {name:'وش كتابه',thx:'22 mm',x:9.5,y:73,qty:1,material:'موسكي',remarks:'Cnc'},
+    ],
+    'Minimalist Shoe Shelf': [
+      {name:'',thx:'16 mm',x:3.5,y:40,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'16 mm',x:3.5,y:28,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'11 mm',x:2.5,y:64.3,qty:28,material:'زان',remarks:''},
+      {name:'',thx:'25 mm',x:2.5,y:67.3,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'25 mm',x:2.5,y:28,qty:8,material:'زان',remarks:''},
+    ],
+    'The Lean Hook Rack': [
+      {name:'عصايه',thx:'15 mm',x:8,y:0,qty:5,material:'زان',remarks:''},
+      {name:'عصايه',thx:'25 mm',x:43,y:0,qty:1,material:'زان',remarks:''},
+    ],
+    'Fruit Twin Rack': [
+      {name:'قوايم',thx:'22 mm',x:4,y:40,qty:4,material:'زان',remarks:''},
+      {name:'روس',thx:'22 mm',x:4,y:15,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:7,y:19.6,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:7,y:46,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:10,y:46,qty:2,material:'زان',remarks:''},
+      {name:'جناب',thx:'10 mm',x:10,y:30,qty:2,material:'زان',remarks:''},
+      {name:'ورق',thx:'10 mm',x:4,y:46,qty:10,material:'زان',remarks:''},
+    ],
+    'Jewelry Haven Tree': [
+      {name:'كوايل',thx:'8 mm',x:29,y:0,qty:1,material:'زان',remarks:''},
+      {name:'كوايل',thx:'8 mm',x:25,y:0,qty:1,material:'زان',remarks:''},
+      {name:'كوايل',thx:'8 mm',x:21,y:0,qty:1,material:'زان',remarks:''},
+      {name:'قعده',thx:'20 mm',x:12.5,y:28,qty:1,material:'زان',remarks:''},
+      {name:'قايم',thx:'20 mm',x:4.3,y:26,qty:1,material:'زان',remarks:''},
+    ],
+    'The Tea & Coffee Stash Box': [
+      {name:'جنب',thx:'8 mm',x:10.1,y:20.3,qty:2,material:'زان',remarks:''},
+      {name:'وش',thx:'8 mm',x:10.1,y:33,qty:2,material:'زان',remarks:''},
+      {name:'جنب',thx:'8 mm',x:4.4,y:9.8,qty:2,material:'زان',remarks:''},
+      {name:'وش',thx:'8 mm',x:4.4,y:15.3,qty:2,material:'زان',remarks:''},
+      {name:'دواخل',thx:'8 mm',x:2.5,y:33,qty:2,material:'زان',remarks:''},
+      {name:'دواخل',thx:'8 mm',x:2.5,y:20.3,qty:2,material:'زان',remarks:''},
+      {name:'دواخل',thx:'6 mm',x:9.5,y:32.2,qty:1,material:'زان',remarks:''},
+      {name:'دواخل',thx:'6 mm',x:9.5,y:19.5,qty:3,material:'زان',remarks:''},
+    ],
+    'Active Climber Cube': [
+      {name:'قوايم',thx:'50 mm',x:5,y:180,qty:4,material:'زان',remarks:'خدش ال 4 قوايم و 3 منهم cnc'},
+      {name:'جنبين سقف',thx:'20 mm',x:4.5,y:102,qty:2,material:'زان',remarks:'Cnc'},
+      {name:'قعده',thx:'25 mm',x:5,y:105,qty:2,material:'زان',remarks:'خدش النص ع النص'},
+      {name:'قعده',thx:'25 mm',x:5,y:75,qty:2,material:'زان',remarks:'خدش النص ع النص'},
+      {name:'قوايم حبل',thx:'25 mm',x:5,y:180,qty:2,material:'زان',remarks:'Cnc/خدش'},
+      {name:'ميه',thx:'15 mm',x:4.5,y:75,qty:5,material:'زان',remarks:''},
+    ],
+    'The Book Holder': [
+      {name:'',thx:'18 mm',x:17,y:56,qty:1,material:'موسكي',remarks:''},
+      {name:'',thx:'18 mm',x:17,y:30,qty:1,material:'موسكي',remarks:''},
+      {name:'',thx:'18 mm',x:17,y:25.4,qty:5,material:'موسكي',remarks:''},
+    ],
+    'All-in-One Reflection': [
+      {name:'',thx:'22 mm',x:4.5,y:40,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'25 mm',x:30,y:0,qty:1,material:'زان',remarks:''},
+      {name:'',thx:'22 mm',x:4.5,y:19,qty:4,material:'زان',remarks:''},
+      {name:'قايمين',thx:'22 mm',x:4.5,y:150,qty:2,material:'زان',remarks:''},
+      {name:'قايمين',thx:'22 mm',x:3.5,y:145,qty:2,material:'زان',remarks:''},
+      {name:'راسين',thx:'22 mm',x:5,y:40,qty:2,material:'زان',remarks:''},
+      {name:'ضهر مرايه',thx:'3 mm',x:36,y:151,qty:1,material:'ابلكاش ملزوق',remarks:''},
+      {name:'',thx:'15 mm',x:32,y:40,qty:1,material:'كنتر طبقات',remarks:''},
+    ],
+    'Colorful Tales Rack': [
+      {name:'عصايه',thx:'20 mm',x:77.8,y:0,qty:4,material:'موسكي',remarks:''},
+      {name:'جناب',thx:'16 mm',x:14,y:110,qty:2,material:'زان',remarks:''},
+      {name:'رف',thx:'15 mm',x:10.5,y:77.8,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'رف',thx:'15 mm',x:11.5,y:77.8,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'رف',thx:'15 mm',x:12.5,y:77.8,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'رف',thx:'15 mm',x:13.5,y:77.8,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'ضهر',thx:'4 mm',x:79.5,y:102,qty:1,material:'ميلامين ابيض',remarks:''},
+    ],
+    'Storyland Organizer': [
+      {name:'رف',thx:'12 mm',x:11.5,y:83.2,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'رف',thx:'12 mm',x:19.8,y:83.2,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'رف',thx:'12 mm',x:26.9,y:83.2,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'ستاره',thx:'17 mm',x:7,y:86.6,qty:3,material:'موسكي',remarks:''},
+      {name:'ستاره',thx:'17 mm',x:7,y:90,qty:2,material:'موسكي',remarks:''},
+      {name:'ستاره',thx:'17 mm',x:7,y:86,qty:2,material:'موسكي',remarks:''},
+      {name:'جناب',thx:'17 mm',x:5,y:80,qty:2,material:'موسكي',remarks:''},
+      {name:'جناب',thx:'17 mm',x:5,y:84,qty:2,material:'موسكي',remarks:''},
+      {name:'جناب رف',thx:'17 mm',x:7,y:27,qty:2,material:'موسكي',remarks:''},
+      {name:'جناب رف',thx:'17 mm',x:7,y:20,qty:2,material:'موسكي',remarks:''},
+      {name:'جناب رف',thx:'17 mm',x:7,y:11.5,qty:2,material:'موسكي',remarks:''},
+    ],
+    'Active Play wall': [
+      {name:'جناب',thx:'22 mm',x:10,y:95,qty:4,material:'زان',remarks:'CNC'},
+      {name:'ضهر',thx:'22 mm',x:10,y:82,qty:3,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:78,y:0,qty:10,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:73,y:0,qty:3,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:36,y:0,qty:8,material:'زان',remarks:''},
+    ],
+    'Bed': [
+      {name:'',thx:'50 mm',x:7,y:82,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'30 mm',x:10,y:201,qty:4,material:'زان',remarks:''},
+      {name:'',thx:'25 mm',x:10,y:120,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'25 mm',x:8,y:120,qty:4,material:'زان',remarks:''},
+    ],
+    'Golden Branch Bracelet Holder': [
+      {name:'',thx:'18 mm',x:15,y:20,qty:1,material:'زان',remarks:''},
+      {name:'عصايه',thx:'22 mm',x:20,y:0,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'22 mm',x:30,y:0,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'14 mm',x:40,y:0,qty:1,material:'زان',remarks:''},
+    ],
+    'The Woodline Stand': [
+      {name:'قوايم',thx:'22 mm',x:6.5,y:146,qty:4,material:'زان',remarks:''},
+      {name:'roos',thx:'22 mm',x:8.8,y:16.5,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:3.5,y:30,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:3.5,y:90,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:3.5,y:35,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:90,y:0,qty:2,material:'زان',remarks:''},
+    ],
+    'Bella Bloom Shelf': [
+      {name:'جناب',thx:'15 mm',x:3,y:37,qty:2,material:'زان',remarks:'نقر'},
+      {name:'قوايم',thx:'15 mm',x:3,y:13,qty:4,material:'زان',remarks:'لسان'},
+      {name:'قوايم',thx:'15 mm',x:4.5,y:37,qty:4,material:'زان',remarks:''},
+      {name:'قوايم',thx:'15 mm',x:3,y:29.5,qty:2,material:'زان',remarks:'لسان'},
+      {name:'رف / قرصه',thx:'10 mm',x:15,y:32.3,qty:3,material:'زان',remarks:''},
+      {name:'جنب',thx:'10 mm',x:6.5,y:15,qty:2,material:'زان',remarks:''},
+      {name:'ضهر',thx:'10 mm',x:4.5,y:30.3,qty:1,material:'زان',remarks:''},
+      {name:'وش درج',thx:'10 mm',x:6,y:32.3,qty:1,material:'زان',remarks:''},
+      {name:'جنب درج',thx:'10 mm',x:4.3,y:11.5,qty:2,material:'زان',remarks:''},
+      {name:'ضهر درج',thx:'10 mm',x:4.3,y:30.1,qty:1,material:'زان',remarks:''},
+      {name:'وش رف',thx:'10 mm',x:2.5,y:32.3,qty:1,material:'زان',remarks:''},
+    ],
+    'Minimalist Clothes Stand': [
+      {name:'قوايم',thx:'25 mm',x:11.5,y:52,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'25 mm',x:9.2,y:126,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'26 mm',x:7.5,y:82.5,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:80,y:0,qty:2,material:'زان',remarks:''},
+    ],
+    'The Modern Trestle': [
+      {name:'',thx:'30 mm',x:4.5,y:120,qty:4,material:'زان',remarks:''},
+    ],
+    'Timbered relaxation Lounger': [
+      {name:'عصي',thx:'30 mm',x:62,y:0,qty:13,material:'زان',remarks:''},
+    ],
+    'Montessori Learning Shelf': [
+      {name:'قوايم خلفي',thx:'22 mm',x:3.5,y:75,qty:2,material:'زان',remarks:''},
+      {name:'قوايم امامي',thx:'22 mm',x:3.5,y:76.5,qty:2,material:'زان',remarks:''},
+      {name:'رووس',thx:'22 mm',x:5,y:23,qty:2,material:'زان',remarks:''},
+      {name:'جنبين',thx:'12 mm',x:12,y:70,qty:2,material:'كنتر طبقات',remarks:''},
+      {name:'وش امامي',thx:'12 mm',x:10,y:95,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'ستارة ضهر',thx:'12 mm',x:7,y:95,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'وش داخلي',thx:'12 mm',x:19,y:95,qty:4,material:'كنتر طبقات',remarks:''},
+      {name:'قواعد',thx:'12 mm',x:6.3,y:95,qty:4,material:'كنتر طبقات',remarks:''},
+    ],
+    'Electro-meter Cover Shelf': [
+      {name:'قوايم',thx:'18 mm',x:4,y:70,qty:2,material:'موسكي',remarks:''},
+      {name:'قوايم',thx:'18 mm',x:4,y:47,qty:2,material:'موسكي',remarks:''},
+      {name:'رف',thx:'18 mm',x:10,y:15.5,qty:2,material:'موسكي',remarks:'CNC ?'},
+      {name:'رف',thx:'18 mm',x:10,y:21.7,qty:2,material:'موسكي',remarks:'CNC ?'},
+      {name:'كوايل',thx:'10 mm',x:10,y:0,qty:6,material:'زان',remarks:''},
+    ],
+    'The Cozy Slipper Stand': [
+      {name:'',thx:'22 mm',x:6.5,y:24,qty:4,material:'زان',remarks:''},
+      {name:'',thx:'22 mm',x:4,y:6,qty:2,material:'زان',remarks:''},
+      {name:'',thx:'22 mm',x:4,y:50,qty:2,material:'زان',remarks:''},
+    ],
+    'The Wave Hook': [
+      {name:'-',thx:'18 mm',x:2,y:12.5,qty:8,material:'زان',remarks:''},
+      {name:'-',thx:'18 mm',x:3.7,y:12.5,qty:9,material:'زان',remarks:''},
+      {name:'',thx:'18 mm',x:9,y:50,qty:1,material:'زان',remarks:''},
+    ],
+    'The Elegant Entry Seat': [
+      {name:'جنب',thx:'18 mm',x:31.8,y:35,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'وش درج',thx:'18 mm',x:58,y:14.5,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'رف',thx:'18 mm',x:36.2,y:31.4,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب درج',thx:'18 mm',x:30,y:12,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'وش درج',thx:'18 mm',x:52,y:12,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'قعده',thx:'18 mm',x:100,y:35,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'قرص',thx:'18 mm',x:40,y:35,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب',thx:'18 mm',x:46.4,y:35,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'ضهر',thx:'18 mm',x:60,y:14.5,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'قرص',thx:'18 mm',x:60,y:35,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'ضلفه',thx:'18 mm',x:46,y:36,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'رجل',thx:'50 mm',x:5,y:10,qty:4,material:'زان',remarks:''},
+      {name:'وزر',thx:'18 mm',x:4,y:95,qty:1,material:'زان',remarks:''},
+      {name:'وزر',thx:'18 mm',x:4,y:30,qty:1,material:'زان',remarks:''},
+      {name:'وزر',thx:'18 mm',x:4,y:59,qty:1,material:'زان',remarks:''},
+    ],
+    'The Lean Hanger': [
+      {name:'قوايم',thx:'22 mm',x:5,y:155,qty:4,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:70,y:0,qty:1,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:74.5,y:0,qty:1,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:95,y:0,qty:1,material:'زان',remarks:''},
+    ],
+    'Room divider': [
+      {name:'',thx:'30 mm',x:5,y:175,qty:8,material:'زان',remarks:''},
+      {name:'',thx:'30 mm',x:5,y:43,qty:24,material:'زان',remarks:''},
+    ],
+    'Gentle Line Shelf': [
+      {name:'رف',thx:'12 mm',x:7,y:50,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'شماعة',thx:'12 mm',x:1,y:6,qty:7,material:'زان',remarks:''},
+      {name:'ضهر',thx:'',x:0,y:0,qty:1,material:'كنتر طبقات',remarks:'CNC'},
+      {name:'مسمار ب فيشر 0.25 بوصة',thx:'',x:0,y:0,qty:2,material:'اكسسوار',remarks:''},
+    ],
+    'Drawer & Shoe Bench': [
+      {name:'قوايم',thx:'20 mm',x:3.5,y:46,qty:4,material:'زان',remarks:''},
+      {name:'جنب سفلي',thx:'20 mm',x:3,y:28,qty:4,material:'زان',remarks:''},
+      {name:'جنب الرف',thx:'20 mm',x:3,y:29,qty:4,material:'زان',remarks:''},
+      {name:'عوارض الرف',thx:'8 mm',x:2.4,y:25,qty:28,material:'زان',remarks:''},
+      {name:'رف علوي',thx:'12 mm',x:29,y:51,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'مجري الدرج',thx:'15 mm',x:1.5,y:40,qty:2,material:'زان',remarks:''},
+      {name:'جنب علوي يمين',thx:'20 mm',x:11,y:28,qty:1,material:'زان',remarks:''},
+      {name:'جنب علوي شمال',thx:'20 mm',x:6,y:28,qty:1,material:'زان',remarks:''},
+      {name:'جنب رف علوي',thx:'20 mm',x:5,y:51,qty:2,material:'زان',remarks:''},
+      {name:'جنب رف وسط و سفلي',thx:'20 mm',x:3,y:51,qty:4,material:'زان',remarks:''},
+      {name:'وش الدرج',thx:'15 mm',x:4.8,y:23.8,qty:1,material:'زان',remarks:''},
+      {name:'قاعدة الدرج',thx:'3 mm',x:22.3,y:38,qty:1,material:'ابلكاش',remarks:''},
+      {name:'جنب الدرج',thx:'15 mm',x:4.8,y:38,qty:2,material:'زان',remarks:''},
+      {name:'ضهر الدرج',thx:'15 mm',x:4.8,y:23.8,qty:1,material:'زان',remarks:''},
+      {name:'مرتبة',thx:'5 mm',x:29,y:51,qty:1,material:'مرتبه',remarks:''},
+      {name:'يد الدرج',thx:'',x:0,y:0,qty:2,material:'اكسسوار',remarks:''},
+      {name:'مسمار كونفرمات 7 ط 50',thx:'',x:0,y:0,qty:20,material:'اكسسوار',remarks:''},
+    ],
+    'Cozy Mug Organizer': [
+      {name:'',thx:'18 mm',x:40,y:10,qty:2,material:'موسكي',remarks:''},
+      {name:'',thx:'18 mm',x:13,y:10,qty:2,material:'موسكي',remarks:''},
+    ],
+    'Nordic Paper Stand': [
+      {name:'قرصه',thx:'18 mm',x:14,y:18,qty:1,material:'موسكي',remarks:''},
+      {name:'رف',thx:'18 mm',x:14,y:15,qty:3,material:'موسكي',remarks:''},
+      {name:'قرصه 2',thx:'18 mm',x:14,y:16.5,qty:1,material:'موسكي',remarks:''},
+      {name:'جنب قصير',thx:'18 mm',x:14,y:52.2,qty:1,material:'موسكي',remarks:''},
+      {name:'جنب طويل',thx:'18 mm',x:14,y:75,qty:1,material:'موسكي',remarks:''},
+      {name:'عليقه',thx:'18 mm',x:3.6,y:16.5,qty:1,material:'موسكي',remarks:'Shape'},
+    ],
+    'Daily Footwear Rack': [
+      {name:'قرصه',thx:'18 mm',x:60,y:30,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'قطوع',thx:'18 mm',x:56.4,y:30,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب',thx:'18 mm',x:28.5,y:30,qty:2,material:'ميلامين ابيض',remarks:''},
+    ],
+    'White Arc Table': [
+      {name:'قوايم',thx:'25 mm',x:4,y:35.5,qty:6,material:'زان',remarks:''},
+      {name:'قوايم',thx:'25 mm',x:4,y:38.5,qty:3,material:'زان',remarks:''},
+      {name:'قرصه مدوره',thx:'18 mm',x:80,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+    ],
+    'The Productivity Hub': [
+      {name:'ضهر',thx:'17 mm',x:52.6,y:25,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'قعده',thx:'17 mm',x:52.6,y:15.3,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'جنبين',thx:'17 mm',x:25,y:17,qty:2,material:'ميلامين خشبي',remarks:''},
+      {name:'جنب داخلي',thx:'17 mm',x:23.3,y:15.3,qty:2,material:'ميلامين خشبي',remarks:''},
+      {name:'رف',thx:'17 mm',x:20.6,y:15.3,qty:2,material:'ميلامين خشبي',remarks:''},
+      {name:'ضهر درج',thx:'17 mm',x:20.5,y:6.5,qty:2,material:'ميلامين خشبي',remarks:''},
+      {name:'وش درج',thx:'17 mm',x:20.5,y:6.5,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب درج',thx:'17 mm',x:12,y:5,qty:2,material:'ميلامين خشبي',remarks:''},
+    ],
+    'WorkSmart Riser': [
+      {name:'القرصة',thx:'1.2 cm',x:20,y:50,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'القاعدة',thx:'1.2 cm',x:20,y:47.6,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'جنب يمين',thx:'1.2 cm',x:12,y:20,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'جنب شمال',thx:'1.2 cm',x:12,y:20,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'جنب وسط',thx:'1.2 cm',x:6.8,y:20,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'ضهر',thx:'0.3 cm',x:7.8,y:24.2,qty:1,material:'كونتر 3',remarks:''},
+      {name:'وش الدرج',thx:'1.2 cm',x:6.8,y:23.1,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'ضهر الدرج',thx:'1.2 cm',x:6.8,y:23.1,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'جناب الدرج',thx:'1.2 cm',x:6.8,y:19.7,qty:2,material:'ميلامين خشبي',remarks:''},
+      {name:'قاعدة الدرج',thx:'0.3 cm',x:18.3,y:21.7,qty:1,material:'ضهر ميلامين',remarks:''},
+    ],
+    'Cozy Mug Shelf': [
+      {name:'جنب يمين و شمال',thx:'10 mm',x:14,y:50,qty:2,material:'زان',remarks:''},
+      {name:'قاعدة',thx:'10 mm',x:13.7,y:55.5,qty:1,material:'زان',remarks:''},
+      {name:'قوايم عرضي',thx:'10 mm',x:13.3,y:55.5,qty:2,material:'زان',remarks:'CNC ?'},
+      {name:'قوايم طولي',thx:'10 mm',x:13.7,y:38,qty:3,material:'زان',remarks:'CNC ?'},
+      {name:'ضهر',thx:'3 mm',x:49,y:56.5,qty:1,material:'ابلكاش',remarks:''},
+      {name:'وش الدرج',thx:'10 mm',x:8.8,y:55.3,qty:1,material:'زان',remarks:'CNC ?'},
+      {name:'ضهر الدرج',thx:'10 mm',x:8.8,y:55.3,qty:1,material:'زان',remarks:''},
+      {name:'قعده/قرصه',thx:'10 mm',x:14,y:57.5,qty:2,material:'زان',remarks:''},
+      {name:'جناب الدرج',thx:'10 mm',x:8.8,y:11.9,qty:2,material:'زان',remarks:''},
+      {name:'قاعدة الدرج',thx:'3 mm',x:12.9,y:54.3,qty:1,material:'ابلكاش',remarks:''},
+    ],
+    'Cup and Spice Organizer': [
+      {name:'جنب عمودي امامي',thx:'16 mm',x:2.5,y:14.5,qty:2,material:'موسكي',remarks:''},
+      {name:'جنب افقي علوي',thx:'16 mm',x:2.5,y:4,qty:2,material:'موسكي',remarks:''},
+      {name:'جنب افقي وسط',thx:'16 mm',x:2.5,y:13,qty:2,material:'موسكي',remarks:''},
+      {name:'جنب افقي سفلي',thx:'16 mm',x:2.5,y:13,qty:2,material:'موسكي',remarks:''},
+      {name:'جنب عمودي وسط شمال',thx:'16 mm',x:2.5,y:25.5,qty:1,material:'موسكي',remarks:''},
+      {name:'جنب عمودي وسط يمين',thx:'16 mm',x:2.5,y:25.5,qty:1,material:'موسكي',remarks:''},
+      {name:'رف علوي',thx:'16 mm',x:9,y:32.6,qty:1,material:'موسكي',remarks:''},
+      {name:'جنب عمودي خلفي يمين',thx:'16 mm',x:2.5,y:40,qty:1,material:'موسكي',remarks:''},
+      {name:'جنب عمودي خلفي شمال',thx:'16 mm',x:2.5,y:40,qty:1,material:'موسكي',remarks:''},
+      {name:'رف سفلي',thx:'16 mm',x:18,y:32.6,qty:1,material:'موسكي',remarks:''},
+      {name:'ضهر افقي',thx:'16 mm',x:2.5,y:32.6,qty:1,material:'موسكي',remarks:''},
+      {name:'ضهر الشماعة',thx:'16 mm',x:4,y:32.6,qty:1,material:'موسكي',remarks:''},
+      {name:'كويله شماعه',thx:'10 mm',x:0,y:8,qty:4,material:'موسكي',remarks:''},
+    ],
+    'Timbered Sensory Table': [
+      {name:'جناب',thx:'22 mm',x:6,y:80,qty:2,material:'زان',remarks:'نقر'},
+      {name:'روس',thx:'22 mm',x:9,y:47,qty:2,material:'زان',remarks:'لسان'},
+      {name:'رجل',thx:'50 mm',x:5,y:50,qty:4,material:'زان',remarks:'خراطه'},
+      {name:'قطوع',thx:'22 mm',x:4.5,y:47,qty:1,material:'زان',remarks:'لسان'},
+    ],
+    'The Rail Rack': [
+      {name:'قوايم',thx:'30 mm',x:3.5,y:93,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'30 mm',x:3.5,y:46.5,qty:4,material:'زان',remarks:'Shape'},
+      {name:'حامل شماعه',thx:'30 mm',x:9,y:15,qty:2,material:'زان',remarks:'Shape'},
+      {name:'وزر',thx:'30 mm',x:5,y:94,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:0,y:110,qty:1,material:'زان',remarks:''},
+      {name:'رف',thx:'14 mm',x:36,y:94,qty:1,material:'كنتر طبقات',remarks:''},
+    ],
+    'Minimalist Bedside': [
+      {name:'قوايم نقر',thx:'22 mm',x:3.5,y:51,qty:4,material:'زان',remarks:''},
+      {name:'جناب لسان',thx:'22 mm',x:3,y:30,qty:4,material:'زان',remarks:''},
+      {name:'جناب لسان',thx:'22 mm',x:3,y:32,qty:4,material:'زان',remarks:''},
+      {name:'ورق',thx:'9 mm',x:3,y:30,qty:14,material:'زان',remarks:''},
+    ],
+    'My Little Library': [
+      {name:'جنب',thx:'18 mm',x:19.5,y:91.6,qty:2,material:'موسكي',remarks:''},
+      {name:'ضهر',thx:'18 mm',x:28.9,y:86,qty:1,material:'موسكي',remarks:''},
+      {name:'وزر',thx:'18 mm',x:9,y:86,qty:2,material:'موسكي',remarks:''},
+      {name:'رف',thx:'18 mm',x:15,y:86,qty:4,material:'موسكي',remarks:''},
+      {name:'وش رف',thx:'18 mm',x:6.5,y:86,qty:5,material:'موسكي',remarks:''},
+    ],
+    'Elevated Towel Stand': [
+      {name:'قايمين',thx:'22 mm',x:3,y:60,qty:2,material:'زان',remarks:''},
+      {name:'وش',thx:'22 mm',x:3,y:30,qty:6,material:'زان',remarks:''},
+      {name:'جناب',thx:'22 mm',x:3,y:18,qty:12,material:'زان',remarks:''},
+    ],
+    'Rest and store shoe bench': [
+      {name:'base',thx:'18 mm',x:105,y:35,qty:1,material:'ميلامين',remarks:''},
+      {name:'side',thx:'18 mm',x:60,y:35,qty:2,material:'ميلامين',remarks:''},
+      {name:'top',thx:'18 mm',x:50,y:35,qty:1,material:'ميلامين',remarks:''},
+      {name:'dlfa',thx:'18 mm',x:59.5,y:46,qty:1,material:'ميلامين',remarks:''},
+      {name:'side',thx:'18 mm',x:41.5,y:35,qty:1,material:'ميلامين',remarks:''},
+      {name:'rf',thx:'18 mm',x:53.2,y:33.2,qty:2,material:'ميلامين',remarks:''},
+      {name:'wzr',thx:'18 mm',x:53.2,y:6,qty:1,material:'ميلامين',remarks:''},
+      {name:'rf',thx:'18 mm',x:46,y:33,qty:2,material:'ميلامين',remarks:''},
+    ],
+    'BabyEase Highchair': [
+      {name:'ضهر',thx:'22 mm',x:20,y:32.5,qty:1,material:'زان',remarks:''},
+      {name:'راسين',thx:'22 mm',x:5,y:28,qty:2,material:'زان',remarks:'لسان'},
+      {name:'راسين',thx:'22 mm',x:5,y:52,qty:2,material:'زان',remarks:'لسان'},
+      {name:'قوايم',thx:'22 mm',x:5,y:68.5,qty:4,material:'زان',remarks:'نقر'},
+      {name:'وقافات',thx:'22 mm',x:5,y:40,qty:1,material:'زان',remarks:'لسان'},
+      {name:'وقافات',thx:'22 mm',x:5,y:44.5,qty:2,material:'زان',remarks:''},
+      {name:'جنبين',thx:'22 mm',x:8,y:34,qty:2,material:'زان',remarks:''},
+      {name:'قعده',thx:'22 mm',x:24.2,y:36.4,qty:1,material:'زان',remarks:''},
+      {name:'وش',thx:'22 mm',x:7,y:16.7,qty:1,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:32,y:0,qty:1,material:'زان',remarks:''},
+    ],
+    'PureTone Table': [
+      {name:'رجل',thx:'22 mm',x:5,y:23,qty:2,material:'زان',remarks:''},
+      {name:'رجل',thx:'22 mm',x:5,y:20,qty:4,material:'زان',remarks:''},
+      {name:'وش درج',thx:'18 mm',x:13,y:46,qty:1,material:'زان',remarks:''},
+      {name:'قرصه',thx:'18 mm',x:36,y:50,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب',thx:'18 mm',x:33,y:36,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'جناب درج',thx:'18 mm',x:31,y:12,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'اوشاش درج',thx:'18 mm',x:40.4,y:8,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'ضهر',thx:'5 mm',x:48,y:34.5,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'قعدة درج',thx:'5 mm',x:29,y:42,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'رف',thx:'18 mm',x:46.4,y:33.5,qty:1,material:'ميلامين ابيض',remarks:''},
+    ],
+    'Prayer Mat Organizer': [
+      {name:'قوايم',thx:'22 mm',x:3,y:29.3,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:3,y:48.5,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:3,y:5.6,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:2.2,y:78,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:2.2,y:40,qty:2,material:'زان',remarks:''},
+    ],
+    'Makeup & Brushes Keeper': [
+      {name:'',thx:'8 mm',x:13,y:19,qty:2,material:'زان',remarks:'CNC'},
+      {name:'',thx:'8 mm',x:11,y:8.3,qty:1,material:'زان',remarks:''},
+      {name:'',thx:'8 mm',x:11,y:11.8,qty:1,material:'زان',remarks:''},
+      {name:'',thx:'8 mm',x:11,y:7.5,qty:1,material:'زان',remarks:''},
+      {name:'',thx:'8 mm',x:5.7,y:7.5,qty:1,material:'زان',remarks:''},
+      {name:'',thx:'8 mm',x:11,y:11,qty:1,material:'زان',remarks:''},
+    ],
+    'Natural Nook Stand': [
+      {name:'قايمين',thx:'22 mm',x:4,y:65,qty:4,material:'زان',remarks:''},
+      {name:'راس',thx:'22 mm',x:9,y:21,qty:2,material:'زان',remarks:''},
+      {name:'جنبين',thx:'22 mm',x:4,y:41,qty:2,material:'زان',remarks:''},
+      {name:'',thx:'14 mm',x:37,y:24.2,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'',thx:'14 mm',x:37,y:44.5,qty:1,material:'كنتر طبقات',remarks:''},
+    ],
+    'Prayer Rug Holder': [
+      {name:'قوايم',thx:'22 mm',x:4.5,y:84,qty:2,material:'زان',remarks:''},
+      {name:'قوايم',thx:'22 mm',x:4.5,y:27,qty:2,material:'زان',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:47.5,y:0,qty:3,material:'زان',remarks:''},
+    ],
+    'Modern Towel Rack': [
+      {name:'جنب',thx:'22 mm',x:4,y:100,qty:2,material:'زان',remarks:''},
+      {name:'ضهر',thx:'22 mm',x:4,y:40,qty:2,material:'زان',remarks:''},
+      {name:'مكعب',thx:'40 mm',x:4,y:5,qty:4,material:'زان',remarks:''},
+      {name:'شماعه',thx:'22 mm',x:2.5,y:32,qty:3,material:'زان',remarks:''},
+    ],
+    'Midday Elegance Table': [
+      {name:'رجل',thx:'22 mm',x:10,y:50,qty:4,material:'زان',remarks:'تشكيل ع الفارمه'},
+      {name:'وزر',thx:'22 mm',x:5,y:80,qty:2,material:'زان',remarks:''},
+      {name:'وزر كويله',thx:'22 mm',x:5,y:40,qty:2,material:'زان',remarks:''},
+      {name:'رف',thx:'14 mm',x:111,y:40,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'قرصه',thx:'14 mm',x:120,y:55,qty:1,material:'كنتر طبقات',remarks:''},
+    ],
+    'Simple Serenity Table': [
+      {name:'جنب',thx:'22 mm',x:29,y:48,qty:2,material:'موسكي',remarks:''},
+      {name:'قرصه',thx:'22 mm',x:29,y:45,qty:1,material:'موسكي',remarks:''},
+      {name:'رف',thx:'22 mm',x:29,y:40.6,qty:1,material:'موسكي',remarks:''},
+    ],
+    'SENSORY CHAIR': [
+      {name:'قرصه',thx:'22 mm',x:26,y:26,qty:1,material:'زان',remarks:''},
+      {name:'رجول خراطه',thx:'45 mm',x:4.5,y:30,qty:4,material:'زان',remarks:'خراطه'},
+    ],
+    'LUXE NECKLACE STAND': [
+      {name:'راس',thx:'22 mm',x:2.2,y:40,qty:1,material:'زان',remarks:''},
+      {name:'قعده',thx:'22 mm',x:9,y:40,qty:1,material:'زان',remarks:''},
+      {name:'كوايل',thx:'10 mm',x:36,y:0,qty:2,material:'زان',remarks:''},
+      {name:'كوايل',thx:'6 mm',x:8,y:0,qty:18,material:'زان',remarks:''},
+    ],
+    'Scandi Breeze Nightstand': [
+      {name:'جنبين',thx:'18 mm',x:0,y:0,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'وزره فوق',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'قعده',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'رف 1',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'رف 2',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين خشبي',remarks:''},
+      {name:'قطوع',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'رف',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'ضهر',thx:'5 mm',x:0,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+      {name:'وش درج',thx:'18 mm',x:0,y:0,qty:2,material:'ميلامين ابيض',remarks:''},
+      {name:'جنب درج',thx:'18 mm',x:0,y:0,qty:4,material:'ميلامين ابيض',remarks:''},
+      {name:'ضهر درج',thx:'18 mm',x:0,y:0,qty:4,material:'ميلامين ابيض',remarks:''},
+      {name:'قطوع',thx:'18 mm',x:0,y:0,qty:1,material:'ميلامين ابيض',remarks:''},
+    ],
+    'StepLine Wall Shelf': [
+      {name:'',thx:'18 mm',x:20,y:20,qty:5,material:'كنتر',remarks:'cnc'},
+      {name:'',thx:'18 mm',x:20,y:20,qty:5,material:'كنتر',remarks:''},
+    ],
+    'Kiddy Story Nook': [
+      {name:'قوايم خلفي',thx:'22 mm',x:3.5,y:75,qty:2,material:'زان',remarks:''},
+      {name:'قوايم امامي',thx:'22 mm',x:3.5,y:76.5,qty:2,material:'زان',remarks:''},
+      {name:'رووس',thx:'22 mm',x:5,y:23,qty:2,material:'زان',remarks:''},
+      {name:'جنبين',thx:'12 mm',x:12,y:70,qty:2,material:'كنتر طبقات',remarks:''},
+      {name:'وش امامي',thx:'12 mm',x:10,y:65,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'ستارة ضهر',thx:'12 mm',x:7,y:65,qty:1,material:'كنتر طبقات',remarks:''},
+      {name:'وش داخلي',thx:'12 mm',x:19,y:65,qty:4,material:'كنتر طبقات',remarks:''},
+      {name:'قواعد',thx:'12 mm',x:6.3,y:65,qty:4,material:'كنتر طبقات',remarks:''},
+    ],
+    'SWING': [
+      {name:'',thx:'70 mm',x:7,y:195,qty:6,material:'موسكي',remarks:''},
+      {name:'',thx:'70 mm',x:7,y:46,qty:4,material:'موسكي',remarks:''},
+      {name:'',thx:'70 mm',x:7,y:109,qty:4,material:'موسكي',remarks:''},
+      {name:'',thx:'70 mm',x:7,y:172,qty:2,material:'موسكي',remarks:''},
+      {name:'',thx:'22 mm',x:10,y:56.5,qty:11,material:'موسكي',remarks:''},
+      {name:'عصايه',thx:'30 mm',x:48,y:0,qty:18,material:'زان',remarks:''},
+      {name:'مرجيحه',thx:'22 mm',x:15,y:50,qty:2,material:'زان',remarks:''},
+    ],
+  };
+
+  // ── STEP 3: Seed BOM ──────────────────────────────────────────────────
+  async function migrateBOM() {
+    const btn = document.getElementById('btnBOM');
+    btn.disabled = true;
+    document.getElementById('logBOM').innerHTML = '';
+    log('logBOM', '→ Loading products from Firestore…', 'info');
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'products' }] } })
+      });
+      const rows = await res.json();
+      const fsProducts = rows.filter(r => r.document).map(r => ({
+        _id:  r.document.name.split('/').pop(),
+        name: (r.document.fields?.name?.stringValue || '').trim()
+      }));
+      log('logBOM', `✓ Loaded ${fsProducts.length} products from Firestore`, 'ok');
+
+      let ok = 0, notFound = 0, fail = 0;
+      const normalize = s => s.replace(/&amp;/g, '&').trim().toLowerCase();
+
+      for (const [bomKey, parts] of Object.entries(BOM_DATA)) {
+        const match = fsProducts.find(p => p.name.toLowerCase() === normalize(bomKey));
+        if (!match) {
+          log('logBOM', `⚠ No Firestore match: "${bomKey}"`, 'err');
+          notFound++;
+          continue;
+        }
+        try {
+          const patchRes = await fetch(
+            `${FS_BASE}/products/${match._id}?key=${FS_KEY}&updateMask.fieldPaths=bom`,
+            {
+              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fields: { bom: toFsVal(parts) } })
+            }
+          );
+          if (!patchRes.ok) throw new Error(`HTTP ${patchRes.status}`);
+          log('logBOM', `✓ ${bomKey} → #${match._id}  (${parts.length} parts)`, 'ok');
+          ok++;
+        } catch(e) {
+          log('logBOM', `✗ ${bomKey}: ${e.message}`, 'err');
+          fail++;
+        }
+      }
+
+      log('logBOM', `✓ BOM done: ${ok} updated, ${notFound} no match, ${fail} failed`, 'ok');
+      setProgress('progressBOM', `Done — ${ok} products updated`);
+    } catch(e) {
+      log('logBOM', `✗ Fatal: ${e.message}`, 'err');
+      setProgress('progressBOM', 'Error — see log');
+    }
+    btn.disabled = false;
+  }
 </script>
+
+<div class="card">
+  <h2>Step 3 — Seed <code>bom</code> field on products</h2>
+  <p>Matches each product in the BOM sheet to a Firestore <code>products</code> document by name, then writes the parts list as a <code>bom</code> array field. Uses qty-per-product (not total qty). Safe to re-run — overwrites only the <code>bom</code> field.</p>
+  <button class="btn" id="btnBOM" onclick="migrateBOM()">Run BOM Migration</button>
+  <div class="progress" id="progressBOM"></div>
+  <div class="log" id="logBOM"></div>
+</div>
+
 </body>
 </html>
