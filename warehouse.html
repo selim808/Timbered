@@ -397,7 +397,7 @@
     _phasesFS[`${orderId}_${itemId}`] = phase;
     const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
     fetch(`${FS_BASE}/order_phases/${orderId}_${itemId}?key=${FS_KEY}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: {
         order_id:     { stringValue: String(orderId) },
         line_item_id: { stringValue: String(itemId) },

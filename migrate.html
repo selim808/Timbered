@@ -71,7 +71,7 @@
 
   async function fsWrite(col, docId, fields) {
     const res = await fetch(`${FS_BASE}/${col}/${docId}?key=${FS_KEY}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields })
     });

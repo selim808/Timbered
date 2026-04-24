@@ -844,7 +844,7 @@
         (o._lineItemIds||[]).forEach(lid => {
           _phasesFS[`${o.order_id}_${lid}`] = 'Cutting';
           fetch(`${FS_BASE}/order_phases/${o.order_id}_${lid}?key=${FS_KEY}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fields: {
               order_id:     { stringValue: String(o.order_id) },
               line_item_id: { stringValue: String(lid) },
@@ -897,7 +897,7 @@
       relItems.forEach(it => {
         _phasesFS[`${orderId}_${it.id}`] = 'Cutting';
         fetch(`${FS_BASE}/order_phases/${orderId}_${it.id}?key=${FS_KEY}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: {
             order_id:     { stringValue: String(orderId) },
             line_item_id: { stringValue: String(it.id) },
@@ -1402,7 +1402,7 @@
           _phasesFS[`${o.order_id}_${lid}`] = phase;
           writes.push(
             fetch(`${FS_BASE}/order_phases/${o.order_id}_${lid}?key=${FS_KEY}`, {
-              method: 'PUT',
+              method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ fields: {
                 order_id:     { stringValue: String(o.order_id) },
