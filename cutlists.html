@@ -40,9 +40,9 @@
     .cl-table th { background: #7A4610; color: #fff; padding: 7px 10px; font-size: 11px; text-align: center; white-space: nowrap; }
     .cl-table td { padding: 6px 10px; border: 1px solid #e0d8d0; font-size: 11px; vertical-align: middle; }
     .cl-table tr:nth-child(even) td { background: #faf7f4; }
-    .cl-product-cell { font-weight: 700; text-align: center; border-right: 2px solid #c8b89a !important; }
-    .cl-qty-cell { text-align: center; font-weight: 700; border-right: 2px solid #c8b89a !important; }
-    .cl-img-cell { text-align: center; border-right: 2px solid #c8b89a !important; }
+    .cl-product-cell { font-weight: 700; text-align: center; border-right: 2px solid #c8b89a !important; width: 90px; max-width: 90px; font-size: 10px; word-break: break-word; }
+    .cl-qty-cell { text-align: center; font-weight: 700; border-right: 2px solid #c8b89a !important; width: 40px; }
+    .cl-img-cell { text-align: center; border-right: 2px solid #c8b89a !important; width: 110px; padding: 4px !important; }
     .cl-total-qty { font-weight: 700; color: #7A4610; text-align: center; }
     .cl-center { text-align: center; }
     .cl-no-bom { color: #aaa; font-style: italic; text-align: center; }
@@ -250,7 +250,7 @@
     _currentItems.forEach(item => {
       const bom = _bomMap[item.product_id] || [];
       const rowspan = bom.length || 1;
-      const thumb = item.image ? `<img src="${item.image}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;">` : '';
+      const thumb = item.image ? `<img src="${item.image}" style="width:100px;height:100px;object-fit:cover;border-radius:4px;display:block;margin:0 auto;">` : '';
       if (!bom.length) {
         rows += `<tr>
           <td class="cl-product-cell" rowspan="1">${item.product_name}</td>
