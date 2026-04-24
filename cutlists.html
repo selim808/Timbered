@@ -343,19 +343,58 @@
     return `<div class="cl-cards">${cards}</div>`;
   }
 
-  async function imgToDataURL(src) {
+  async function imgToDataURL(src, w, h) {
     const res = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(src)}`);
     const blob = await res.blob();
-    return new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(blob); });
+    const blobUrl = URL.createObjectURL(blob);
+    const natural = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = blobUrl;
+    });
+    // Apply object-fit: cover manually
+    const scale = Math.max(w / natural.naturalWidth, h / natural.naturalHeight);
+    const sw = w / scale, sh = h / scale;
+    const sx = (natural.naturalWidth - sw) / 2, sy = (natural.naturalHeight - sh) / 2;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(natural, sx, sy, sw, sh, 0, 0, w, h);
+    URL.revokeObjectURL(blobUrl);
+    return c.toDataURL('image/png');
   }
+
+  const CAPTURE_SCALE = 3;
 
   async function inlineImages(el) {
     const imgs = [...el.querySelectorAll('img')];
-    const originals = imgs.map(img => img.src);
-    await Promise.all(imgs.map(async (img, i) => {
-      try { img.src = await imgToDataURL(originals[i]); } catch(_) {}
+    await Promise.all(imgs.map(async img => {
+      try {
+        const w = (img.offsetWidth || 100) * CAPTURE_SCALE;
+        const h = (img.offsetHeight || 100) * CAPTURE_SCALE;
+        img.src = await imgToDataURL(img.src, w, h);
+        img.style.objectFit = 'fill';
+      } catch(_) {}
     }));
-    return () => imgs.forEach((img, i) => { img.src = originals[i]; });
+  }
+
+  async function captureFullWidth(el) {
+    const fullW = el.scrollWidth;
+    const fullH = el.scrollHeight;
+    const clone = el.cloneNode(true);
+    Object.assign(clone.style, {
+      position: 'fixed', top: '0', left: '-99999px',
+      width: fullW + 'px', minWidth: 'unset',
+      overflow: 'visible', zIndex: '-1'
+    });
+    document.body.appendChild(clone);
+    await inlineImages(clone);
+    const canvas = await html2canvas(clone, {
+      scale: CAPTURE_SCALE, backgroundColor: '#ffffff', logging: false,
+      width: fullW, height: fullH
+    });
+    document.body.removeChild(clone);
+    return canvas;
   }
 
   async function downloadPDF() {
@@ -363,9 +402,7 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const restore = await inlineImages(el);
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
-      restore();
+      const canvas = await captureFullWidth(el);
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
@@ -401,9 +438,7 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const restore = await inlineImages(el);
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
-      restore();
+      const canvas = await captureFullWidth(el);
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = `Cutlist-${_currentJO?.ref || 'JO'}.png`;
