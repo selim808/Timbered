@@ -344,7 +344,7 @@
   }
 
   // ── Constants ────────────────────────────────────────────────────────
-  const PROD_PHASES     = ["JO released","Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint & inspec.","Rdy for ship"];
+  const PROD_PHASES     = ["JO released","Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label","Paint & inspec."];
   const REPAIR_PHASES   = ["Received from WH","QC-Rejected","R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet","R-Assemble & label","R-Paint & inspec."];
   const DISPATCH_PHASES = ["Packaging","Ready to Ship"];
   const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
@@ -372,7 +372,7 @@
   }
   function phaseClass(phase) {
     if (!phase) return 'phase-queue';
-    if (phase === 'Rdy for ship') return 'phase-ready';
+    if (phase === 'Ready to Ship') return 'phase-ready';
     if (phase === 'Shipped') return 'phase-shipped';
     return 'phase-active';
   }
@@ -690,7 +690,12 @@
       </div>`;
     }).join('');
 
-    const otherPhases = groupPhasesForCard(card).filter(p => p !== card.phase);
+    const groupPhases = groupPhasesForCard(card);
+    const isLastProdPhase = card.phase === 'Paint & inspec.';
+    const otherPhases = [
+      ...groupPhases.filter(p => p !== card.phase),
+      ...(isLastProdPhase ? DISPATCH_PHASES : [])
+    ];
     const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
 
     return `<div class="prod-card" id="pcard-${card._id}" draggable="true" data-card-id="${card._id}">
@@ -1113,7 +1118,7 @@
 
   // ── SHIPMENTS ────────────────────────────────────────────────────────
   function renderShip() {
-    const readyCards = _cards.filter(c => c.phase === 'Rdy for ship' && !c.shipped);
+    const readyCards = _cards.filter(c => c.phase === 'Ready to Ship' && !c.shipped);
     _selectedCardIds = new Set();
 
     let html = `<div class="ship-bar">
@@ -1179,7 +1184,7 @@
     card?.classList.toggle('selected', sel);
     if (check) check.textContent = sel ? '✓' : '';
     const n = _selectedCardIds.size;
-    const readyCards = _cards.filter(c => c.phase === 'Rdy for ship' && !c.shipped);
+    const readyCards = _cards.filter(c => c.phase === 'Ready to Ship' && !c.shipped);
     const info = document.getElementById('shipBarInfo');
     if (info) info.textContent = `${readyCards.length} card${readyCards.length!==1?'s':''} ready · ${n} selected`;
     const btn = document.getElementById('createShipBtn');
