@@ -125,6 +125,8 @@
     .jo-edit-btn:hover { background: #7A4610; color: #fff; }
     .jo-pdf-btn { font-size: 11px; font-weight: 700; color: #2980b9; border: 1.5px solid #2980b9; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
     .jo-pdf-btn:hover { background: #2980b9; color: #fff; }
+    .jo-cutlist-btn { font-size: 11px; font-weight: 700; color: #27ae60; border: 1.5px solid #27ae60; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+    .jo-cutlist-btn:hover { background: #27ae60; color: #fff; }
 
     /* EDIT OVERLAY */
     .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
@@ -730,6 +732,8 @@
     btn.textContent = 'PDF'; btn.disabled = false;
   }
 
+
+
   // ── Delete JO ─────────────────────────────────────────────────────
   async function deleteJO(docId, ref) {
     if (!confirm(`Delete ${ref}? This cannot be undone.`)) return;
@@ -792,6 +796,7 @@
               <div class="jo-top-row2">
                 <span class="jo-count">${itemCount} products · ${totalQty} units</span>
                 <button class="jo-pdf-btn" onclick="event.stopPropagation();exportPDF('${jo._id}')">PDF</button>
+                <button class="jo-cutlist-btn" onclick="event.stopPropagation();window.open('cutlists.html?jo=${jo._id}','_blank')">Cutlist</button>
                 <button class="jo-edit-btn" onclick="event.stopPropagation();openEdit('${jo._id}')">Edit</button>
                 <button class="jo-delete-btn" onclick="event.stopPropagation();deleteJO('${jo._id}','${jo.ref||''}')">Delete</button>
               </div>

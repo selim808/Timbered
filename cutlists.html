@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cutlists — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; flex: 1; }
+    .back { font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+    .controls { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 10px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 51px; z-index: 99; }
+    .jo-select { flex: 1; min-width: 200px; font-size: 13px; padding: 7px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; background: #fff; }
+    .jo-select:focus { border-color: #7A4610; }
+    .pdf-btn { font-size: 12px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 20px; padding: 7px 18px; cursor: pointer; white-space: nowrap; }
+    .pdf-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .pdf-btn:hover:not(:disabled) { background: #5a3209; }
+    .print-btn { font-size: 12px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 6px 16px; background: none; cursor: pointer; white-space: nowrap; }
+    .print-btn:hover:not(:disabled) { background: #7A4610; color: #fff; }
+    .print-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .wrap { padding: 16px; max-width: 1200px; margin: 0 auto; }
+    .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    #cutlist-display { background: #fff; border-radius: 8px; border: 1px solid #e8ddd4; padding: 28px; overflow-x: auto; }
+
+    .cl-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; direction: ltr; }
+    .cl-logo { font-size: 22px; font-weight: 900; color: #7A4610; letter-spacing: 1px; }
+    .cl-sub { font-size: 11px; color: #888; margin-top: 3px; }
+    .cl-meta { text-align: right; }
+    .cl-ref { font-size: 18px; font-weight: 800; color: #7A4610; }
+    .cl-date { font-size: 11px; color: #888; margin-top: 2px; }
+
+    .cl-table { width: 100%; border-collapse: collapse; direction: rtl; min-width: 700px; }
+    .cl-table th { background: #7A4610; color: #fff; padding: 7px 10px; font-size: 11px; text-align: center; white-space: nowrap; }
+    .cl-table td { padding: 6px 10px; border: 1px solid #e0d8d0; font-size: 11px; vertical-align: middle; }
+    .cl-table tr:nth-child(even) td { background: #faf7f4; }
+    .cl-product-cell { font-weight: 700; text-align: center; border-right: 2px solid #c8b89a !important; }
+    .cl-qty-cell { text-align: center; font-weight: 700; border-right: 2px solid #c8b89a !important; }
+    .cl-img-cell { text-align: center; border-right: 2px solid #c8b89a !important; }
+    .cl-total-qty { font-weight: 700; color: #7A4610; text-align: center; }
+    .cl-center { text-align: center; }
+    .cl-no-bom { color: #aaa; font-style: italic; text-align: center; }
+
+    .cl-footer { margin-top: 20px; font-size: 10px; color: #aaa; text-align: center; direction: ltr; }
+
+    @media print {
+      .site-header, .controls { display: none !important; }
+      body { background: #fff; }
+      .wrap { padding: 0; max-width: none; }
+      #cutlist-display { border: none; border-radius: 0; padding: 12px; box-shadow: none; }
+      .cl-table { min-width: unset; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <span class="title">Cutlists</span>
+  <a class="back" href="job-prep.html">← Job Orders</a>
+</header>
+
+<div class="controls">
+  <select class="jo-select" id="joSelect" onchange="onSelectChange()">
+    <option value="">— Select a Job Order —</option>
+  </select>
+  <button class="pdf-btn" id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
+  <button class="print-btn" id="printBtn" onclick="window.print()" disabled>Print</button>
+</div>
+
+<div class="wrap">
+  <div class="state-msg" id="stateMsg">Select a Job Order to view its cutlist</div>
+  <div id="cutlist-display" style="display:none"></div>
+</div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  function fromFsVal(v) {
+    if (!v) return null;
+    if ('nullValue' in v) return null;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('integerValue' in v) return parseInt(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('stringValue' in v) return v.stringValue;
+    if ('timestampValue' in v) return v.timestampValue;
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(fromFsVal);
+    if ('mapValue' in v) { const o = {}; Object.entries(v.mapValue.fields || {}).forEach(([k, x]) => o[k] = fromFsVal(x)); return o; }
+    return null;
+  }
+  function fromFsDoc(doc) {
+    const o = {}; Object.entries(doc.fields || {}).forEach(([k, v]) => o[k] = fromFsVal(v));
+    o._id = (doc.name || '').split('/').pop(); return o;
+  }
+  async function fsQuery(col) {
+    const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: col }] } })
+    });
+    const rows = await res.json();
+    return rows.filter(r => r.document).map(r => fromFsDoc(r.document));
+  }
+  async function fsGet(col, id) {
+    const res = await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}`);
+    return fromFsDoc(await res.json());
+  }
+
+  function fmtDate(v) {
+    if (!v) return '';
+    const d = typeof v === 'string' ? new Date(v) : (v.toDate ? v.toDate() : new Date(v));
+    return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  let _allJOs = [];
+  let _currentJO = null;
+
+  async function init() {
+    try {
+      _allJOs = await fsQuery('job_orders');
+      _allJOs.sort((a, b) => {
+        const ta = a.created_at || '', tb = b.created_at || '';
+        return tb > ta ? 1 : tb < ta ? -1 : 0;
+      });
+      const sel = document.getElementById('joSelect');
+      _allJOs.forEach(jo => {
+        const opt = document.createElement('option');
+        opt.value = jo._id;
+        opt.textContent = `${jo.ref || jo._id}  ·  ${fmtDate(jo.created_at)}`;
+        sel.appendChild(opt);
+      });
+      const params = new URLSearchParams(location.search);
+      const joParam = params.get('jo');
+      if (joParam) {
+        sel.value = joParam;
+        if (sel.value) await loadCutlist(joParam);
+      }
+    } catch (e) {
+      document.getElementById('stateMsg').textContent = 'Error loading job orders: ' + e.message;
+    }
+  }
+
+  async function onSelectChange() {
+    const docId = document.getElementById('joSelect').value;
+    if (!docId) {
+      document.getElementById('cutlist-display').style.display = 'none';
+      document.getElementById('stateMsg').style.display = 'block';
+      document.getElementById('stateMsg').textContent = 'Select a Job Order to view its cutlist';
+      document.getElementById('pdfBtn').disabled = true;
+      document.getElementById('printBtn').disabled = true;
+      _currentJO = null;
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
+    history.replaceState(null, '', `?jo=${docId}`);
+    await loadCutlist(docId);
+  }
+
+  async function loadCutlist(docId) {
+    const display = document.getElementById('cutlist-display');
+    const msg = document.getElementById('stateMsg');
+    msg.textContent = 'Loading…';
+    msg.style.display = 'block';
+    display.style.display = 'none';
+    document.getElementById('pdfBtn').disabled = true;
+    document.getElementById('printBtn').disabled = true;
+
+    try {
+      const jo = await fsGet('job_orders', docId);
+      _currentJO = jo;
+      const items = jo.items || [];
+
+      const uniqueIds = [...new Set(items.map(i => i.product_id).filter(Boolean))];
+      const bomMap = {};
+      await Promise.all(uniqueIds.map(async pid => {
+        try { const p = await fsGet('products', String(pid)); bomMap[pid] = p.bom || []; }
+        catch (_) { bomMap[pid] = []; }
+      }));
+
+      let rows = '';
+      items.forEach(item => {
+        const bom = bomMap[item.product_id] || [];
+        const rowspan = bom.length || 1;
+        const thumb = item.image
+          ? `<img src="${item.image}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;" crossorigin="anonymous">`
+          : '';
+
+        if (!bom.length) {
+          rows += `<tr>
+            <td class="cl-product-cell" rowspan="1">${item.product_name}</td>
+            <td class="cl-qty-cell" rowspan="1">${item.total_qty || 0}</td>
+            <td class="cl-img-cell" rowspan="1">${thumb}</td>
+            <td colspan="8" class="cl-no-bom">No BOM data</td>
+          </tr>`;
+          return;
+        }
+
+        bom.forEach((part, idx) => {
+          const totalPartQty = (part.qty || 0) * (item.total_qty || 0);
+          if (idx === 0) {
+            rows += `<tr>
+              <td class="cl-product-cell" rowspan="${rowspan}">${item.product_name}</td>
+              <td class="cl-qty-cell" rowspan="${rowspan}">${item.total_qty || 0}</td>
+              <td class="cl-img-cell" rowspan="${rowspan}">${thumb}</td>
+              <td class="cl-center">${part.name || ''}</td>
+              <td class="cl-center">${part.thx || ''}</td>
+              <td class="cl-center">${part.x || ''}</td>
+              <td class="cl-center">${part.y || ''}</td>
+              <td class="cl-center">${part.qty || ''}</td>
+              <td class="cl-total-qty">${totalPartQty}</td>
+              <td class="cl-center">${part.material || ''}</td>
+              <td class="cl-center">${part.remarks || ''}</td>
+            </tr>`;
+          } else {
+            rows += `<tr>
+              <td class="cl-center">${part.name || ''}</td>
+              <td class="cl-center">${part.thx || ''}</td>
+              <td class="cl-center">${part.x || ''}</td>
+              <td class="cl-center">${part.y || ''}</td>
+              <td class="cl-center">${part.qty || ''}</td>
+              <td class="cl-total-qty">${totalPartQty}</td>
+              <td class="cl-center">${part.material || ''}</td>
+              <td class="cl-center">${part.remarks || ''}</td>
+            </tr>`;
+          }
+        });
+      });
+
+      display.innerHTML = `
+        <div class="cl-header">
+          <div>
+            <div class="cl-logo">TIMBERED</div>
+            <div class="cl-sub">Cutlist</div>
+          </div>
+          <div class="cl-meta">
+            <div class="cl-ref">${jo.ref || ''}</div>
+            <div class="cl-date">${fmtDate(jo.created_at)}</div>
+          </div>
+        </div>
+        <table class="cl-table">
+          <thead><tr>
+            <th>Product</th>
+            <th>QTY</th>
+            <th>Picture</th>
+            <th>Name</th>
+            <th>Thx</th>
+            <th>X (cm)</th>
+            <th>Y (cm)</th>
+            <th>Pro</th>
+            <th>Total Qty</th>
+            <th>Material</th>
+            <th>Remarks</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="cl-footer">Generated ${new Date().toLocaleString('en-GB')} · Timbered Dashboard</div>`;
+
+      msg.style.display = 'none';
+      display.style.display = 'block';
+      document.getElementById('pdfBtn').disabled = false;
+      document.getElementById('printBtn').disabled = false;
+    } catch (e) {
+      msg.textContent = 'Error loading cutlist: ' + e.message;
+    }
+  }
+
+  async function downloadPDF() {
+    const btn = document.getElementById('pdfBtn');
+    btn.textContent = 'Generating…'; btn.disabled = true;
+    try {
+      const el = document.getElementById('cutlist-display');
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const pxPerMm = canvas.width / pageW;
+      const totalImgH = canvas.height / pxPerMm;
+
+      let srcY = 0;
+      let page = 0;
+      while (srcY < canvas.height) {
+        if (page > 0) pdf.addPage();
+        const slicePx = Math.min(Math.round(pageH * pxPerMm), canvas.height - srcY);
+        const sliceH = slicePx / pxPerMm;
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = slicePx;
+        slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
+        pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pageW, sliceH);
+        srcY += slicePx;
+        page++;
+      }
+
+      const ref = _currentJO?.ref || 'JO';
+      pdf.save(`Cutlist-${ref}.pdf`);
+    } catch (e) {
+      alert('PDF error: ' + e.message);
+    }
+    btn.textContent = 'Download PDF'; btn.disabled = false;
+  }
+
+  init();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>
