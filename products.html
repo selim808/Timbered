@@ -92,6 +92,23 @@
 
     /* ── State ── */
     .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    /* ── BOM edit mode ── */
+    .bom-edit-trigger { font-size: 10px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 12px; padding: 2px 9px; background: none; cursor: pointer; margin-left: 8px; }
+    .bom-edit-trigger:hover { background: #7A4610; color: #fff; }
+    .bom-input { font-size: 11px; font-family: inherit; padding: 3px 5px; border: 1px solid #e8ddd4; border-radius: 4px; background: #fff; color: #333; outline: none; width: 100%; min-width: 0; }
+    .bom-input:focus { border-color: #7A4610; }
+    .bom-input.num { width: 52px; text-align: center; }
+    .bom-del-btn { font-size: 13px; font-weight: 700; color: #c0392b; background: none; border: none; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .bom-del-btn:hover { color: #fff; background: #c0392b; border-radius: 3px; }
+    .bom-edit-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .bom-add-btn { font-size: 11px; font-weight: 700; color: #27ae60; border: 1.5px solid #27ae60; border-radius: 12px; padding: 4px 12px; background: none; cursor: pointer; }
+    .bom-add-btn:hover { background: #27ae60; color: #fff; }
+    .bom-save-btn { font-size: 11px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 12px; padding: 5px 14px; cursor: pointer; }
+    .bom-save-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .bom-cancel-btn { font-size: 11px; font-weight: 700; color: #777; border: 1.5px solid #ccc; border-radius: 12px; padding: 4px 12px; background: none; cursor: pointer; }
+    .bom-cancel-btn:hover { background: #eee; }
+    .bom-table td input { display: block; }
   </style>
 </head>
 <body>
@@ -126,9 +143,11 @@
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
-  let _allProducts = [];
-  let _filtered    = [];
-  let _expandedId  = null;
+  let _allProducts      = [];
+  let _filtered         = [];
+  let _expandedId       = null;
+  let _editingProductId = null;
+  let _editBom          = [];
 
   // ── Firestore helpers ─────────────────────────────────────────────────
   function fromFsVal(v) {
@@ -152,6 +171,92 @@
     Object.entries(doc.fields || {}).forEach(([k, v]) => o[k] = fromFsVal(v));
     o._id = doc.name.split('/').pop();
     return o;
+  }
+
+  // ── Firestore write helpers ───────────────────────────────────────────
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') { const f = {}; Object.entries(v).forEach(([k, x]) => f[k] = toFsVal(x)); return { mapValue: { fields: f } }; }
+    return { stringValue: String(v) };
+  }
+  async function fsPatch(col, id, fields) {
+    const mask = Object.keys(fields).map(k => `updateMask.fieldPaths=${k}`).join('&');
+    const body = { fields: {} };
+    Object.entries(fields).forEach(([k, v]) => body.fields[k] = toFsVal(v));
+    const res = await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}&${mask}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`Firestore error: ${res.status}`);
+  }
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── BOM edit ──────────────────────────────────────────────────────────
+  function collectBomFromInputs() {
+    const map = {};
+    document.querySelectorAll('.bom-input').forEach(inp => {
+      const i = parseInt(inp.dataset.idx), f = inp.dataset.field;
+      if (!map[i]) map[i] = {};
+      map[i][f] = (f === 'x' || f === 'y' || f === 'qty') ? (parseFloat(inp.value) || 0) : inp.value;
+    });
+    _editBom = Object.keys(map).sort((a,b)=>a-b).map(i => map[i]);
+  }
+
+  function refreshCardBody(productId) {
+    const p = _allProducts.find(p => p._id === productId);
+    const cardEl = document.getElementById('card-' + productId);
+    if (!p || !cardEl) return;
+    cardEl.querySelector('.card-body').innerHTML = buildBody(p);
+  }
+
+  function startEditBom(productId) {
+    const p = _allProducts.find(p => p._id === productId);
+    if (!p) return;
+    _editingProductId = productId;
+    _editBom = (p.bom || []).map(r => ({ ...r }));
+    refreshCardBody(productId);
+  }
+
+  function cancelEditBom() {
+    const id = _editingProductId;
+    _editingProductId = null;
+    _editBom = [];
+    refreshCardBody(id);
+  }
+
+  function addBomRow() {
+    collectBomFromInputs();
+    _editBom.push({ name: '', thx: '', x: '', y: '', qty: 0, material: '', remarks: '' });
+    refreshCardBody(_editingProductId);
+  }
+
+  function deleteBomRow(idx) {
+    collectBomFromInputs();
+    _editBom.splice(idx, 1);
+    refreshCardBody(_editingProductId);
+  }
+
+  async function saveBom(productId) {
+    collectBomFromInputs();
+    const btn = document.getElementById('bom-save-btn');
+    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+    try {
+      await fsPatch('products', productId, { bom: _editBom });
+      const p = _allProducts.find(p => p._id === productId);
+      if (p) p.bom = _editBom.map(r => ({ ...r }));
+      _editingProductId = null;
+      _editBom = [];
+      renderGrid();
+    } catch(e) {
+      alert('Error saving BOM: ' + e.message);
+      if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }
+    }
   }
 
   // ── Load ──────────────────────────────────────────────────────────────
@@ -235,7 +340,9 @@
   }
 
   function buildBody(p) {
-    const hasBom = Array.isArray(p.bom) && p.bom.length > 0;
+    const editMode = _editingProductId === p._id;
+    const bom      = editMode ? _editBom : (p.bom || []);
+    const hasBom   = bom.length > 0;
     const dim = [p.dim_length, p.dim_width, p.dim_height].filter(Boolean).join(' × ') || '—';
 
     const bigImg = p.image_url
@@ -261,34 +368,58 @@
         <div class="field-value${!f.value ? ' empty' : ''}">${f.value || '—'}</div>
       </div>`).join('');
 
-    const bomHtml = hasBom ? `
-      <table class="bom-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Part</th>
-            <th>Thx</th>
-            <th>X (cm)</th>
-            <th>Y (cm)</th>
-            <th>Qty</th>
-            <th>Material</th>
-            <th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${p.bom.map((row, i) => `
-            <tr>
-              <td style="color:#bbb">${i + 1}</td>
-              <td style="font-weight:600">${row.name || '—'}</td>
-              <td class="bom-dim">${row.thx || '—'}</td>
-              <td class="bom-dim">${row.x || '—'}</td>
-              <td class="bom-dim">${row.y || '—'}</td>
-              <td class="bom-qty">${row.qty ?? '—'}</td>
-              <td>${row.material || '—'}</td>
-              <td class="bom-remarks">${row.remarks || ''}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>` : `<div class="bom-empty">No BOM data — run Step 3 in migrate.html</div>`;
+    let bomHtml;
+    if (editMode) {
+      const rows = bom.map((row, i) => `
+        <tr>
+          <td style="color:#bbb">${i + 1}</td>
+          <td><input class="bom-input" data-field="name" data-idx="${i}" value="${escHtml(row.name)}" placeholder="Part name"></td>
+          <td><input class="bom-input" data-field="thx" data-idx="${i}" value="${escHtml(row.thx)}" placeholder="e.g. 18 mm"></td>
+          <td><input class="bom-input num" data-field="x" data-idx="${i}" value="${row.x ?? ''}"></td>
+          <td><input class="bom-input num" data-field="y" data-idx="${i}" value="${row.y ?? ''}"></td>
+          <td><input class="bom-input num" data-field="qty" data-idx="${i}" value="${row.qty ?? 0}"></td>
+          <td><input class="bom-input" data-field="material" data-idx="${i}" value="${escHtml(row.material)}"></td>
+          <td><input class="bom-input" data-field="remarks" data-idx="${i}" value="${escHtml(row.remarks)}"></td>
+          <td><button class="bom-del-btn" onclick="deleteBomRow(${i})">×</button></td>
+        </tr>`).join('');
+      bomHtml = `
+        <table class="bom-table">
+          <thead><tr>
+            <th>#</th><th>Part</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+            <th>Qty</th><th>Material</th><th>Remarks</th><th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="bom-edit-actions">
+          <button class="bom-add-btn" onclick="addBomRow()">+ Add Part</button>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="bom-cancel-btn" onclick="cancelEditBom()">Cancel</button>
+            <button class="bom-save-btn" id="bom-save-btn" onclick="saveBom('${p._id}')">Save Changes</button>
+          </div>
+        </div>`;
+    } else {
+      bomHtml = hasBom ? `
+        <table class="bom-table">
+          <thead><tr>
+            <th>#</th><th>Part</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+            <th>Qty</th><th>Material</th><th>Remarks</th>
+          </tr></thead>
+          <tbody>
+            ${bom.map((row, i) => `
+              <tr>
+                <td style="color:#bbb">${i + 1}</td>
+                <td style="font-weight:600">${row.name || '—'}</td>
+                <td class="bom-dim">${row.thx || '—'}</td>
+                <td class="bom-dim">${row.x || '—'}</td>
+                <td class="bom-dim">${row.y || '—'}</td>
+                <td class="bom-qty">${row.qty ?? '—'}</td>
+                <td>${row.material || '—'}</td>
+                <td class="bom-remarks">${row.remarks || ''}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`
+        : `<div class="bom-empty">No BOM data</div>`;
+    }
 
     return `
       <div class="card-body-inner">
@@ -299,7 +430,10 @@
         <div class="detail-right">
           <div class="fields-grid">${fieldsHtml}</div>
           <div class="bom-section">
-            <div class="bom-title">Bill of Materials (${hasBom ? p.bom.length + ' parts' : '0 parts'})</div>
+            <div class="bom-title">
+              Bill of Materials (${bom.length} part${bom.length !== 1 ? 's' : ''})
+              ${editMode ? '' : `<button class="bom-edit-trigger" onclick="startEditBom('${p._id}')">Edit</button>`}
+            </div>
             ${bomHtml}
           </div>
         </div>
