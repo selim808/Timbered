@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    /* ── Header ── */
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; flex: 1; }
+    .back { font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+    /* ── Toolbar ── */
+    .toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 10px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 51px; z-index: 99; }
+    .search-wrap { position: relative; flex: 1; max-width: 340px; }
+    .search-wrap input { width: 100%; font-size: 13px; padding: 7px 10px 7px 32px; border: 1px solid #e8ddd4; border-radius: 8px; background: #f5f0eb; outline: none; color: #333; }
+    .search-wrap input:focus { border-color: #7A4610; background: #fff; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #aaa; pointer-events: none; }
+    .mat-filter { font-size: 12px; padding: 6px 10px; border: 1px solid #e8ddd4; border-radius: 8px; background: #f5f0eb; color: #555; outline: none; cursor: pointer; }
+    .mat-filter:focus { border-color: #7A4610; }
+    .count-label { font-size: 12px; color: #aaa; margin-left: auto; white-space: nowrap; }
+
+    /* ── Grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 16px; }
+
+    /* ── Product card ── */
+    .prod-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+    .prod-card.expanded { grid-column: 1 / -1; }
+
+    .card-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; user-select: none; }
+    .card-header:hover { background: #fdf8f4; }
+    .card-img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; flex-shrink: 0; background: #f5f0eb; }
+    .card-img-placeholder { width: 48px; height: 48px; border-radius: 6px; border: 1px solid #e8ddd4; flex-shrink: 0; background: #f5f0eb; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #ccc; }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { font-size: 13px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 3px; }
+    .card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+    .tag-mat { background: #fef3e2; color: #7A4610; }
+    .tag-stock { background: #eafaf1; color: #27ae60; }
+    .tag-nostock { background: #fdf0f0; color: #c0392b; }
+    .tag-nobom { background: #f0f0f0; color: #999; }
+    .card-chev { font-size: 11px; color: #ccc; flex-shrink: 0; transition: transform 0.15s; }
+    .prod-card.expanded .card-chev { transform: rotate(180deg); }
+
+    /* ── Expanded body ── */
+    .card-body { display: none; border-top: 1px solid #f0ebe4; }
+    .prod-card.expanded .card-body { display: block; }
+
+    .card-body-inner { padding: 14px 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 14px; }
+    @media (max-width: 600px) { .card-body-inner { grid-template-columns: 1fr; } }
+
+    /* ── Left col: big image + links ── */
+    .detail-img-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .detail-img { width: 160px; height: 160px; object-fit: cover; border-radius: 8px; border: 1px solid #e8ddd4; background: #f5f0eb; cursor: pointer; }
+    .detail-img-placeholder { width: 160px; height: 160px; border-radius: 8px; border: 1px solid #e8ddd4; background: #f5f0eb; display: flex; align-items: center; justify-content: center; font-size: 36px; color: #ddd; }
+    .detail-links { display: flex; flex-direction: column; gap: 5px; }
+    .dwg-btn { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 6px; padding: 4px 10px; text-decoration: none; text-align: center; }
+    .dwg-btn:hover { background: #7A4610; color: #fff; }
+
+    /* ── Right col: fields + BOM ── */
+    .detail-right { display: flex; flex-direction: column; gap: 12px; }
+
+    .fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+    .field { background: #f5f0eb; border-radius: 6px; padding: 6px 9px; }
+    .field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin-bottom: 2px; }
+    .field-value { font-size: 12px; font-weight: 600; color: #333; }
+    .field-value.empty { color: #ccc; font-weight: 400; font-style: italic; }
+
+    /* ── BOM table ── */
+    .bom-section { }
+    .bom-title { font-size: 11px; font-weight: 800; color: #7A4610; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .bom-empty { font-size: 12px; color: #aaa; font-style: italic; }
+    .bom-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .bom-table th { background: #f5f0eb; color: #7A4610; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 5px 8px; text-align: left; border-bottom: 1px solid #e8ddd4; white-space: nowrap; }
+    .bom-table td { padding: 5px 8px; border-bottom: 1px solid #f5f0eb; color: #444; vertical-align: middle; }
+    .bom-table tr:last-child td { border-bottom: none; }
+    .bom-table tr:hover td { background: #fdf8f4; }
+    .bom-qty { font-weight: 700; color: #7A4610; }
+    .bom-remarks { font-size: 10px; color: #999; font-style: italic; }
+    .bom-dim { color: #666; white-space: nowrap; }
+
+    /* ── Image popup ── */
+    .img-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; align-items: center; justify-content: center; }
+    .img-overlay.open { display: flex; }
+    .img-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 10px; object-fit: contain; }
+    .img-overlay-close { position: absolute; top: 16px; right: 20px; font-size: 28px; color: #fff; cursor: pointer; line-height: 1; }
+
+    /* ── State ── */
+    .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <div class="title">Products</div>
+  <a class="back" href="index.html">← Back</a>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="Search products…" oninput="applyFilter()">
+  </div>
+  <select class="mat-filter" id="matFilter" onchange="applyFilter()">
+    <option value="">All materials</option>
+  </select>
+  <span class="count-label" id="countLabel">—</span>
+</div>
+
+<div id="stateMsg" class="state-msg">Loading…</div>
+<div class="grid" id="grid" style="display:none"></div>
+
+<!-- Image popup -->
+<div class="img-overlay" id="imgOverlay" onclick="closeImg()">
+  <span class="img-overlay-close" onclick="closeImg()">✕</span>
+  <img id="imgPopupSrc" src="" alt="" onclick="event.stopPropagation()">
+</div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  let _allProducts = [];
+  let _filtered    = [];
+  let _expandedId  = null;
+
+  // ── Firestore helpers ─────────────────────────────────────────────────
+  function fromFsVal(v) {
+    if (!v) return null;
+    if ('nullValue'      in v) return null;
+    if ('booleanValue'   in v) return v.booleanValue;
+    if ('integerValue'   in v) return parseInt(v.integerValue);
+    if ('doubleValue'    in v) return v.doubleValue;
+    if ('stringValue'    in v) return v.stringValue;
+    if ('timestampValue' in v) return new Date(v.timestampValue);
+    if ('arrayValue'     in v) return (v.arrayValue.values || []).map(fromFsVal);
+    if ('mapValue'       in v) {
+      const o = {};
+      Object.entries(v.mapValue.fields || {}).forEach(([k, x]) => o[k] = fromFsVal(x));
+      return o;
+    }
+    return null;
+  }
+  function fromFsDoc(doc) {
+    const o = {};
+    Object.entries(doc.fields || {}).forEach(([k, v]) => o[k] = fromFsVal(v));
+    o._id = doc.name.split('/').pop();
+    return o;
+  }
+
+  // ── Load ──────────────────────────────────────────────────────────────
+  async function load() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'products' }] } })
+      });
+      const rows = await res.json();
+      _allProducts = rows.filter(r => r.document).map(r => fromFsDoc(r.document));
+      _allProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      // Populate material filter
+      const mats = [...new Set(_allProducts.map(p => p.material).filter(Boolean))].sort();
+      const sel = document.getElementById('matFilter');
+      mats.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+
+      document.getElementById('stateMsg').style.display = 'none';
+      document.getElementById('grid').style.display = 'grid';
+      applyFilter();
+    } catch(e) {
+      document.getElementById('stateMsg').textContent = 'Error loading products: ' + e.message;
+    }
+  }
+
+  // ── Filter ────────────────────────────────────────────────────────────
+  function applyFilter() {
+    const q   = document.getElementById('searchInput').value.trim().toLowerCase();
+    const mat = document.getElementById('matFilter').value;
+    _filtered = _allProducts.filter(p => {
+      const nameOk = !q || (p.name || '').toLowerCase().includes(q);
+      const matOk  = !mat || p.material === mat;
+      return nameOk && matOk;
+    });
+    document.getElementById('countLabel').textContent = `${_filtered.length} product${_filtered.length !== 1 ? 's' : ''}`;
+    renderGrid();
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function renderGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    _filtered.forEach(p => grid.appendChild(buildCard(p)));
+  }
+
+  function buildCard(p) {
+    const expanded = p._id === _expandedId;
+    const hasBom   = Array.isArray(p.bom) && p.bom.length > 0;
+    const stockQty = p.stock_qty ?? 0;
+
+    const div = document.createElement('div');
+    div.className = 'prod-card' + (expanded ? ' expanded' : '');
+    div.id = 'card-' + p._id;
+
+    const imgThumb = p.image_url
+      ? `<img class="card-img" src="${p.image_url}" alt="" loading="lazy">`
+      : `<div class="card-img-placeholder">📦</div>`;
+
+    const stockTag = p.manage_stock
+      ? (stockQty > 0
+          ? `<span class="tag tag-stock">Stock: ${stockQty}</span>`
+          : `<span class="tag tag-nostock">Out of stock</span>`)
+      : '';
+    const matTag = p.material ? `<span class="tag tag-mat">${p.material}</span>` : '';
+    const bomTag = !hasBom ? `<span class="tag tag-nobom">No BOM</span>` : '';
+
+    div.innerHTML = `
+      <div class="card-header" onclick="toggleCard('${p._id}')">
+        ${imgThumb}
+        <div class="card-info">
+          <div class="card-name">${p.name || '—'}</div>
+          <div class="card-meta">${matTag}${stockTag}${bomTag}</div>
+        </div>
+        <span class="card-chev">▼</span>
+      </div>
+      <div class="card-body">
+        ${buildBody(p)}
+      </div>`;
+    return div;
+  }
+
+  function buildBody(p) {
+    const hasBom = Array.isArray(p.bom) && p.bom.length > 0;
+    const dim = [p.dim_length, p.dim_width, p.dim_height].filter(Boolean).join(' × ') || '—';
+
+    const bigImg = p.image_url
+      ? `<img class="detail-img" src="${p.image_url}" alt="" onclick="openImg('${p.image_url}')">`
+      : `<div class="detail-img-placeholder">📦</div>`;
+
+    const dwgBtn = p.drawing_url
+      ? `<a class="dwg-btn" href="${p.drawing_url}" target="_blank">📐 Drawing</a>`
+      : '';
+
+    const fields = [
+      { label: 'SKU',        value: p.sku        || '' },
+      { label: 'Status',     value: p.status      || '' },
+      { label: 'Material',   value: p.material    || '' },
+      { label: 'Dimensions', value: dim },
+      { label: 'Stock Qty',  value: p.manage_stock ? String(p.stock_qty ?? 0) : 'Unmanaged' },
+      { label: 'Product ID', value: p.product_id ? `#${p.product_id}` : p._id },
+    ];
+
+    const fieldsHtml = fields.map(f => `
+      <div class="field">
+        <div class="field-label">${f.label}</div>
+        <div class="field-value${!f.value ? ' empty' : ''}">${f.value || '—'}</div>
+      </div>`).join('');
+
+    const bomHtml = hasBom ? `
+      <table class="bom-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Part</th>
+            <th>Thx</th>
+            <th>X (cm)</th>
+            <th>Y (cm)</th>
+            <th>Qty</th>
+            <th>Material</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${p.bom.map((row, i) => `
+            <tr>
+              <td style="color:#bbb">${i + 1}</td>
+              <td style="font-weight:600">${row.name || '—'}</td>
+              <td class="bom-dim">${row.thx || '—'}</td>
+              <td class="bom-dim">${row.x || '—'}</td>
+              <td class="bom-dim">${row.y || '—'}</td>
+              <td class="bom-qty">${row.qty ?? '—'}</td>
+              <td>${row.material || '—'}</td>
+              <td class="bom-remarks">${row.remarks || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>` : `<div class="bom-empty">No BOM data — run Step 3 in migrate.html</div>`;
+
+    return `
+      <div class="card-body-inner">
+        <div class="detail-img-wrap">
+          ${bigImg}
+          <div class="detail-links">${dwgBtn}</div>
+        </div>
+        <div class="detail-right">
+          <div class="fields-grid">${fieldsHtml}</div>
+          <div class="bom-section">
+            <div class="bom-title">Bill of Materials (${hasBom ? p.bom.length + ' parts' : '0 parts'})</div>
+            ${bomHtml}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Toggle ────────────────────────────────────────────────────────────
+  function toggleCard(id) {
+    _expandedId = (_expandedId === id) ? null : id;
+    renderGrid();
+    if (_expandedId) {
+      requestAnimationFrame(() => {
+        const el = document.getElementById('card-' + id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  // ── Image popup ───────────────────────────────────────────────────────
+  function openImg(src) {
+    document.getElementById('imgPopupSrc').src = src;
+    document.getElementById('imgOverlay').classList.add('open');
+  }
+  function closeImg() {
+    document.getElementById('imgOverlay').classList.remove('open');
+    document.getElementById('imgPopupSrc').src = '';
+  }
+
+  load();
+</script>
+</body>
+</html>
