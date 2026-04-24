@@ -294,7 +294,7 @@
       <thead><tr>
         <th>Product</th><th>QTY</th><th>Picture</th>
         <th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
-        <th>Pro</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
+        <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -311,7 +311,7 @@
         ? `<table class="cl-parts-table">
             <thead><tr>
               <th>#</th><th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
-              <th>Pro</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
+              <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
             </tr></thead>
             <tbody>${bom.map((part, i) => {
               const total = (part.qty || 0) * (item.total_qty || 0);
