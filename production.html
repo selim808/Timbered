@@ -423,10 +423,10 @@
       ]);
       _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
 
-      // Fetch WC orders with JO released items (not already covered by Firestore job_orders)
+      // Fetch WC orders with JO released items not already tracked by a production card
       try {
-        const coveredOrderIds = new Set(_jos.flatMap(jo =>
-          (jo.items||[]).flatMap(it => (it.mto_orders||[]).map(o => String(o.order_id)))
+        const activeOrderIds = new Set(_cards.flatMap(c =>
+          (c.items||[]).flatMap(it => (it.mto_orders||[]).map(o => String(o.order_id)))
         ));
         let page = 1, allWC = [];
         while (true) {
@@ -438,7 +438,7 @@
           page++;
         }
         _wcReleasedOrders = allWC.filter(o =>
-          !coveredOrderIds.has(String(o.id)) &&
+          !activeOrderIds.has(String(o.id)) &&
           o.line_items.some(i => (i.meta_data||[]).find(m => m.key==='tg_phase')?.value === 'JO released')
         );
       } catch(_) { _wcReleasedOrders = []; }
@@ -822,6 +822,18 @@
       });
       _cards.push(newCard);
       _startedJoIds.add(joId);
+      // Sync WC item phases to Cutting so Orders page stays in sync
+      const wcUpdates = {};
+      items.forEach(it => (it.mto_orders||[]).forEach(o => {
+        if (!wcUpdates[o.order_id]) wcUpdates[o.order_id] = [];
+        (o._lineItemIds||[]).forEach(lid => wcUpdates[o.order_id].push(lid));
+      }));
+      Promise.all(Object.entries(wcUpdates).map(([oid, lids]) =>
+        fetch(`${WC_BASE}/orders/${oid}?${WC_CREDS}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ line_items: [...new Set(lids)].map(id => ({ id: parseInt(id), meta_data: [{ key:'tg_phase', value:'Cutting' }] })) })
+        }).catch(()=>{})
+      ));
       renderKanban();
     } catch(e) {
       alert('Error: ' + e.message);
