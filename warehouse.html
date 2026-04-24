@@ -533,8 +533,7 @@
         if (q && !item.name.toLowerCase().includes(q) && !String(o.id).includes(q)) return;
         items.push({ o, item, idx });
       }));
-      pendingTotal += items.length;
-      const rows = items.map(({ o, item, idx }) => {
+      const mtoRows = items.map(({ o, item, idx }) => {
         const opts = next.map(p => `<option value="${p}">${p}</option>`).join('');
         return `<div class="recv-item">
           ${thumbHtml(item, 32)}
@@ -548,50 +547,44 @@
           </select>
         </div>`;
       }).join('');
-      const openCls = items.length ? ' open' : '';
+
+      // MTS items folded into the Sent to WH section
+      let mtsExtra = '';
+      if (phase === 'Sent to WH') {
+        _mtsCards.forEach(card => (card.items || []).forEach(it => {
+          if ((it.mts_qty || 0) === 0) return;
+          if (q && !(it.product_name||'').toLowerCase().includes(q) && !(card.jo_ref||'').toLowerCase().includes(q)) return;
+          const opts = next.map(p => `<option value="${p}">${p}</option>`).join('');
+          const imgHtml = it.product_image
+            ? `<img class="recv-item-thumb" style="width:32px;height:32px;" src="${it.product_image}" alt="">`
+            : `<span class="recv-item-thumb-ph" style="width:32px;height:32px;"></span>`;
+          mtsExtra += `<div class="recv-item">
+            ${imgHtml}
+            <div class="recv-item-info">
+              <div class="recv-item-name">${it.product_name || '—'}</div>
+              <div class="recv-item-id">${card.shipment_ref || ''} · ${card.jo_ref || ''} · MTS</div>
+            </div>
+            <span class="recv-item-qty">×${it.mts_qty}</span>
+            <select class="recv-phase-sel" data-card="${card._id}" onclick="event.stopPropagation()">
+              <option value="" disabled selected>→ Move to…</option>${opts}
+            </select>
+          </div>`;
+        }));
+      }
+
+      const totalCount = items.length + (phase === 'Sent to WH' ? _mtsCards.reduce((s,c)=>(c.items||[]).reduce((ss,it)=>ss+((it.mts_qty||0)>0?1:0),s),0) : 0);
+      pendingTotal += totalCount;
+      const allRows = mtoRows + mtsExtra;
+      const openCls = totalCount ? ' open' : '';
       return `<div class="recv-section">
         <div class="recv-sec-hdr${openCls}">
           <span>${label}</span>
-          <span class="recv-sec-count">${items.length} items</span>
+          <span class="recv-sec-count">${totalCount} items</span>
           <span class="recv-sec-chev">▼</span>
         </div>
-        <div class="recv-sec-body">${rows || '<div class="state-msg" style="padding:20px;">No items</div>'}</div>
+        <div class="recv-sec-body">${allRows || '<div class="state-msg" style="padding:20px;">No items</div>'}</div>
       </div>`;
     }).join('');
-    // MTS section — from Firestore production_cards
-    const mtsItems = [];
-    _mtsCards.forEach(card => (card.items || []).forEach(it => {
-      if ((it.mts_qty || 0) > 0) {
-        if (q && !(it.product_name||'').toLowerCase().includes(q) && !(card.jo_ref||'').toLowerCase().includes(q)) return;
-        mtsItems.push({ card, it });
-      }
-    }));
-    const mtsRows = mtsItems.map(({ card, it }) => {
-      const opts = SENT_TO_WH_NEXT.map(p => `<option value="${p}">${p}</option>`).join('');
-      const imgHtml = it.product_image
-        ? `<img class="recv-item-thumb" style="width:32px;height:32px;" src="${it.product_image}" alt="">`
-        : `<span class="recv-item-thumb-ph" style="width:32px;height:32px;"></span>`;
-      return `<div class="recv-item">
-        ${imgHtml}
-        <div class="recv-item-info">
-          <div class="recv-item-name">${it.product_name || '—'}</div>
-          <div class="recv-item-id">${card.jo_ref || ''} · MTS</div>
-        </div>
-        <span class="recv-item-qty">×${it.mts_qty}</span>
-        <select class="recv-phase-sel" data-card="${card._id}" onclick="event.stopPropagation()">
-          <option value="" disabled selected>→ Move to…</option>${opts}
-        </select>
-      </div>`;
-    }).join('');
-    const mtsOpenCls = mtsItems.length ? ' open' : '';
-    html += `<div class="recv-section">
-      <div class="recv-sec-hdr${mtsOpenCls}">
-        <span>MTS — Sent to WH</span>
-        <span class="recv-sec-count">${mtsItems.length} items</span>
-        <span class="recv-sec-chev">▼</span>
-      </div>
-      <div class="recv-sec-body">${mtsRows || '<div class="state-msg" style="padding:20px;">No MTS items</div>'}</div>
-    </div>`;
 
     wrap.innerHTML = html;
     wrap.querySelectorAll('.recv-sec-hdr').forEach(h => h.addEventListener('click', () => h.classList.toggle('open')));
