@@ -36,7 +36,7 @@
     .cl-ref { font-size: 18px; font-weight: 800; color: #7A4610; }
     .cl-date { font-size: 11px; color: #888; margin-top: 2px; }
 
-    .cl-table { width: 100%; border-collapse: collapse; direction: rtl; min-width: 700px; }
+    .cl-table { width: 100%; border-collapse: collapse; direction: ltr; min-width: 700px; }
     .cl-table th { background: #7A4610; color: #fff; padding: 7px 10px; font-size: 11px; text-align: center; white-space: nowrap; }
     .cl-table td { padding: 6px 10px; border: 1px solid #e0d8d0; font-size: 11px; vertical-align: middle; }
     .cl-table tr:nth-child(even) td { background: #faf7f4; }
@@ -48,6 +48,29 @@
     .cl-no-bom { color: #aaa; font-style: italic; text-align: center; }
 
     .cl-footer { margin-top: 20px; font-size: 10px; color: #aaa; text-align: center; direction: ltr; }
+
+    /* View toggle */
+    .view-toggle { display: flex; border: 1.5px solid #e8ddd4; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+    .vtb { font-size: 11px; font-weight: 700; padding: 6px 13px; border: none; background: none; cursor: pointer; color: #aaa; white-space: nowrap; }
+    .vtb.active { background: #7A4610; color: #fff; }
+    .vtb:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Card view */
+    .cl-cards { display: flex; flex-direction: column; gap: 14px; }
+    .cl-card { border: 1px solid #e8ddd4; border-radius: 8px; overflow: hidden; }
+    .cl-card-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fdf8f4; border-bottom: 2px solid #e8ddd4; }
+    .cl-card-img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .cl-card-img-ph { width: 64px; height: 64px; border-radius: 6px; background: #f0e8e0; flex-shrink: 0; }
+    .cl-card-name { flex: 1; font-size: 14px; font-weight: 800; color: #333; }
+    .cl-card-qty { font-size: 12px; font-weight: 700; color: #7A4610; background: #fef3e2; border: 1.5px solid #f5c842; border-radius: 20px; padding: 4px 14px; flex-shrink: 0; }
+    .cl-parts-table { width: 100%; border-collapse: collapse; }
+    .cl-parts-table th { background: #f5f0eb; color: #7A4610; padding: 6px 10px; font-size: 10px; font-weight: 700; text-align: center; border-bottom: 1px solid #e8ddd4; }
+    .cl-parts-table td { padding: 6px 10px; border-bottom: 1px solid #f0ebe4; font-size: 11px; text-align: center; vertical-align: middle; }
+    .cl-parts-table tr:last-child td { border-bottom: none; }
+    .cl-parts-table tr:nth-child(even) td { background: #faf7f4; }
+    .cl-part-name-td { text-align: left !important; font-weight: 600; }
+    .cl-part-total { font-weight: 700; color: #7A4610; }
+    .cl-no-bom-card { padding: 12px 16px; color: #aaa; font-style: italic; font-size: 12px; }
 
     @media print {
       .site-header, .controls { display: none !important; }
@@ -70,7 +93,12 @@
   <select class="jo-select" id="joSelect" onchange="onSelectChange()">
     <option value="">— Select a Job Order —</option>
   </select>
+  <div class="view-toggle">
+    <button class="vtb active" id="vtbTable" onclick="setView('table')" disabled>Table</button>
+    <button class="vtb" id="vtbCard" onclick="setView('card')" disabled>Cards</button>
+  </div>
   <button class="pdf-btn" id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
+  <button class="print-btn" id="imgBtn" onclick="downloadImage()" disabled>Download Image</button>
   <button class="print-btn" id="printBtn" onclick="window.print()" disabled>Print</button>
 </div>
 
@@ -120,6 +148,9 @@
 
   let _allJOs = [];
   let _currentJO = null;
+  let _currentItems = [];
+  let _bomMap = {};
+  let _viewMode = 'table';
 
   async function init() {
     try {
@@ -152,8 +183,7 @@
       document.getElementById('cutlist-display').style.display = 'none';
       document.getElementById('stateMsg').style.display = 'block';
       document.getElementById('stateMsg').textContent = 'Select a Job Order to view its cutlist';
-      document.getElementById('pdfBtn').disabled = true;
-      document.getElementById('printBtn').disabled = true;
+      ['pdfBtn','imgBtn','printBtn','vtbTable','vtbCard'].forEach(id => document.getElementById(id).disabled = true);
       _currentJO = null;
       history.replaceState(null, '', location.pathname);
       return;
@@ -168,106 +198,149 @@
     msg.textContent = 'Loading…';
     msg.style.display = 'block';
     display.style.display = 'none';
-    document.getElementById('pdfBtn').disabled = true;
-    document.getElementById('printBtn').disabled = true;
+    ['pdfBtn','imgBtn','printBtn','vtbTable','vtbCard'].forEach(id => document.getElementById(id).disabled = true);
 
     try {
       const jo = await fsGet('job_orders', docId);
       _currentJO = jo;
-      const items = jo.items || [];
+      _currentItems = jo.items || [];
 
-      const uniqueIds = [...new Set(items.map(i => i.product_id).filter(Boolean))];
-      const bomMap = {};
+      const uniqueIds = [...new Set(_currentItems.map(i => i.product_id).filter(Boolean))];
+      _bomMap = {};
       await Promise.all(uniqueIds.map(async pid => {
-        try { const p = await fsGet('products', String(pid)); bomMap[pid] = p.bom || []; }
-        catch (_) { bomMap[pid] = []; }
+        try { const p = await fsGet('products', String(pid)); _bomMap[pid] = p.bom || []; }
+        catch (_) { _bomMap[pid] = []; }
       }));
 
-      let rows = '';
-      items.forEach(item => {
-        const bom = bomMap[item.product_id] || [];
-        const rowspan = bom.length || 1;
-        const thumb = item.image
-          ? `<img src="${item.image}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;" crossorigin="anonymous">`
-          : '';
-
-        if (!bom.length) {
-          rows += `<tr>
-            <td class="cl-product-cell" rowspan="1">${item.product_name}</td>
-            <td class="cl-qty-cell" rowspan="1">${item.total_qty || 0}</td>
-            <td class="cl-img-cell" rowspan="1">${thumb}</td>
-            <td colspan="8" class="cl-no-bom">No BOM data</td>
-          </tr>`;
-          return;
-        }
-
-        bom.forEach((part, idx) => {
-          const totalPartQty = (part.qty || 0) * (item.total_qty || 0);
-          if (idx === 0) {
-            rows += `<tr>
-              <td class="cl-product-cell" rowspan="${rowspan}">${item.product_name}</td>
-              <td class="cl-qty-cell" rowspan="${rowspan}">${item.total_qty || 0}</td>
-              <td class="cl-img-cell" rowspan="${rowspan}">${thumb}</td>
-              <td class="cl-center">${part.name || ''}</td>
-              <td class="cl-center">${part.thx || ''}</td>
-              <td class="cl-center">${part.x || ''}</td>
-              <td class="cl-center">${part.y || ''}</td>
-              <td class="cl-center">${part.qty || ''}</td>
-              <td class="cl-total-qty">${totalPartQty}</td>
-              <td class="cl-center">${part.material || ''}</td>
-              <td class="cl-center">${part.remarks || ''}</td>
-            </tr>`;
-          } else {
-            rows += `<tr>
-              <td class="cl-center">${part.name || ''}</td>
-              <td class="cl-center">${part.thx || ''}</td>
-              <td class="cl-center">${part.x || ''}</td>
-              <td class="cl-center">${part.y || ''}</td>
-              <td class="cl-center">${part.qty || ''}</td>
-              <td class="cl-total-qty">${totalPartQty}</td>
-              <td class="cl-center">${part.material || ''}</td>
-              <td class="cl-center">${part.remarks || ''}</td>
-            </tr>`;
-          }
-        });
-      });
-
-      display.innerHTML = `
-        <div class="cl-header">
-          <div>
-            <div class="cl-logo">TIMBERED</div>
-            <div class="cl-sub">Cutlist</div>
-          </div>
-          <div class="cl-meta">
-            <div class="cl-ref">${jo.ref || ''}</div>
-            <div class="cl-date">${fmtDate(jo.created_at)}</div>
-          </div>
-        </div>
-        <table class="cl-table">
-          <thead><tr>
-            <th>Product</th>
-            <th>QTY</th>
-            <th>Picture</th>
-            <th>Name</th>
-            <th>Thx</th>
-            <th>X (cm)</th>
-            <th>Y (cm)</th>
-            <th>Pro</th>
-            <th>Total Qty</th>
-            <th>Material</th>
-            <th>Remarks</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div class="cl-footer">Generated ${new Date().toLocaleString('en-GB')} · Timbered Dashboard</div>`;
-
+      renderDisplay();
       msg.style.display = 'none';
       display.style.display = 'block';
-      document.getElementById('pdfBtn').disabled = false;
-      document.getElementById('printBtn').disabled = false;
+      ['pdfBtn','imgBtn','printBtn','vtbTable','vtbCard'].forEach(id => document.getElementById(id).disabled = false);
     } catch (e) {
       msg.textContent = 'Error loading cutlist: ' + e.message;
     }
+  }
+
+  function setView(mode) {
+    _viewMode = mode;
+    document.getElementById('vtbTable').classList.toggle('active', mode === 'table');
+    document.getElementById('vtbCard').classList.toggle('active', mode === 'card');
+    renderDisplay();
+  }
+
+  function renderDisplay() {
+    const header = `
+      <div class="cl-header">
+        <div>
+          <div class="cl-logo">TIMBERED</div>
+          <div class="cl-sub">Cutlist</div>
+        </div>
+        <div class="cl-meta">
+          <div class="cl-ref">${_currentJO.ref || ''}</div>
+          <div class="cl-date">${fmtDate(_currentJO.created_at)}</div>
+        </div>
+      </div>`;
+    const footer = `<div class="cl-footer">Generated ${new Date().toLocaleString('en-GB')} · Timbered Dashboard</div>`;
+    const body = _viewMode === 'card' ? renderCardView() : renderTableView();
+    document.getElementById('cutlist-display').innerHTML = header + body + footer;
+  }
+
+  function renderTableView() {
+    let rows = '';
+    _currentItems.forEach(item => {
+      const bom = _bomMap[item.product_id] || [];
+      const rowspan = bom.length || 1;
+      const thumb = item.image ? `<img src="${item.image}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;">` : '';
+      if (!bom.length) {
+        rows += `<tr>
+          <td class="cl-product-cell" rowspan="1">${item.product_name}</td>
+          <td class="cl-qty-cell" rowspan="1">${item.total_qty || 0}</td>
+          <td class="cl-img-cell" rowspan="1">${thumb}</td>
+          <td colspan="8" class="cl-no-bom">No BOM data</td>
+        </tr>`;
+        return;
+      }
+      bom.forEach((part, idx) => {
+        const totalPartQty = (part.qty || 0) * (item.total_qty || 0);
+        if (idx === 0) {
+          rows += `<tr>
+            <td class="cl-product-cell" rowspan="${rowspan}">${item.product_name}</td>
+            <td class="cl-qty-cell" rowspan="${rowspan}">${item.total_qty || 0}</td>
+            <td class="cl-img-cell" rowspan="${rowspan}">${thumb}</td>
+            <td class="cl-center">${part.name || ''}</td>
+            <td class="cl-center">${part.thx || ''}</td>
+            <td class="cl-center">${part.x || ''}</td>
+            <td class="cl-center">${part.y || ''}</td>
+            <td class="cl-center">${part.qty || ''}</td>
+            <td class="cl-total-qty">${totalPartQty}</td>
+            <td class="cl-center">${part.material || ''}</td>
+            <td class="cl-center">${part.remarks || ''}</td>
+          </tr>`;
+        } else {
+          rows += `<tr>
+            <td class="cl-center">${part.name || ''}</td>
+            <td class="cl-center">${part.thx || ''}</td>
+            <td class="cl-center">${part.x || ''}</td>
+            <td class="cl-center">${part.y || ''}</td>
+            <td class="cl-center">${part.qty || ''}</td>
+            <td class="cl-total-qty">${totalPartQty}</td>
+            <td class="cl-center">${part.material || ''}</td>
+            <td class="cl-center">${part.remarks || ''}</td>
+          </tr>`;
+        }
+      });
+    });
+    return `<table class="cl-table">
+      <thead><tr>
+        <th>Product</th><th>QTY</th><th>Picture</th>
+        <th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+        <th>Pro</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function renderCardView() {
+    const cards = _currentItems.map(item => {
+      const bom = _bomMap[item.product_id] || [];
+      const imgHtml = item.image
+        ? `<img class="cl-card-img" src="${item.image}">`
+        : `<div class="cl-card-img-ph"></div>`;
+
+      const partsHtml = bom.length
+        ? `<table class="cl-parts-table">
+            <thead><tr>
+              <th>#</th><th>Name</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+              <th>Pro</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
+            </tr></thead>
+            <tbody>${bom.map((part, i) => {
+              const total = (part.qty || 0) * (item.total_qty || 0);
+              return `<tr>
+                <td>${i + 1}</td>
+                <td class="cl-part-name-td">${part.name || ''}</td>
+                <td>${part.thx || ''}</td>
+                <td>${part.x || ''}</td>
+                <td>${part.y || ''}</td>
+                <td>${part.qty || ''}</td>
+                <td class="cl-part-total">${total}</td>
+                <td>${part.material || ''}</td>
+                <td>${part.remarks || ''}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>`
+        : `<div class="cl-no-bom-card">No BOM data</div>`;
+
+      return `<div class="cl-card">
+        <div class="cl-card-header">
+          ${imgHtml}
+          <div class="cl-card-name">${item.product_name}</div>
+          <div class="cl-card-qty">Total: ${item.total_qty || 0}</div>
+        </div>
+        <div class="cl-card-body">${partsHtml}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="cl-cards">${cards}</div>`;
   }
 
   async function downloadPDF() {
@@ -304,6 +377,22 @@
       alert('PDF error: ' + e.message);
     }
     btn.textContent = 'Download PDF'; btn.disabled = false;
+  }
+
+  async function downloadImage() {
+    const btn = document.getElementById('imgBtn');
+    btn.textContent = 'Generating…'; btn.disabled = true;
+    try {
+      const el = document.getElementById('cutlist-display');
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `Cutlist-${_currentJO?.ref || 'JO'}.png`;
+      a.click();
+    } catch (e) {
+      alert('Image error: ' + e.message);
+    }
+    btn.textContent = 'Download Image'; btn.disabled = false;
   }
 
   init();
