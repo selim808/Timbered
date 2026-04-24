@@ -343,12 +343,29 @@
     return `<div class="cl-cards">${cards}</div>`;
   }
 
+  async function imgToDataURL(src) {
+    const res = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(src)}`);
+    const blob = await res.blob();
+    return new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(blob); });
+  }
+
+  async function inlineImages(el) {
+    const imgs = [...el.querySelectorAll('img')];
+    const originals = imgs.map(img => img.src);
+    await Promise.all(imgs.map(async (img, i) => {
+      try { img.src = await imgToDataURL(originals[i]); } catch(_) {}
+    }));
+    return () => imgs.forEach((img, i) => { img.src = originals[i]; });
+  }
+
   async function downloadPDF() {
     const btn = document.getElementById('pdfBtn');
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const restore = await inlineImages(el);
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
+      restore();
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
@@ -384,7 +401,9 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const restore = await inlineImages(el);
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
+      restore();
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = `Cutlist-${_currentJO?.ref || 'JO'}.png`;
