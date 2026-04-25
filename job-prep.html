@@ -54,6 +54,10 @@
     .mto-order-id { font-weight: 700; color: #7A4610; flex-shrink: 0; }
     .mto-order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mto-order-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+    .mto-rm-btn { font-size: 13px; color: #e74c3c; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; opacity: 0.6; }
+    .mto-rm-btn:hover { opacity: 1; }
+    .prod-rm-btn { font-size: 16px; color: #e74c3c; background: none; border: none; cursor: pointer; padding: 0 2px; flex-shrink: 0; line-height: 1; opacity: 0.5; }
+    .prod-rm-btn:hover { opacity: 1; }
 
     /* SUBMIT BUTTON */
     .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e8ddd4; padding: 12px 16px; z-index: 90; display: flex; gap: 10px; align-items: center; max-width: 640px; margin: 0 auto; }
@@ -102,6 +106,11 @@
     .section-hdr-line { flex: 1; height: 1px; background: #e8ddd4; }
     .section-hdr-lbl { font-size: 11px; font-weight: 700; color: #7A4610; white-space: nowrap; }
 
+    .new-toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 7px 10px; display: none; }
+    .load-orders-btn { font-size: 12px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 5px 16px; background: none; cursor: pointer; }
+    .load-orders-btn:hover { background: #7A4610; color: #fff; }
+    .load-orders-btn:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
+
     .search-row { margin-bottom: 6px; }
     .prod-search { width: 100%; font-size: 12px; padding: 8px 12px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
     .prod-search:focus { border-color: #7A4610; }
@@ -131,6 +140,31 @@
     .jo-pdf-btn:hover { background: #2980b9; color: #fff; }
     .jo-cutlist-btn { font-size: 11px; font-weight: 700; color: #27ae60; border: 1.5px solid #27ae60; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
     .jo-cutlist-btn:hover { background: #27ae60; color: #fff; }
+
+    /* ORDER DETAIL POPUP */
+    .od-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: flex-end; justify-content: center; }
+    .od-overlay.open { display: flex; }
+    .od-sheet { background: #f5f0eb; border-radius: 16px 16px 0 0; width: 100%; max-width: 640px; max-height: 86vh; display: flex; flex-direction: column; }
+    .od-hdr { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #fff; border-radius: 16px 16px 0 0; border-bottom: 1px solid #e8ddd4; flex-shrink: 0; }
+    .od-title { font-size: 14px; font-weight: 700; color: #7A4610; flex: 1; }
+    .od-close { font-size: 20px; color: #aaa; background: none; border: none; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .od-body { flex: 1; overflow-y: auto; padding: 10px 12px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .od-section { background: #fff; border-radius: 8px; padding: 10px 12px; }
+    .od-section-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #7A4610; margin-bottom: 6px; }
+    .od-customer-name { font-size: 13px; font-weight: 700; color: #333; }
+    .od-meta { font-size: 11px; color: #777; margin-top: 3px; }
+    .od-item-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f5f0eb; }
+    .od-item-row:last-child { border-bottom: none; }
+    .od-item-thumb { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .od-item-thumb-ph { width: 28px; height: 28px; border-radius: 4px; background: #f0e8e0; flex-shrink: 0; }
+    .od-item-name { flex: 1; font-size: 12px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .od-item-qty { font-size: 11px; color: #888; flex-shrink: 0; }
+    .od-item-phase { font-size: 10px; color: #7A4610; background: #fef3e2; border-radius: 8px; padding: 1px 7px; flex-shrink: 0; }
+    .od-total-row { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 8px; padding: 10px 12px; }
+    .od-total-lbl { font-size: 12px; font-weight: 700; color: #555; }
+    .od-total-val { font-size: 15px; font-weight: 800; color: #7A4610; }
+    .mto-order-id-link { cursor: pointer; }
+    .mto-order-id-link:hover { text-decoration: underline; }
 
     /* EDIT OVERLAY */
     .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
@@ -162,13 +196,27 @@
 
 <nav class="sub-nav">
   <button class="sub-nav-btn active" id="tabNew">New JO <span class="badge" id="newBadge">—</span></button>
-  <button class="sub-nav-btn" id="tabHistory">History <span class="badge" id="histBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabHistory">JO Archive <span class="badge" id="histBadge">—</span></button>
 </nav>
+
+<div class="new-toolbar" id="newToolbar">
+  <button class="load-orders-btn" id="loadOrdersBtn" onclick="loadJOOrders()">↻ Load Orders in JO Prep</button>
+</div>
 
 <div id="stateMsg" class="state-msg">Loading…</div>
 
 <div class="wrap" id="newWrap" style="display:none"></div>
 <div class="wrap" id="histWrap" style="display:none"></div>
+
+<div class="od-overlay" id="odOverlay" onclick="if(event.target===this)closeOrderDetail()">
+  <div class="od-sheet">
+    <div class="od-hdr">
+      <span class="od-title" id="odTitle">Order</span>
+      <button class="od-close" onclick="closeOrderDetail()">×</button>
+    </div>
+    <div class="od-body" id="odBody"></div>
+  </div>
+</div>
 
 <div class="edit-overlay" id="editOverlay" onclick="if(event.target===this)closeEdit()">
   <div class="edit-sheet">
@@ -351,8 +399,9 @@
         : `<div class="prod-thumb-ph"></div>`;
       const dwg = p.dwg_url || DRAWING_URLS[p.product_id] || '';
       const ordersHtml = p.mto_orders.map(o =>
-        `<div class="mto-order-row">
-          <span class="mto-order-id">#${o.order_id}</span>
+        `<div class="mto-order-row" data-order="${o.order_id}">
+          <button class="mto-rm-btn" onclick="event.stopPropagation();removeOrder(${p.product_id},${o.order_id})" title="Exclude order">×</button>
+          <span class="mto-order-id mto-order-id-link" onclick="event.stopPropagation();showOrderDetail(${o.order_id})">#${o.order_id}</span>
           <span class="mto-order-name">${o.customer}</span>
           <span class="mto-order-qty">×${o.qty}</span>
         </div>`
@@ -382,6 +431,7 @@
               <span class="total-col-lbl">Total</span>
               <span class="total-col-val">${p.mto_qty}</span>
             </div>
+            <button class="prod-rm-btn" onclick="event.stopPropagation();removeProduct(${p.product_id})" title="Remove product from JO">×</button>
             <span class="prod-chev">▼</span>
           </div>
           <div class="mto-orders">${ordersHtml}</div>
@@ -413,18 +463,63 @@
     updateSubmitSummary();
   }
 
+  // ── Remove MTO product / order ────────────────────────────────────
+  let _excludedPids   = new Set();
+  let _excludedOrders = {}; // pid → Set of excluded order_ids
+
+  function removeProduct(pid) {
+    _excludedPids.add(pid);
+    document.querySelector(`.prod-card[data-pid="${pid}"]`)?.remove();
+    updateSubmitSummary();
+  }
+
+  function removeOrder(pid, orderId) {
+    if (!_excludedOrders[pid]) _excludedOrders[pid] = new Set();
+    _excludedOrders[pid].add(orderId);
+    const p = _wcProducts.find(x => x.product_id === pid);
+    const remaining = (p?.mto_orders || []).filter(o => !_excludedOrders[pid].has(o.order_id));
+    if (remaining.length === 0) { removeProduct(pid); return; }
+    const newMto = remaining.reduce((s, o) => s + o.qty, 0);
+    const card = document.querySelector(`.prod-card[data-pid="${pid}"]`);
+    if (!card) return;
+    card.querySelector('.qty-col-val').textContent = newMto;
+    const inp = card.querySelector('.mts-input');
+    if (inp) {
+      inp.dataset.mto = newMto;
+      const mts = parseInt(inp.value) || 0;
+      const totalEl = document.getElementById(`total-${pid}`);
+      if (totalEl) totalEl.querySelector('.total-col-val').textContent = newMto + mts;
+    }
+    card.querySelector(`.mto-order-row[data-order="${orderId}"]`)?.remove();
+    updateSubmitSummary();
+  }
+
+  let _priceMap = {}; // product_id → unit price (EGP)
+
+  function fmtVal(v) {
+    if (v >= 1000000) return (v / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    return Math.round(v / 1000) + 'K';
+  }
+
   function updateSubmitSummary() {
     const mtoCards = document.querySelectorAll('.prod-card[data-pid]');
     let totalItems = mtoCards.length + _mtsOnly.length;
-    let totalQty = 0;
+    let totalQty = 0, totalVal = 0;
     mtoCards.forEach(card => {
       const inp = card.querySelector('.mts-input');
       const mto = parseInt(inp?.dataset.mto) || 0;
       const mts = parseInt(inp?.value) || 0;
-      totalQty += mto + mts;
+      const qty = mto + mts;
+      totalQty += qty;
+      totalVal += qty * (_priceMap[parseInt(card.dataset.pid)] || 0);
     });
-    _mtsOnly.forEach(p => { totalQty += parseInt(p.qty) || 1; });
-    document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units`;
+    _mtsOnly.forEach(p => {
+      const qty = parseInt(p.qty) || 1;
+      totalQty += qty;
+      totalVal += qty * (_priceMap[p.product_id] || 0);
+    });
+    const valStr = totalVal > 0 ? ` · ${fmtVal(totalVal)} EGP` : '';
+    document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units${valStr}`;
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) submitBtn.disabled = totalItems === 0;
   }
@@ -451,6 +546,14 @@
         };
       }).filter(p => p.product_id).sort((a,b) => a.name.localeCompare(b.name));
       filterProducts();
+      // Fetch WC prices for FS products not yet in _priceMap
+      const missing = _fsProducts.filter(p => !_priceMap[p.product_id]).map(p => p.product_id);
+      if (missing.length) {
+        fetch(`https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&include=${missing.join(',')}&per_page=100`)
+          .then(r => r.json()).then(prods => {
+            prods.forEach(p => { _priceMap[p.id] = parseFloat(p.price) || 0; });
+          }).catch(() => {});
+      }
     } catch(_) {}
   }
 
@@ -864,12 +967,61 @@
     }
   }
 
+  // ── Order detail popup ────────────────────────────────────────────
+  let _allOrders = [];
+
+  function showOrderDetail(orderId) {
+    const order = _allOrders.find(o => o.id === orderId);
+    if (!order) return;
+    const b = order.billing || {};
+    const customer = [b.first_name, b.last_name].filter(Boolean).join(' ') || '—';
+    const date = (order.date_created || '').replace('T', ' ').slice(0, 16);
+    const total = Math.round(parseFloat(order.total || 0)).toLocaleString();
+
+    const itemsHtml = (order.line_items || []).map(item => {
+      const phase = getPhase(orderId, item);
+      const thumb = item.image?.src
+        ? `<img class="od-item-thumb" src="${item.image.src}" alt="">`
+        : `<div class="od-item-thumb-ph"></div>`;
+      return `<div class="od-item-row">
+        ${thumb}
+        <span class="od-item-name">${item.name}</span>
+        <span class="od-item-qty">×${item.quantity}</span>
+        <span class="od-item-phase">${phase}</span>
+      </div>`;
+    }).join('');
+
+    document.getElementById('odTitle').textContent = `Order #${orderId}`;
+    document.getElementById('odBody').innerHTML = `
+      <div class="od-section">
+        <div class="od-customer-name">${customer}</div>
+        ${b.phone ? `<div class="od-meta">📞 ${b.phone}</div>` : ''}
+        ${[b.address_1, b.address_2, b.city].filter(Boolean).length ? `<div class="od-meta">${[b.address_1, b.address_2, b.city].filter(Boolean).join(', ')}</div>` : ''}
+        <div class="od-meta">${date}</div>
+        ${order.customer_note ? `<div class="od-meta" style="color:#e67e22;margin-top:4px">📝 ${order.customer_note}</div>` : ''}
+      </div>
+      <div class="od-section">
+        <div class="od-section-lbl">Items</div>
+        ${itemsHtml}
+      </div>
+      <div class="od-total-row">
+        <span class="od-total-lbl">Total</span>
+        <span class="od-total-val">${total} EGP</span>
+      </div>`;
+    document.getElementById('odOverlay').classList.add('open');
+  }
+
+  function closeOrderDetail() {
+    document.getElementById('odOverlay').classList.remove('open');
+  }
+
   // ── Tab switching ─────────────────────────────────────────────────
   let _wcProducts = [];
 
   function setTab(id) {
     document.getElementById('tabNew').classList.toggle('active', id === 'tabNew');
     document.getElementById('tabHistory').classList.toggle('active', id === 'tabHistory');
+    document.getElementById('newToolbar').style.display = id === 'tabNew' ? 'block' : 'none';
     document.getElementById('newWrap').style.display = id === 'tabNew' ? 'block' : 'none';
     document.getElementById('histWrap').style.display = id === 'tabHistory' ? 'block' : 'none';
     document.getElementById('submitBar').style.display = id === 'tabNew' && _wcProducts.length ? 'flex' : 'none';
@@ -879,13 +1031,23 @@
   document.getElementById('tabNew').addEventListener('click', () => setTab('tabNew'));
   document.getElementById('tabHistory').addEventListener('click', () => setTab('tabHistory'));
 
-  // ── Init ──────────────────────────────────────────────────────────
-  (async () => {
+  // ── Load / Reload JO orders ───────────────────────────────────────
+  async function loadJOOrders() {
+    const btn = document.getElementById('loadOrdersBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '↻ Loading…'; }
+    const stateEl = document.getElementById('stateMsg');
+    stateEl.textContent = 'Loading orders…';
+    stateEl.style.display = 'block';
+    document.getElementById('newWrap').style.display = 'none';
     try {
       const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS()]);
+      _allOrders = orders;
+      _excludedPids   = new Set();
+      _excludedOrders = {};
+      orders.forEach(o => (o.line_items || []).forEach(i => {
+        if (i.product_id && !_priceMap[i.product_id]) _priceMap[i.product_id] = parseFloat(i.price) || 0;
+      }));
       _wcProducts = groupByProduct(orders);
-
-      // Fetch tg_drawing_url from WC products in one batch
       if (_wcProducts.length) {
         const ids = _wcProducts.map(p => p.product_id).join(',');
         const res  = await fetch(`https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&include=${ids}&per_page=100`);
@@ -894,16 +1056,21 @@
           const dwg  = (p.meta_data || []).find(m => m.key === 'tg_drawing_url')?.value || '';
           const prod = _wcProducts.find(x => x.product_id === p.id);
           if (prod) prod.dwg_url = dwg;
+          _priceMap[p.id] = parseFloat(p.price) || _priceMap[p.id] || 0;
         });
       }
-
-      document.getElementById('stateMsg').style.display = 'none';
+      stateEl.style.display = 'none';
       document.getElementById('newWrap').style.display = 'block';
+      document.getElementById('newToolbar').style.display = 'block';
       renderNew(_wcProducts);
     } catch(e) {
-      document.getElementById('stateMsg').textContent = 'Error loading orders: ' + e.message;
+      stateEl.textContent = 'Error loading orders: ' + e.message;
     }
-  })();
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Load Orders in JO Prep'; }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────
+  loadJOOrders();
 </script>
 </body>
 </html>
