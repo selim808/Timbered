@@ -421,12 +421,73 @@
     { part_id:'16154-05', description:{ ar:'كوايل',    en:'Coils/Dowels'}, category:'Main', material_code:'ZAN',   qty:24, thickness_cm:0.8, width_cm:0.8, length_cm:2.0,   operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' }
   ];
 
+  // Fetch existing product from old 'products' collection by product_id field
+  async function fetchOldProduct(productId) {
+    try {
+      const r = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: {
+          from: [{ collectionId: 'products' }],
+          where: { fieldFilter: {
+            field: { fieldPath: 'product_id' },
+            op: 'EQUAL',
+            value: { integerValue: String(productId) }
+          }},
+          limit: 1
+        }})
+      });
+      const rows = await r.json();
+      const doc = rows.find(r => r.document)?.document;
+      return doc ? fromFsDoc(doc) : null;
+    } catch { return null; }
+  }
+
+  // Merge old-schema fields into the new schema seed object
+  function mergeOldIntoSeed(seed, old) {
+    if (!old) return seed;
+    const merged = JSON.parse(JSON.stringify(seed)); // deep clone
+
+    // Identity
+    if (old.name)  merged.name.en = old.name;
+    if (old.sku)   merged.sku     = old.sku;
+
+    // Media
+    if (old.image_url)   merged.media.main_image  = old.image_url;
+    if (old.drawing_url) merged.media.drawing_url = old.drawing_url;
+
+    // Dimensions
+    const dl = parseFloat(old.dim_length);
+    const dw = parseFloat(old.dim_width);
+    const dh = parseFloat(old.dim_height);
+    if (!isNaN(dl)) merged.specs.dimensions.length_cm = dl;
+    if (!isNaN(dw)) merged.specs.dimensions.width_cm  = dw;
+    if (!isNaN(dh)) merged.specs.dimensions.height_cm = dh;
+
+    // Stock
+    if (old.manage_stock !== undefined) merged.manage_stock = old.manage_stock;
+    if (old.stock_qty    !== undefined) merged.stock_qty    = old.stock_qty;
+
+    // Material — add to materials array if not already present
+    if (old.material) {
+      const already = merged.materials.some(m => m.name?.ar === old.material || m.code === old.material);
+      if (!already) merged.materials.unshift({ code: old.material, name: { en: old.material, ar: old.material } });
+    }
+
+    return merged;
+  }
+
   async function seedProduct() {
     const btn = document.getElementById('seedBtn');
     btn.disabled = true;
     try {
+      btn.textContent = 'Fetching existing data…';
+      const old = await fetchOldProduct(SEED_PRODUCT.product_id);
+      const productToWrite = mergeOldIntoSeed(SEED_PRODUCT, old);
+
       btn.textContent = 'Writing product…';
-      await fsWrite(`${COL}/${SEED_PRODUCT.product_id}`, SEED_PRODUCT);
+      await fsWrite(`${COL}/${SEED_PRODUCT.product_id}`, productToWrite);
+
       for (let i = 0; i < SEED_PARTS.length; i++) {
         const part = SEED_PARTS[i];
         btn.textContent = `Writing part ${i + 1}/${SEED_PARTS.length}…`;
