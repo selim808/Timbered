@@ -639,17 +639,19 @@
   function itemRowHtml(order, item, idx, days) {
     const phase   = getItemPhase(order.id, item.id);
     const imgSrc  = item.image && item.image.src ? item.image.src : '';
-    const prodUrl = `https://timberedgroup.com/?p=${item.product_id}`;
-    _photoItems[item.id] = item;
+    if (!item._synthetic) _photoItems[item.id] = item;
     const thumb   = imgSrc
       ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
       : `<span class="item-thumb-placeholder"></span>`;
+    const nameHtml = item._synthetic
+      ? `<span class="item-name" style="color:#888;font-style:italic">${item.name}</span>`
+      : `<a class="item-name" href="https://timberedgroup.com/?p=${item.product_id}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>${drawingUrl(item.product_id) ? `<a class="dwg-icon" href="${drawingUrl(item.product_id)}" target="_blank" onclick="event.stopPropagation()" title="Drawing">DWG</a>` : ''}`;
     return `<div class="item-row" data-order="${order.id}" data-item="${item.id}">
       <input type="checkbox" class="item-check" data-order="${order.id}" data-item="${item.id}">
       ${thumb}
       <span class="d-badge ${dc(days)}">${days}d</span>
       <span class="item-id" style="cursor:pointer" onclick="event.stopPropagation();showOrderDetail(${order.id})">${order.id}.${idx+1}</span>
-      <a class="item-name" href="${prodUrl}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>${drawingUrl(item.product_id) ? `<a class="dwg-icon" href="${drawingUrl(item.product_id)}" target="_blank" onclick="event.stopPropagation()" title="Drawing">DWG</a>` : ''}${order.customer_note ? `<span class="note-icon" onclick="event.stopPropagation();showNoteCallout(this,'${order.customer_note.replace(/'/g,"\\'")}')">📝</span>` : ''}
+      ${nameHtml}${order.customer_note ? `<span class="note-icon" onclick="event.stopPropagation();showNoteCallout(this,'${order.customer_note.replace(/'/g,"\\'")}')">📝</span>` : ''}
       <span class="item-qty">×${item.quantity}</span>
       <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
       ${phaseSelHtml(phase, order.id, item.id)}
@@ -1133,6 +1135,18 @@
     document.getElementById('content').style.display = 'block';
 
     allOrders = orders;
+    // Orders with no line_items (custom-amount / fee-only): inject a synthetic item
+    allOrders.forEach(order => {
+      if (!order.line_items.length) {
+        const feeName = (order.fee_lines || []).length
+          ? order.fee_lines.map(f => f.name).join(' + ')
+          : 'Custom Amount';
+        order.line_items = [{
+          id: 0, name: feeName, total: order.total,
+          quantity: 1, product_id: 0, meta_data: [], image: null, _synthetic: true
+        }];
+      }
+    });
     orders.forEach(order => {
       const days = daysSince(order.date_created);
       order.line_items.forEach((item, idx) => {
@@ -1226,7 +1240,7 @@
         const card = document.createElement('div');
         card.className = 'kb-card'; card.draggable = true;
         card.dataset.orderId = order.id; card.dataset.itemId = item.id; card.dataset.phase = phase;
-        card.innerHTML = `<div class="kb-card-days ${dc(days)}">${days}d</div><div class="kb-card-id">#${order.id} · ${idx+1}</div><div class="kb-card-name">${item.name}</div><div class="kb-card-qty">×${item.quantity}</div>`;
+        card.innerHTML = `<div class="kb-card-days ${dc(days)}">${days}d</div><div class="kb-card-id">#${order.id} · ${idx+1}</div><div class="kb-card-name" style="${item._synthetic ? 'color:#aaa;font-style:italic' : ''}">${item.name}</div><div class="kb-card-qty">×${item.quantity}</div>`;
         card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({ orderId: String(order.id), itemId: String(item.id) })); card.classList.add('dragging'); });
         card.addEventListener('dragend', () => card.classList.remove('dragging'));
         col.appendChild(card);
