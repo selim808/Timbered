@@ -216,6 +216,153 @@
     return { stringValue: String(v) };
   }
 
+  // ── STEP 4: Migrate all products to products_v2 ──────────────────────
+  async function fsWritePath(path, obj) {
+    const fields = {};
+    Object.entries(obj).forEach(([k, v]) => fields[k] = toFsVal(v));
+    const res = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+  }
+
+  function fromFsField(f) {
+    if (!f) return null;
+    if ('stringValue'  in f) return f.stringValue;
+    if ('integerValue' in f) return parseInt(f.integerValue);
+    if ('booleanValue' in f) return f.booleanValue;
+    if ('doubleValue'  in f) return f.doubleValue;
+    return null;
+  }
+
+  function parseThicknessCm(thx) {
+    if (!thx) return null;
+    const lo = thx.toLowerCase();
+    if (lo.includes('cm')) { const n = parseFloat(thx); return isNaN(n) ? null : n; }
+    if (lo.includes('mm')) { const n = parseFloat(thx); return isNaN(n) ? null : Math.round(n / 10 * 100) / 100; }
+    return null;
+  }
+
+  function matCodeFromAr(mat) {
+    const m = (mat || '').trim();
+    if (m === 'زان')                                                         return 'ZAN';
+    if (m === 'موسكي')                                                       return 'MOSKI';
+    if (['كنتر طبقات','كنتر','كنتر 3','كونتر 3'].includes(m))              return 'CNTR';
+    if (['أبلكاش','ابلكاش','ابلكاش ملزوق','ضهر ميلامين'].includes(m))     return 'ABLK';
+    if (['ميلامين','ميلامين ابيض'].includes(m))                             return 'MLMN-WHT';
+    if (m === 'ميلامين خشبي')                                               return 'MLMN-WD';
+    if (m === 'اكسسوار')                                                    return 'ACC';
+    if (m === 'مرتبه')                                                      return 'MRTB';
+    return m.replace(/\s+/g, '_').slice(0, 12) || 'UNK';
+  }
+
+  function mapOldDocToV2(doc) {
+    const f = doc.fields || {};
+    const get = k => fromFsField(f[k]);
+    const pid  = get('product_id');
+    const name = (get('name') || '').replace(/&amp;/g, '&');
+    const dl   = parseFloat(get('dim_length')), dw = parseFloat(get('dim_width')), dh = parseFloat(get('dim_height'));
+    const mat  = get('material') || '';
+    const matEntry = mat ? [{ code: matCodeFromAr(mat), name: { en: mat, ar: mat } }] : [];
+    const today    = new Date().toISOString().slice(0, 10);
+    return {
+      product_id: pid, sku: get('sku') || '',
+      name:       { en: name, ar: '' },
+      status:     get('status') === 'publish' ? 'active' : (get('status') || 'active'),
+      categories: [], materials: matEntry, colors: [], finishes: [],
+      specs: {
+        dimensions: { length_cm: isNaN(dl)?null:dl, width_cm: isNaN(dw)?null:dw, height_cm: isNaN(dh)?null:dh },
+        weight_kg: null
+      },
+      requirements: { require_assembly: false, require_installation: false },
+      media: { main_image: get('image_url')||'', gallery: [], drawing_url: get('drawing_url')||'' },
+      packing_list: [],
+      revision_current: 'REV-01',
+      revision_history: [{ revision:'REV-01', date: today, description:{en:'Migrated from products v1',ar:''}, approved:{name:''} }],
+      metadata: { created_at: today, updated_at: today }
+    };
+  }
+
+  function bomToV2Parts(productId, bomParts) {
+    return bomParts.map((p, i) => {
+      const remarks = (p.remarks || '').toLowerCase();
+      return {
+        part_id:       `${productId}-${String(i + 1).padStart(2, '0')}`,
+        description:   { ar: p.name || '', en: '' },
+        category:      'Main',
+        material_code: matCodeFromAr(p.material),
+        qty:           p.qty || 1,
+        thickness_cm:  parseThicknessCm(p.thx),
+        width_cm:      p.x > 0 ? p.x : null,
+        length_cm:     p.y > 0 ? p.y : null,
+        operations: {
+          cut: true, shape: /shape/i.test(remarks), cnc: /cnc/i.test(remarks),
+          upholstery: false, wooden: false, paint_before_assembly: false
+        },
+        bonding: ['اكسسوار','مرتبه'].includes(p.material) ? 'loose' : 'bonded'
+      };
+    });
+  }
+
+  async function migrateToV2() {
+    const btn       = document.getElementById('btnV2');
+    const overwrite = document.getElementById('chkOverwrite').checked;
+    btn.disabled = true;
+    document.getElementById('logV2').innerHTML = '';
+    log('logV2', '→ Loading all products from Firestore…', 'info');
+    try {
+      const qRes = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'products' }], limit: 500 } })
+      });
+      const rows = await qRes.json();
+      const docs = rows.filter(r => r.document).map(r => r.document);
+      log('logV2', `✓ Found ${docs.length} products`, 'ok');
+
+      const normalize = s => (s||'').replace(/&amp;/g,'&').trim().toLowerCase();
+      const bomIndex  = {};
+      for (const [key, parts] of Object.entries(BOM_DATA)) bomIndex[normalize(key)] = parts;
+
+      let ok = 0, skipped = 0, fail = 0, partsWritten = 0;
+
+      for (let i = 0; i < docs.length; i++) {
+        const doc = docs[i], f = doc.fields || {};
+        const pid = f.product_id?.integerValue ? parseInt(f.product_id.integerValue) : null;
+        if (!pid) continue;
+
+        setProgress('progressV2', `Processing ${i + 1}/${docs.length} — #${pid}`);
+
+        if (!overwrite) {
+          const chk = await fetch(`${FS_BASE}/products_v2/${pid}?key=${FS_KEY}`);
+          if (chk.status === 200) { log('logV2', `⏭ #${pid} already exists, skipping`); skipped++; continue; }
+        }
+
+        try {
+          await fsWritePath(`products_v2/${pid}`, mapOldDocToV2(doc));
+          const bomParts = bomIndex[normalize(f.name?.stringValue || '')];
+          if (bomParts) {
+            const parts = bomToV2Parts(pid, bomParts);
+            for (const part of parts) { await fsWritePath(`products_v2/${pid}/parts/${part.part_id}`, part); partsWritten++; }
+            log('logV2', `✓ #${pid} "${f.name?.stringValue}" + ${parts.length} parts`, 'ok');
+          } else {
+            log('logV2', `✓ #${pid} "${f.name?.stringValue}"`, 'ok');
+          }
+          ok++;
+        } catch(e) {
+          log('logV2', `✗ #${pid} "${f.name?.stringValue||''}": ${e.message}`, 'err'); fail++;
+        }
+      }
+
+      log('logV2', `✓ Done: ${ok} products, ${partsWritten} parts written, ${skipped} skipped, ${fail} failed`, 'ok');
+      setProgress('progressV2', `Done — ${ok} products, ${partsWritten} parts`);
+    } catch(e) {
+      log('logV2', `✗ Fatal: ${e.message}`, 'err');
+      setProgress('progressV2', 'Error — see log');
+    }
+    btn.disabled = false;
+  }
+
   // ── BOM data (qty = qty per product, not total) ───────────────────────
   const BOM_DATA = {
     'Mini World Organizer': [
@@ -847,6 +994,18 @@
   <button class="btn" id="btnBOM" onclick="migrateBOM()">Run BOM Migration</button>
   <div class="progress" id="progressBOM"></div>
   <div class="log" id="logBOM"></div>
+</div>
+
+
+<div class="card">
+  <h2>Step 4 — Migrate all products to <code>products_v2</code></h2>
+  <p>Reads all <code>products</code> docs and maps them to the new bilingual v2 schema, writing to <code>products_v2/{product_id}</code>. For each product whose name matches a BOM_DATA entry, also writes the parts to the <code>parts</code> sub-collection. Skips products that already exist in products_v2 unless "Overwrite" is checked — so product 16154 (which was hand-migrated) is safe by default.</p>
+  <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:12px">
+    <input type="checkbox" id="chkOverwrite"> Overwrite existing <code>products_v2</code> documents
+  </label>
+  <button class="btn" id="btnV2" onclick="migrateToV2()">Run v2 Migration</button>
+  <div class="progress" id="progressV2"></div>
+  <div class="log" id="logV2"></div>
 </div>
 
 </body>
