@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Detail — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --brand: #7A4610; --brand-light: #fef3e2; --ink: #1a1a1a;
+      --muted: #888; --border: #e8ddd4; --bg: #f5f0eb; --radius: 10px;
+    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); }
+
+    /* ── Header ── */
+    .site-header { background: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .back-btn { font-size: 12px; color: var(--brand); text-decoration: none; border: 1px solid var(--brand); border-radius: 20px; padding: 4px 10px; white-space: nowrap; flex-shrink: 0; }
+    .hdr-names { flex: 1; min-width: 0; }
+    .hdr-en { font-size: 14px; font-weight: 700; color: var(--brand); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hdr-ar { font-size: 11px; color: var(--muted); direction: rtl; }
+    .pill { font-size: 10px; border-radius: 8px; padding: 2px 8px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .pill-sku { background: #f0f0f0; color: #555; }
+    .pill-rev { background: var(--brand-light); color: var(--brand); }
+
+    /* ── Tab bar ── */
+    .tab-bar { display: none; background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 49px; z-index: 99; }
+    .tab-btn { flex: 1; font-size: 12px; font-weight: 700; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 0; cursor: pointer; font-family: inherit; }
+    .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .tab-bar.visible { display: flex; }
+
+    /* ── State / empty ── */
+    .state-wrap { text-align: center; padding: 70px 20px; color: var(--muted); font-size: 14px; }
+    .seed-btn { display: inline-block; margin-top: 16px; background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .seed-btn:disabled { background: #ccc; cursor: default; }
+
+    /* ── Tab content ── */
+    .tab-content { display: none; padding: 12px; max-width: 920px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    /* ── Cards ── */
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .card-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--brand); margin-bottom: 10px; }
+
+    /* ── Field grid ── */
+    .fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    .field { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
+    .field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 3px; }
+    .field-value { font-size: 12px; font-weight: 600; color: var(--ink); }
+    .field-value.empty { color: #ccc; font-weight: 400; font-style: italic; }
+
+    /* ── Chips ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1.5px solid var(--brand); color: var(--brand); }
+    .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 5px; margin-top: 10px; }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ── Requirements ── */
+    .req-row { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; }
+
+    /* ── Media ── */
+    .dwg-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--brand); border: 1.5px solid var(--brand); border-radius: 6px; padding: 6px 12px; text-decoration: none; }
+    .dwg-link:hover { background: var(--brand); color: #fff; }
+    .main-img { width: 100%; max-width: 280px; border-radius: var(--radius); border: 1px solid var(--border); display: block; margin-bottom: 8px; }
+    .gallery { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .gallery img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+
+    /* ── Parts table ── */
+    .parts-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .parts-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 720px; }
+    .parts-table th { background: var(--bg); color: var(--brand); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .parts-table td { padding: 6px 8px; border-bottom: 1px solid #f5f0eb; color: #444; vertical-align: middle; }
+    .parts-table tr:last-child td { border-bottom: none; }
+    .parts-table tr:hover td { background: #fdf8f4; }
+    .part-id { font-size: 10px; color: var(--muted); font-family: monospace; white-space: nowrap; }
+    .desc-ar { direction: rtl; font-size: 12px; }
+    .op-check { text-align: center; color: #27ae60; font-weight: 700; font-size: 13px; }
+    .b-main    { background: var(--brand-light); color: var(--brand); font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
+    .b-acc     { background: #f0f0f0; color: #666; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
+    .b-bonded  { background: #e8f5e9; color: #2e7d32; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+    .b-loose   { background: #fff3e0; color: #e65100; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+
+    /* ── Revisions ── */
+    .rev-list { display: flex; flex-direction: column; gap: 0; }
+    .rev-item { display: flex; gap: 12px; }
+    .rev-spine { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .rev-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 3px; }
+    .rev-item.current .rev-dot { background: #fff; border: 3px solid var(--brand); width: 14px; height: 14px; margin-top: 2px; }
+    .rev-line { width: 2px; background: var(--border); flex: 1; margin: 4px 0; min-height: 16px; }
+    .rev-body { flex: 1; padding-bottom: 18px; }
+    .rev-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+    .rev-code { font-size: 13px; font-weight: 800; color: var(--brand); }
+    .rev-date { font-size: 11px; color: var(--muted); }
+    .rev-current-badge { font-size: 9px; font-weight: 700; background: #e8f5e9; color: #2e7d32; border-radius: 8px; padding: 2px 8px; }
+    .rev-desc-en { font-size: 12px; color: var(--ink); }
+    .rev-desc-ar { font-size: 11px; color: var(--muted); direction: rtl; text-align: right; margin-top: 2px; }
+    .rev-approved { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Summary bar ── */
+    .summary-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+    .sum-item { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 80px; text-align: center; }
+    .sum-val { font-size: 20px; font-weight: 800; color: var(--brand); }
+    .sum-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="back-btn" href="products.html">← Products</a>
+  <div class="hdr-names">
+    <div class="hdr-en" id="hdrEn">Loading…</div>
+    <div class="hdr-ar" id="hdrAr"></div>
+  </div>
+  <span class="pill pill-sku" id="hdrSku"></span>
+  <span class="pill pill-rev" id="hdrRev"></span>
+</header>
+
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" onclick="setTab('overview')">Overview</button>
+  <button class="tab-btn" onclick="setTab('parts')" id="tabBtnParts">Parts</button>
+  <button class="tab-btn" onclick="setTab('revisions')">Revisions</button>
+</div>
+
+<div id="stateWrap"></div>
+
+<div id="tab-overview" class="tab-content"></div>
+<div id="tab-parts"    class="tab-content"></div>
+<div id="tab-revisions" class="tab-content"></div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const COL     = 'products_v2';
+
+  const pid = new URLSearchParams(location.search).get('id') || '';
+  let _product = null;
+  let _parts   = [];
+
+  // ── Firestore ─────────────────────────────────────────────────────
+  function fromFsVal(v) {
+    if (!v) return null;
+    if ('nullValue'      in v) return null;
+    if ('booleanValue'   in v) return v.booleanValue;
+    if ('integerValue'   in v) return parseInt(v.integerValue);
+    if ('doubleValue'    in v) return v.doubleValue;
+    if ('stringValue'    in v) return v.stringValue;
+    if ('timestampValue' in v) return v.timestampValue.slice(0, 10);
+    if ('arrayValue'     in v) return (v.arrayValue.values || []).map(fromFsVal);
+    if ('mapValue'       in v) {
+      const o = {};
+      Object.entries(v.mapValue.fields || {}).forEach(([k, x]) => o[k] = fromFsVal(x));
+      return o;
+    }
+    return null;
+  }
+  function fromFsDoc(doc) {
+    const o = {};
+    Object.entries(doc.fields || {}).forEach(([k, v]) => o[k] = fromFsVal(v));
+    o._id = doc.name.split('/').pop();
+    return o;
+  }
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number')  return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string')  return { stringValue: v };
+    if (Array.isArray(v))       return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') {
+      const f = {};
+      Object.entries(v).forEach(([k, x]) => f[k] = toFsVal(x));
+      return { mapValue: { fields: f } };
+    }
+    return { stringValue: String(v) };
+  }
+  async function fsGet(path) {
+    const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`);
+    if (r.status === 404) return null;
+    const d = await r.json();
+    if (d.error) return null;
+    return fromFsDoc(d);
+  }
+  async function fsList(path) {
+    const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}&pageSize=500`);
+    const d = await r.json();
+    return (d.documents || []).map(fromFsDoc);
+  }
+  async function fsWrite(path, data) {
+    const fields = {};
+    Object.entries(data).forEach(([k, v]) => fields[k] = toFsVal(v));
+    const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    if (!r.ok) throw new Error(`FS ${r.status}: ${await r.text()}`);
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────
+  function setTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    const tabs = ['overview', 'parts', 'revisions'];
+    document.querySelectorAll('.tab-btn')[tabs.indexOf(tab)].classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  // ── Render ────────────────────────────────────────────────────────
+  function renderAll() {
+    const p = _product;
+    document.getElementById('hdrEn').textContent  = p.name?.en || '#' + p._id;
+    document.getElementById('hdrAr').textContent  = p.name?.ar || '';
+    document.getElementById('hdrSku').textContent = p.sku || '';
+    document.getElementById('hdrRev').textContent = p.revision_current || '';
+    document.title = (p.name?.en || p._id) + ' — Timbered';
+    const cnt = _parts.length;
+    document.getElementById('tabBtnParts').textContent = cnt ? `Parts (${cnt})` : 'Parts';
+    renderOverview();
+    renderParts();
+    renderRevisions();
+  }
+
+  function chips(arr, emptyText) {
+    if (!arr || !arr.length) return `<span style="color:#ccc;font-style:italic;font-size:12px">${emptyText || '—'}</span>`;
+    return `<div class="chips">${arr.map(m => {
+      const label = m.name?.en || m.code || m;
+      const sub   = m.name?.ar || '';
+      return `<span class="chip" title="${sub}">${label}${sub ? ` · ${sub}` : ''}</span>`;
+    }).join('')}</div>`;
+  }
+
+  function renderOverview() {
+    const p   = _product;
+    const dim = p.specs?.dimensions || {};
+    const dimStr = [
+      dim.length_cm != null ? `L ${dim.length_cm}` : '',
+      dim.width_cm  != null ? `W ${dim.width_cm}`  : '',
+      dim.height_cm != null ? `H ${dim.height_cm}` : ''
+    ].filter(Boolean).join(' × ');
+    const req = p.requirements || {};
+    const med = p.media || {};
+
+    document.getElementById('tab-overview').innerHTML = `
+      <div class="card">
+        <div class="card-title">Identity</div>
+        <div class="fields-grid">
+          <div class="field"><div class="field-label">Product ID</div><div class="field-value">#${p.product_id || p._id}</div></div>
+          <div class="field"><div class="field-label">SKU</div><div class="field-value ${!p.sku?'empty':''}">${p.sku||'—'}</div></div>
+          <div class="field"><div class="field-label">Status</div><div class="field-value">${p.status||'—'}</div></div>
+          <div class="field"><div class="field-label">Revision</div><div class="field-value">${p.revision_current||'—'}</div></div>
+        </div>
+        ${(p.categories||[]).length ? `<div class="section-label" style="margin-top:12px">Categories</div>${chips(p.categories)}` : ''}
+      </div>
+
+      <div class="card">
+        <div class="card-title">Materials &amp; Finish</div>
+        <div class="section-label">Materials</div>${chips(p.materials,'No materials')}
+        <div class="section-label">Colors</div>${chips(p.colors,'—')}
+        <div class="section-label">Finishes</div>${chips(p.finishes,'—')}
+      </div>
+
+      <div class="card">
+        <div class="card-title">Specifications</div>
+        <div class="fields-grid">
+          <div class="field"><div class="field-label">Dimensions (cm)</div><div class="field-value ${!dimStr?'empty':''}">${dimStr||'—'}</div></div>
+          <div class="field"><div class="field-label">Weight</div><div class="field-value ${p.specs?.weight_kg==null?'empty':''}">${p.specs?.weight_kg!=null ? p.specs.weight_kg+' kg' : '—'}</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Requirements</div>
+        <div class="req-row">${req.require_assembly    ? '✅' : '⬜'} <span style="font-size:12px">Requires Assembly</span></div>
+        <div class="req-row">${req.require_installation? '✅' : '⬜'} <span style="font-size:12px">Requires Installation</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Media</div>
+        ${med.main_image ? `<img class="main-img" src="${med.main_image}" alt="">` : ''}
+        ${(med.gallery||[]).length ? `<div class="gallery">${med.gallery.map(s=>`<img src="${s}" alt="" onclick="window.open('${s}')">`).join('')}</div>` : ''}
+        ${med.drawing_url
+          ? `<a class="dwg-link" href="${med.drawing_url}" target="_blank">📐 Drawing</a>`
+          : `<span style="color:#ccc;font-style:italic;font-size:12px">No drawing yet</span>`}
+      </div>
+
+      <div class="card">
+        <div class="card-title">Timestamps</div>
+        <div class="fields-grid">
+          <div class="field"><div class="field-label">Created</div><div class="field-value">${p.metadata?.created_at||'—'}</div></div>
+          <div class="field"><div class="field-label">Updated</div><div class="field-value">${p.metadata?.updated_at||'—'}</div></div>
+        </div>
+      </div>`;
+  }
+
+  function chk(v) { return v ? '<span class="op-check">✓</span>' : ''; }
+
+  function renderParts() {
+    const sorted = [..._parts].sort((a, b) => {
+      if (a.category !== b.category) return a.category === 'Main' ? -1 : 1;
+      return String(a.part_id || a._id).localeCompare(String(b.part_id || b._id), undefined, { numeric: true });
+    });
+
+    // Summary counts
+    const main = sorted.filter(p => p.category === 'Main').length;
+    const acc  = sorted.filter(p => p.category !== 'Main').length;
+    const totalQty = sorted.reduce((s, p) => s + (p.qty || 0), 0);
+
+    document.getElementById('tab-parts').innerHTML = `
+      <div class="summary-bar">
+        <div class="sum-item"><div class="sum-val">${sorted.length}</div><div class="sum-label">Total Parts</div></div>
+        <div class="sum-item"><div class="sum-val">${main}</div><div class="sum-label">Main Parts</div></div>
+        <div class="sum-item"><div class="sum-val">${acc}</div><div class="sum-label">Accessories</div></div>
+        <div class="sum-item"><div class="sum-val">${totalQty}</div><div class="sum-label">Total Qty</div></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="parts-wrap">
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th>Part ID</th>
+                <th>Description</th>
+                <th>Cat.</th>
+                <th>Material</th>
+                <th style="text-align:center">Qty</th>
+                <th style="text-align:center">Thk (cm)</th>
+                <th style="text-align:center">W (cm)</th>
+                <th style="text-align:center">L (cm)</th>
+                <th style="text-align:center">Cut</th>
+                <th style="text-align:center">Shape</th>
+                <th style="text-align:center">CNC</th>
+                <th style="text-align:center">Uph</th>
+                <th style="text-align:center">Wood</th>
+                <th style="text-align:center">Paint</th>
+                <th>Bonding</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(p => {
+                const op  = p.operations || {};
+                const id  = p.part_id || p._id;
+                const bon = p.bonding;
+                return `<tr>
+                  <td class="part-id">${id}</td>
+                  <td class="desc-ar">${p.description?.ar || p.description?.en || '—'}</td>
+                  <td><span class="${p.category==='Main'?'b-main':'b-acc'}">${p.category||''}</span></td>
+                  <td style="white-space:nowrap">${p.material_code||'—'}</td>
+                  <td style="text-align:center;font-weight:700;color:var(--brand)">${p.qty??''}</td>
+                  <td style="text-align:center">${p.thickness_cm??''}</td>
+                  <td style="text-align:center">${p.width_cm??''}</td>
+                  <td style="text-align:center">${p.length_cm??''}</td>
+                  <td>${chk(op.cut)}</td>
+                  <td>${chk(op.shape)}</td>
+                  <td>${chk(op.cnc)}</td>
+                  <td>${chk(op.upholstery)}</td>
+                  <td>${chk(op.wooden)}</td>
+                  <td>${chk(op.paint_before_assembly)}</td>
+                  <td>${bon?`<span class="${bon==='bonded'?'b-bonded':'b-loose'}">${bon}</span>`:''}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function renderRevisions() {
+    const revs    = [...(_product.revision_history || [])].reverse();
+    const current = _product.revision_current;
+    document.getElementById('tab-revisions').innerHTML = `
+      <div class="card">
+        <div class="rev-list">
+          ${revs.map((r, i) => `
+            <div class="rev-item ${r.revision === current ? 'current' : ''}">
+              <div class="rev-spine">
+                <div class="rev-dot"></div>
+                ${i < revs.length - 1 ? '<div class="rev-line"></div>' : ''}
+              </div>
+              <div class="rev-body">
+                <div class="rev-head">
+                  <span class="rev-code">${r.revision}</span>
+                  ${r.revision === current ? '<span class="rev-current-badge">Current</span>' : ''}
+                  <span class="rev-date">${r.date||''}</span>
+                </div>
+                <div class="rev-desc-en">${r.description?.en||''}</div>
+                ${r.description?.ar ? `<div class="rev-desc-ar">${r.description.ar}</div>` : ''}
+                ${r.approved?.name  ? `<div class="rev-approved">✓ ${r.approved.name}</div>` : ''}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── Seed data — Dreamy Reads Organizer (16154) ────────────────────
+  const SEED_PRODUCT = {
+    product_id: 16154,
+    sku: 'TG-16154',
+    name: { en: 'Dreamy Reads Organizer', ar: '' },
+    status: 'active',
+    categories: [],
+    materials: [
+      { code: 'MOSKI', name: { en: 'Mosaikki Wood', ar: 'موسكي' } },
+      { code: 'ZAN',   name: { en: 'Beech Wood',    ar: 'زان'   } }
+    ],
+    colors: [], finishes: [],
+    specs: { dimensions: { length_cm: null, width_cm: null, height_cm: null }, weight_kg: null },
+    requirements: { require_assembly: true, require_installation: false },
+    media: { main_image: '', gallery: [], drawing_url: '' },
+    packing_list: [],
+    revision_current: 'REV-01',
+    revision_history: [{
+      revision: 'REV-01', date: '2026-04-25',
+      description: { en: 'Initial migration', ar: 'الترحيل الأولي' },
+      approved: { name: 'Omar El Bahrawy' }
+    }],
+    metadata: { created_at: '2026-04-25', updated_at: '2026-04-25' }
+  };
+
+  const SEED_PARTS = [
+    { part_id:'16154-01', description:{ ar:'جنب يمين', en:'Right Side'  }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{ cut:true, shape:false, cnc:true,  upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
+    { part_id:'16154-02', description:{ ar:'جنب شمال', en:'Left Side'   }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{ cut:true, shape:false, cnc:true,  upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
+    { part_id:'16154-03', description:{ ar:'قاعدة',    en:'Base'        }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:7.5, length_cm:56.6,  operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
+    { part_id:'16154-04', description:{ ar:'رف',       en:'Shelf'       }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:2.5, length_cm:56.6,  operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
+    { part_id:'16154-05', description:{ ar:'كوايل',    en:'Coils/Dowels'}, category:'Main', material_code:'ZAN',   qty:24, thickness_cm:0.8, width_cm:0.8, length_cm:2.0,   operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' }
+  ];
+
+  async function seedProduct() {
+    const btn = document.getElementById('seedBtn');
+    btn.disabled = true;
+    try {
+      btn.textContent = 'Writing product…';
+      await fsWrite(`${COL}/${SEED_PRODUCT.product_id}`, SEED_PRODUCT);
+      for (let i = 0; i < SEED_PARTS.length; i++) {
+        const part = SEED_PARTS[i];
+        btn.textContent = `Writing part ${i + 1}/${SEED_PARTS.length}…`;
+        await fsWrite(`${COL}/${SEED_PRODUCT.product_id}/parts/${part.part_id}`, part);
+      }
+      btn.textContent = 'Done ✓';
+      await load();
+    } catch (e) {
+      btn.textContent = 'Error — retry';
+      btn.disabled = false;
+      alert(e.message);
+    }
+  }
+
+  // ── Load ──────────────────────────────────────────────────────────
+  async function load() {
+    document.getElementById('stateWrap').innerHTML = '<div class="state-wrap">Loading…</div>';
+    document.getElementById('tabBar').classList.remove('visible');
+
+    if (!pid) {
+      document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">No product ID — use <code>?id=16154</code></div>`;
+      return;
+    }
+
+    try {
+      _product = await fsGet(`${COL}/${pid}`);
+
+      if (!_product) {
+        const isSeedable = String(pid) === String(SEED_PRODUCT.product_id);
+        document.getElementById('stateWrap').innerHTML = `
+          <div class="state-wrap">
+            Product <strong>#${pid}</strong> not found in the new schema.
+            ${isSeedable
+              ? `<br><br><button class="seed-btn" id="seedBtn" onclick="seedProduct()">Push Dreamy Reads to Firebase</button>`
+              : ''}
+          </div>`;
+        return;
+      }
+
+      _parts = await fsList(`${COL}/${pid}/parts`);
+      document.getElementById('stateWrap').style.display = 'none';
+      document.getElementById('tabBar').classList.add('visible');
+      renderAll();
+      setTab('overview');
+
+    } catch (e) {
+      document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">Error: ${e.message}</div>`;
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>
