@@ -11,10 +11,10 @@
       --brand: #7A4610; --brand-light: #fef3e2; --ink: #1a1a1a;
       --muted: #888; --border: #e8ddd4; --bg: #f5f0eb; --radius: 10px;
     }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 70px; }
 
     /* ── Header ── */
-    .site-header { background: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .site-header { background: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
     .back-btn { font-size: 12px; color: var(--brand); text-decoration: none; border: 1px solid var(--brand); border-radius: 20px; padding: 4px 10px; white-space: nowrap; flex-shrink: 0; }
     .hdr-names { flex: 1; min-width: 0; }
     .hdr-en { font-size: 14px; font-weight: 700; color: var(--brand); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -22,6 +22,9 @@
     .pill { font-size: 10px; border-radius: 8px; padding: 2px 8px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
     .pill-sku { background: #f0f0f0; color: #555; }
     .pill-rev { background: var(--brand-light); color: var(--brand); }
+    .hdr-edit-btn { font-size: 11px; font-weight: 700; background: none; border: 1.5px solid var(--brand); border-radius: 20px; padding: 4px 12px; color: var(--brand); cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit; display: none; }
+    .hdr-edit-btn:hover { background: var(--brand); color: #fff; }
+    .hdr-edit-btn.visible { display: inline-block; }
 
     /* ── Tab bar ── */
     .tab-bar { display: none; background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 49px; z-index: 99; }
@@ -29,7 +32,7 @@
     .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
     .tab-bar.visible { display: flex; }
 
-    /* ── State / empty ── */
+    /* ── State ── */
     .state-wrap { text-align: center; padding: 70px 20px; color: var(--muted); font-size: 14px; }
     .seed-btn { display: inline-block; margin-top: 16px; background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .seed-btn:disabled { background: #ccc; cursor: default; }
@@ -42,46 +45,67 @@
     .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
     .card-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--brand); margin-bottom: 10px; }
 
-    /* ── Field grid ── */
+    /* ── Field grid (view) ── */
     .fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
     .field { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
     .field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 3px; }
     .field-value { font-size: 12px; font-weight: 600; color: var(--ink); }
     .field-value.empty { color: #ccc; font-weight: 400; font-style: italic; }
 
-    /* ── Chips ── */
+    /* ── Chips (view) ── */
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
     .chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1.5px solid var(--brand); color: var(--brand); }
-    .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 5px; margin-top: 10px; }
+    .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 5px; margin-top: 12px; }
     .section-label:first-child { margin-top: 0; }
 
-    /* ── Requirements ── */
+    /* ── Requirements (view) ── */
     .req-row { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; }
 
-    /* ── Media ── */
+    /* ── Media (view) ── */
     .dwg-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--brand); border: 1.5px solid var(--brand); border-radius: 6px; padding: 6px 12px; text-decoration: none; }
     .dwg-link:hover { background: var(--brand); color: #fff; }
     .main-img { width: 100%; max-width: 280px; border-radius: var(--radius); border: 1px solid var(--border); display: block; margin-bottom: 8px; }
     .gallery { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     .gallery img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
 
+    /* ── Edit inputs ── */
+    .ei { font-size: 12px; font-family: inherit; padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 6px; background: #fff; color: var(--ink); outline: none; width: 100%; min-width: 0; }
+    .ei:focus { border-color: var(--brand); }
+    .ei-num { width: 70px !important; text-align: center; }
+    .ei-sm  { width: 90px !important; }
+    input[type="checkbox"].ei { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
+    .ei-fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .ei-field { display: flex; flex-direction: column; gap: 4px; }
+    .ei-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
+
+    /* ── Array editor (materials / colors / finishes) ── */
+    .arr-header { display: flex; gap: 4px; margin-bottom: 4px; }
+    .arr-header span { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.3px; }
+    .arr-row { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+    .arr-del { background: none; border: none; color: #c0392b; font-size: 16px; font-weight: 700; cursor: pointer; padding: 0 3px; line-height: 1; flex-shrink: 0; }
+    .arr-add { font-size: 11px; font-weight: 700; color: var(--brand); border: 1.5px solid var(--brand); border-radius: 12px; padding: 3px 10px; background: none; cursor: pointer; margin-top: 4px; font-family: inherit; }
+    .arr-add:hover { background: var(--brand); color: #fff; }
+
     /* ── Parts table ── */
     .parts-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .parts-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 720px; }
-    .parts-table th { background: var(--bg); color: var(--brand); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    .parts-table td { padding: 6px 8px; border-bottom: 1px solid #f5f0eb; color: #444; vertical-align: middle; }
+    .parts-table th { background: var(--bg); color: var(--brand); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; padding: 7px 6px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .parts-table td { padding: 5px 6px; border-bottom: 1px solid #f5f0eb; color: #444; vertical-align: middle; }
     .parts-table tr:last-child td { border-bottom: none; }
     .parts-table tr:hover td { background: #fdf8f4; }
     .part-id { font-size: 10px; color: var(--muted); font-family: monospace; white-space: nowrap; }
     .desc-ar { direction: rtl; font-size: 12px; }
     .op-check { text-align: center; color: #27ae60; font-weight: 700; font-size: 13px; }
-    .b-main    { background: var(--brand-light); color: var(--brand); font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
-    .b-acc     { background: #f0f0f0; color: #666; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
-    .b-bonded  { background: #e8f5e9; color: #2e7d32; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
-    .b-loose   { background: #fff3e0; color: #e65100; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+    .b-main   { background: var(--brand-light); color: var(--brand); font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
+    .b-acc    { background: #f0f0f0; color: #666; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; }
+    .b-bonded { background: #e8f5e9; color: #2e7d32; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+    .b-loose  { background: #fff3e0; color: #e65100; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+    .part-del-btn { background: none; border: none; color: #c0392b; font-size: 15px; font-weight: 700; cursor: pointer; padding: 0 3px; line-height: 1; }
+    .add-part-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--brand); border: 1.5px solid var(--brand); border-radius: 8px; padding: 7px 14px; background: none; cursor: pointer; margin: 10px 0 0; font-family: inherit; }
+    .add-part-btn:hover { background: var(--brand); color: #fff; }
 
     /* ── Revisions ── */
-    .rev-list { display: flex; flex-direction: column; gap: 0; }
+    .rev-list { display: flex; flex-direction: column; }
     .rev-item { display: flex; gap: 12px; }
     .rev-spine { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
     .rev-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 3px; }
@@ -95,12 +119,23 @@
     .rev-desc-en { font-size: 12px; color: var(--ink); }
     .rev-desc-ar { font-size: 11px; color: var(--muted); direction: rtl; text-align: right; margin-top: 2px; }
     .rev-approved { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .add-rev-form { background: var(--bg); border-radius: 8px; padding: 12px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .add-rev-title { font-size: 11px; font-weight: 700; color: var(--brand); }
+    .add-rev-btn { align-self: flex-start; background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
     /* ── Summary bar ── */
-    .summary-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
-    .sum-item { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 80px; text-align: center; }
+    .summary-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .sum-item { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; flex: 1; min-width: 70px; text-align: center; }
     .sum-val { font-size: 20px; font-weight: 800; color: var(--brand); }
     .sum-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ── Bottom edit/save bar ── */
+    .edit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1.5px solid var(--border); padding: 10px 16px; display: none; align-items: center; gap: 10px; z-index: 200; }
+    .edit-bar.visible { display: flex; }
+    .save-btn { background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 9px 22px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .save-btn:disabled { background: #ccc; cursor: default; }
+    .cancel-edit-btn { background: none; color: #666; border: 1.5px solid #ccc; border-radius: 8px; padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .save-status { font-size: 12px; color: var(--muted); flex: 1; }
   </style>
 </head>
 <body>
@@ -113,19 +148,25 @@
   </div>
   <span class="pill pill-sku" id="hdrSku"></span>
   <span class="pill pill-rev" id="hdrRev"></span>
+  <button class="hdr-edit-btn" id="btnEdit" onclick="startEdit()">✏ Edit</button>
 </header>
 
 <div class="tab-bar" id="tabBar">
   <button class="tab-btn active" onclick="setTab('overview')">Overview</button>
-  <button class="tab-btn" onclick="setTab('parts')" id="tabBtnParts">Parts</button>
+  <button class="tab-btn" id="tabBtnParts" onclick="setTab('parts')">Parts</button>
   <button class="tab-btn" onclick="setTab('revisions')">Revisions</button>
 </div>
 
 <div id="stateWrap"></div>
-
 <div id="tab-overview" class="tab-content"></div>
 <div id="tab-parts"    class="tab-content"></div>
 <div id="tab-revisions" class="tab-content"></div>
+
+<div class="edit-bar" id="editBar">
+  <button class="save-btn" id="btnSave" onclick="saveAll()">Save Changes</button>
+  <button class="cancel-edit-btn" onclick="cancelEdit()">Cancel</button>
+  <span class="save-status" id="saveStatus"></span>
+</div>
 
 <script>
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
@@ -133,8 +174,11 @@
   const COL     = 'products_v2';
 
   const pid = new URLSearchParams(location.search).get('id') || '';
-  let _product = null;
-  let _parts   = [];
+  let _product        = null;
+  let _parts          = [];
+  let _editMode       = false;
+  let _deletedPartIds = new Set();
+  let _newPartIdx     = 0;
 
   // ── Firestore ─────────────────────────────────────────────────────
   function fromFsVal(v) {
@@ -176,8 +220,7 @@
     const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`);
     if (r.status === 404) return null;
     const d = await r.json();
-    if (d.error) return null;
-    return fromFsDoc(d);
+    return d.error ? null : fromFsDoc(d);
   }
   async function fsList(path) {
     const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}&pageSize=500`);
@@ -188,11 +231,14 @@
     const fields = {};
     Object.entries(data).forEach(([k, v]) => fields[k] = toFsVal(v));
     const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields })
     });
     if (!r.ok) throw new Error(`FS ${r.status}: ${await r.text()}`);
+  }
+  async function fsDelete(path) {
+    const r = await fetch(`${FS_BASE}/${path}?key=${FS_KEY}`, { method: 'DELETE' });
+    if (!r.ok && r.status !== 404) throw new Error(`FS DELETE ${r.status}`);
   }
 
   // ── Tabs ──────────────────────────────────────────────────────────
@@ -204,83 +250,67 @@
     document.getElementById('tab-' + tab).classList.add('active');
   }
 
-  // ── Render ────────────────────────────────────────────────────────
-  function renderAll() {
+  // ── Header update ─────────────────────────────────────────────────
+  function updateHeader() {
     const p = _product;
     document.getElementById('hdrEn').textContent  = p.name?.en || '#' + p._id;
     document.getElementById('hdrAr').textContent  = p.name?.ar || '';
     document.getElementById('hdrSku').textContent = p.sku || '';
     document.getElementById('hdrRev').textContent = p.revision_current || '';
     document.title = (p.name?.en || p._id) + ' — Timbered';
-    const cnt = _parts.length;
-    document.getElementById('tabBtnParts').textContent = cnt ? `Parts (${cnt})` : 'Parts';
-    renderOverview();
-    renderParts();
-    renderRevisions();
+    document.getElementById('tabBtnParts').textContent = _parts.length ? `Parts (${_parts.length})` : 'Parts';
+    document.getElementById('btnEdit').classList.toggle('visible', !_editMode);
+    document.getElementById('editBar').classList.toggle('visible', _editMode);
   }
 
-  function chips(arr, emptyText) {
-    if (!arr || !arr.length) return `<span style="color:#ccc;font-style:italic;font-size:12px">${emptyText || '—'}</span>`;
+  // ── View render ───────────────────────────────────────────────────
+  function chipsHtml(arr, emptyText) {
+    if (!arr?.length) return `<span style="color:#ccc;font-style:italic;font-size:12px">${emptyText||'—'}</span>`;
     return `<div class="chips">${arr.map(m => {
-      const label = m.name?.en || m.code || m;
-      const sub   = m.name?.ar || '';
+      const label = typeof m === 'string' ? m : (m.name?.en || m.code || '');
+      const sub   = typeof m === 'string' ? '' : (m.name?.ar || '');
       return `<span class="chip" title="${sub}">${label}${sub ? ` · ${sub}` : ''}</span>`;
     }).join('')}</div>`;
   }
 
   function renderOverview() {
-    const p   = _product;
-    const dim = p.specs?.dimensions || {};
-    const dimStr = [
-      dim.length_cm != null ? `L ${dim.length_cm}` : '',
-      dim.width_cm  != null ? `W ${dim.width_cm}`  : '',
-      dim.height_cm != null ? `H ${dim.height_cm}` : ''
-    ].filter(Boolean).join(' × ');
-    const req = p.requirements || {};
-    const med = p.media || {};
-
+    const p = _product, dim = p.specs?.dimensions || {}, req = p.requirements || {}, med = p.media || {};
+    const dimStr = [dim.length_cm!=null?`L ${dim.length_cm}`:'', dim.width_cm!=null?`W ${dim.width_cm}`:'', dim.height_cm!=null?`H ${dim.height_cm}`:''].filter(Boolean).join(' × ');
     document.getElementById('tab-overview').innerHTML = `
       <div class="card">
         <div class="card-title">Identity</div>
         <div class="fields-grid">
-          <div class="field"><div class="field-label">Product ID</div><div class="field-value">#${p.product_id || p._id}</div></div>
+          <div class="field"><div class="field-label">Product ID</div><div class="field-value">#${p.product_id||p._id}</div></div>
           <div class="field"><div class="field-label">SKU</div><div class="field-value ${!p.sku?'empty':''}">${p.sku||'—'}</div></div>
           <div class="field"><div class="field-label">Status</div><div class="field-value">${p.status||'—'}</div></div>
           <div class="field"><div class="field-label">Revision</div><div class="field-value">${p.revision_current||'—'}</div></div>
         </div>
-        ${(p.categories||[]).length ? `<div class="section-label" style="margin-top:12px">Categories</div>${chips(p.categories)}` : ''}
+        ${(p.categories||[]).length?`<div class="section-label">Categories</div>${chipsHtml(p.categories)}`:''}
       </div>
-
       <div class="card">
         <div class="card-title">Materials &amp; Finish</div>
-        <div class="section-label">Materials</div>${chips(p.materials,'No materials')}
-        <div class="section-label">Colors</div>${chips(p.colors,'—')}
-        <div class="section-label">Finishes</div>${chips(p.finishes,'—')}
+        <div class="section-label">Materials</div>${chipsHtml(p.materials,'No materials')}
+        <div class="section-label">Colors</div>${chipsHtml(p.colors,'—')}
+        <div class="section-label">Finishes</div>${chipsHtml(p.finishes,'—')}
       </div>
-
       <div class="card">
         <div class="card-title">Specifications</div>
         <div class="fields-grid">
           <div class="field"><div class="field-label">Dimensions (cm)</div><div class="field-value ${!dimStr?'empty':''}">${dimStr||'—'}</div></div>
-          <div class="field"><div class="field-label">Weight</div><div class="field-value ${p.specs?.weight_kg==null?'empty':''}">${p.specs?.weight_kg!=null ? p.specs.weight_kg+' kg' : '—'}</div></div>
+          <div class="field"><div class="field-label">Weight</div><div class="field-value ${p.specs?.weight_kg==null?'empty':''}">${p.specs?.weight_kg!=null?p.specs.weight_kg+' kg':'—'}</div></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Requirements</div>
-        <div class="req-row">${req.require_assembly    ? '✅' : '⬜'} <span style="font-size:12px">Requires Assembly</span></div>
-        <div class="req-row">${req.require_installation? '✅' : '⬜'} <span style="font-size:12px">Requires Installation</span></div>
+        <div class="req-row">${req.require_assembly?'✅':'⬜'} <span style="font-size:12px">Requires Assembly</span></div>
+        <div class="req-row">${req.require_installation?'✅':'⬜'} <span style="font-size:12px">Requires Installation</span></div>
       </div>
-
       <div class="card">
         <div class="card-title">Media</div>
-        ${med.main_image ? `<img class="main-img" src="${med.main_image}" alt="">` : ''}
-        ${(med.gallery||[]).length ? `<div class="gallery">${med.gallery.map(s=>`<img src="${s}" alt="" onclick="window.open('${s}')">`).join('')}</div>` : ''}
-        ${med.drawing_url
-          ? `<a class="dwg-link" href="${med.drawing_url}" target="_blank">📐 Drawing</a>`
-          : `<span style="color:#ccc;font-style:italic;font-size:12px">No drawing yet</span>`}
+        ${med.main_image?`<img class="main-img" src="${med.main_image}" alt="">`:''}
+        ${(med.gallery||[]).length?`<div class="gallery">${med.gallery.map(s=>`<img src="${s}" alt="" onclick="window.open('${s}')">`).join('')}</div>`:''}
+        ${med.drawing_url?`<a class="dwg-link" href="${med.drawing_url}" target="_blank">📐 Drawing</a>`:'<span style="color:#ccc;font-style:italic;font-size:12px">No drawing yet</span>'}
       </div>
-
       <div class="card">
         <div class="card-title">Timestamps</div>
         <div class="fields-grid">
@@ -290,110 +320,398 @@
       </div>`;
   }
 
-  function chk(v) { return v ? '<span class="op-check">✓</span>' : ''; }
+  function chk(v) { return v?'<span class="op-check">✓</span>':''; }
 
   function renderParts() {
-    const sorted = [..._parts].sort((a, b) => {
-      if (a.category !== b.category) return a.category === 'Main' ? -1 : 1;
-      return String(a.part_id || a._id).localeCompare(String(b.part_id || b._id), undefined, { numeric: true });
+    const sorted = [..._parts].sort((a,b)=>{
+      if (a.category!==b.category) return a.category==='Main'?-1:1;
+      return String(a.part_id||a._id).localeCompare(String(b.part_id||b._id),undefined,{numeric:true});
     });
-
-    // Summary counts
-    const main = sorted.filter(p => p.category === 'Main').length;
-    const acc  = sorted.filter(p => p.category !== 'Main').length;
-    const totalQty = sorted.reduce((s, p) => s + (p.qty || 0), 0);
-
+    const main=sorted.filter(p=>p.category==='Main').length, acc=sorted.length-main;
+    const totalQty=sorted.reduce((s,p)=>s+(p.qty||0),0);
     document.getElementById('tab-parts').innerHTML = `
       <div class="summary-bar">
-        <div class="sum-item"><div class="sum-val">${sorted.length}</div><div class="sum-label">Total Parts</div></div>
-        <div class="sum-item"><div class="sum-val">${main}</div><div class="sum-label">Main Parts</div></div>
+        <div class="sum-item"><div class="sum-val">${sorted.length}</div><div class="sum-label">Parts</div></div>
+        <div class="sum-item"><div class="sum-val">${main}</div><div class="sum-label">Main</div></div>
         <div class="sum-item"><div class="sum-val">${acc}</div><div class="sum-label">Accessories</div></div>
         <div class="sum-item"><div class="sum-val">${totalQty}</div><div class="sum-label">Total Qty</div></div>
       </div>
       <div class="card" style="padding:0">
         <div class="parts-wrap">
           <table class="parts-table">
-            <thead>
-              <tr>
-                <th>Part ID</th>
-                <th>Description</th>
-                <th>Cat.</th>
-                <th>Material</th>
-                <th style="text-align:center">Qty</th>
-                <th style="text-align:center">Thk (cm)</th>
-                <th style="text-align:center">W (cm)</th>
-                <th style="text-align:center">L (cm)</th>
-                <th style="text-align:center">Cut</th>
-                <th style="text-align:center">Shape</th>
-                <th style="text-align:center">CNC</th>
-                <th style="text-align:center">Uph</th>
-                <th style="text-align:center">Wood</th>
-                <th style="text-align:center">Paint</th>
-                <th>Bonding</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sorted.map(p => {
-                const op  = p.operations || {};
-                const id  = p.part_id || p._id;
-                const bon = p.bonding;
-                return `<tr>
-                  <td class="part-id">${id}</td>
-                  <td class="desc-ar">${p.description?.ar || p.description?.en || '—'}</td>
-                  <td><span class="${p.category==='Main'?'b-main':'b-acc'}">${p.category||''}</span></td>
-                  <td style="white-space:nowrap">${p.material_code||'—'}</td>
-                  <td style="text-align:center;font-weight:700;color:var(--brand)">${p.qty??''}</td>
-                  <td style="text-align:center">${p.thickness_cm??''}</td>
-                  <td style="text-align:center">${p.width_cm??''}</td>
-                  <td style="text-align:center">${p.length_cm??''}</td>
-                  <td>${chk(op.cut)}</td>
-                  <td>${chk(op.shape)}</td>
-                  <td>${chk(op.cnc)}</td>
-                  <td>${chk(op.upholstery)}</td>
-                  <td>${chk(op.wooden)}</td>
-                  <td>${chk(op.paint_before_assembly)}</td>
-                  <td>${bon?`<span class="${bon==='bonded'?'b-bonded':'b-loose'}">${bon}</span>`:''}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
+            <thead><tr>
+              <th>Part ID</th><th>Description</th><th>Cat.</th><th>Material</th>
+              <th style="text-align:center">Qty</th><th style="text-align:center">Thk</th>
+              <th style="text-align:center">W (cm)</th><th style="text-align:center">L (cm)</th>
+              <th style="text-align:center">Cut</th><th style="text-align:center">Shape</th>
+              <th style="text-align:center">CNC</th><th style="text-align:center">Uph</th>
+              <th style="text-align:center">Wood</th><th style="text-align:center">Paint</th>
+              <th>Bonding</th>
+            </tr></thead>
+            <tbody>${sorted.map(p=>{
+              const op=p.operations||{}, id=p.part_id||p._id, bon=p.bonding;
+              return `<tr>
+                <td class="part-id">${id}</td>
+                <td class="desc-ar">${p.description?.ar||p.description?.en||'—'}</td>
+                <td><span class="${p.category==='Main'?'b-main':'b-acc'}">${p.category||''}</span></td>
+                <td style="white-space:nowrap">${p.material_code||'—'}</td>
+                <td style="text-align:center;font-weight:700;color:var(--brand)">${p.qty??''}</td>
+                <td style="text-align:center">${p.thickness_cm??''}</td>
+                <td style="text-align:center">${p.width_cm??''}</td>
+                <td style="text-align:center">${p.length_cm??''}</td>
+                <td>${chk(op.cut)}</td><td>${chk(op.shape)}</td><td>${chk(op.cnc)}</td>
+                <td>${chk(op.upholstery)}</td><td>${chk(op.wooden)}</td><td>${chk(op.paint_before_assembly)}</td>
+                <td>${bon?`<span class="${bon==='bonded'?'b-bonded':'b-loose'}">${bon}</span>`:''}</td>
+              </tr>`;
+            }).join('')}</tbody>
           </table>
         </div>
       </div>`;
   }
 
   function renderRevisions() {
-    const revs    = [...(_product.revision_history || [])].reverse();
-    const current = _product.revision_current;
+    const revs=[...(_product.revision_history||[])].reverse(), current=_product.revision_current;
     document.getElementById('tab-revisions').innerHTML = `
       <div class="card">
         <div class="rev-list">
-          ${revs.map((r, i) => `
-            <div class="rev-item ${r.revision === current ? 'current' : ''}">
-              <div class="rev-spine">
-                <div class="rev-dot"></div>
-                ${i < revs.length - 1 ? '<div class="rev-line"></div>' : ''}
-              </div>
+          ${revs.map((r,i)=>`
+            <div class="rev-item ${r.revision===current?'current':''}">
+              <div class="rev-spine"><div class="rev-dot"></div>${i<revs.length-1?'<div class="rev-line"></div>':''}</div>
               <div class="rev-body">
                 <div class="rev-head">
                   <span class="rev-code">${r.revision}</span>
-                  ${r.revision === current ? '<span class="rev-current-badge">Current</span>' : ''}
+                  ${r.revision===current?'<span class="rev-current-badge">Current</span>':''}
                   <span class="rev-date">${r.date||''}</span>
                 </div>
                 <div class="rev-desc-en">${r.description?.en||''}</div>
-                ${r.description?.ar ? `<div class="rev-desc-ar">${r.description.ar}</div>` : ''}
-                ${r.approved?.name  ? `<div class="rev-approved">✓ ${r.approved.name}</div>` : ''}
+                ${r.description?.ar?`<div class="rev-desc-ar">${r.description.ar}</div>`:''}
+                ${r.approved?.name?`<div class="rev-approved">✓ ${r.approved.name}</div>`:''}
               </div>
             </div>`).join('')}
+        </div>
+      </div>
+      <div class="card add-rev-form">
+        <div class="add-rev-title">Add Revision</div>
+        <div class="ei-fields-grid">
+          <div class="ei-field"><div class="ei-label">Revision code</div><input class="ei" id="rev-code" placeholder="REV-04"></div>
+          <div class="ei-field"><div class="ei-label">Date</div><input class="ei" id="rev-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="ei-field"><div class="ei-label">Approved by</div><input class="ei" id="rev-approved" placeholder="Name"></div>
+        </div>
+        <div class="ei-field" style="margin-top:6px"><div class="ei-label">Description (EN)</div><input class="ei" id="rev-desc-en" placeholder="What changed…"></div>
+        <div class="ei-field" style="margin-top:6px"><div class="ei-label">Description (AR)</div><input class="ei" id="rev-desc-ar" placeholder="ماذا تغير…" dir="rtl"></div>
+        <button class="add-rev-btn" onclick="addRevision()">Add Revision</button>
+      </div>`;
+  }
+
+  // ── Edit render ───────────────────────────────────────────────────
+  function escVal(s) { return String(s??'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+  function arrEditorHtml(items, containerId, labels) {
+    const rows = (items||[]).map((m,i)=>`
+      <div class="arr-row">
+        ${labels.map((l,j)=>`<input class="ei" style="${l.style||'flex:1'}" placeholder="${l.ph||''}" value="${escVal(j===0?m.code:j===1?m.name?.en||'':m.name?.ar||'')}">`).join('')}
+        <button class="arr-del" onclick="this.closest('.arr-row').remove()">×</button>
+      </div>`).join('');
+    return `<div id="${containerId}">${rows}</div>
+      <button class="arr-add" onclick="addArrRow('${containerId}','${labels.map(l=>l.ph||'').join('|')}','${labels.map(l=>l.style||'flex:1').join('|')}')">+ Add</button>`;
+  }
+
+  function renderOverviewEdit() {
+    const p=_product, dim=p.specs?.dimensions||{}, req=p.requirements||{}, med=p.media||{};
+    const cats = (p.categories||[]).join(', ');
+    const galVal = (med.gallery||[]).join('\n');
+    document.getElementById('tab-overview').innerHTML = `
+      <div class="card">
+        <div class="card-title">Identity</div>
+        <div class="ei-fields-grid">
+          <div class="ei-field"><div class="ei-label">Name (EN)</div><input class="ei" id="e-name-en" value="${escVal(p.name?.en)}"></div>
+          <div class="ei-field"><div class="ei-label">Name (AR)</div><input class="ei" id="e-name-ar" value="${escVal(p.name?.ar)}" dir="rtl"></div>
+          <div class="ei-field"><div class="ei-label">SKU</div><input class="ei" id="e-sku" value="${escVal(p.sku)}"></div>
+          <div class="ei-field"><div class="ei-label">Status</div>
+            <select class="ei" id="e-status">
+              <option ${p.status==='active'?'selected':''}>active</option>
+              <option ${p.status==='inactive'?'selected':''}>inactive</option>
+              <option ${p.status==='draft'?'selected':''}>draft</option>
+            </select>
+          </div>
+        </div>
+        <div class="ei-field" style="margin-top:8px"><div class="ei-label">Categories (comma-separated)</div><input class="ei" id="e-categories" value="${escVal(cats)}"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Materials &amp; Finish</div>
+        <div class="section-label">Materials</div>
+        <div class="arr-header"><span style="flex:1">Code</span><span style="flex:1">Name EN</span><span style="flex:1">Name AR</span><span style="width:24px"></span></div>
+        ${arrEditorHtml(p.materials,'e-materials',[{ph:'ZAN',style:'width:70px'},{ph:'Beech Wood'},{ph:'زان',style:'flex:1'}])}
+        <div class="section-label">Colors</div>
+        <div class="arr-header"><span style="flex:1">Code</span><span style="flex:1">Name EN</span><span style="flex:1">Name AR</span><span style="width:24px"></span></div>
+        ${arrEditorHtml(p.colors,'e-colors',[{ph:'TMCL-OAK',style:'width:90px'},{ph:'Natural Oak'},{ph:'بلوط طبيعي'}])}
+        <div class="section-label">Finishes</div>
+        <div class="arr-header"><span style="flex:1">Code</span><span style="flex:1">Name EN</span><span style="flex:1">Name AR</span><span style="width:24px"></span></div>
+        ${arrEditorHtml(p.finishes,'e-finishes',[{ph:'TMFH-MATTE',style:'width:90px'},{ph:'Matte Finish'},{ph:'تشطيب مطفي'}])}
+      </div>
+
+      <div class="card">
+        <div class="card-title">Specifications</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="ei-field"><div class="ei-label">Length (cm)</div><input class="ei ei-num" id="e-dim-l" type="number" step="0.1" value="${dim.length_cm??''}"></div>
+          <div class="ei-field"><div class="ei-label">Width (cm)</div><input class="ei ei-num" id="e-dim-w" type="number" step="0.1" value="${dim.width_cm??''}"></div>
+          <div class="ei-field"><div class="ei-label">Height (cm)</div><input class="ei ei-num" id="e-dim-h" type="number" step="0.1" value="${dim.height_cm??''}"></div>
+          <div class="ei-field"><div class="ei-label">Weight (kg)</div><input class="ei ei-num" id="e-weight" type="number" step="0.1" value="${p.specs?.weight_kg??''}"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Requirements</div>
+        <div class="req-row"><input type="checkbox" class="ei" id="e-req-asm" ${req.require_assembly?'checked':''}><label for="e-req-asm" style="font-size:12px;cursor:pointer">Requires Assembly</label></div>
+        <div class="req-row"><input type="checkbox" class="ei" id="e-req-ins" ${req.require_installation?'checked':''}><label for="e-req-ins" style="font-size:12px;cursor:pointer">Requires Installation</label></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Media</div>
+        <div class="ei-field" style="margin-bottom:8px"><div class="ei-label">Main Image URL</div><input class="ei" id="e-img" value="${escVal(med.main_image)}"></div>
+        <div class="ei-field" style="margin-bottom:8px"><div class="ei-label">Drawing URL</div><input class="ei" id="e-drawing" value="${escVal(med.drawing_url)}"></div>
+        <div class="ei-field"><div class="ei-label">Gallery URLs (one per line)</div><textarea class="ei" id="e-gallery" rows="3" style="resize:vertical">${escVal(galVal)}</textarea></div>
+      </div>`;
+  }
+
+  function renderPartsEdit() {
+    const sorted = [..._parts].sort((a,b)=>{
+      if (a.category!==b.category) return a.category==='Main'?-1:1;
+      return String(a.part_id||a._id).localeCompare(String(b.part_id||b._id),undefined,{numeric:true});
+    });
+    const totalQty=sorted.reduce((s,p)=>s+(p.qty||0),0);
+    const main=sorted.filter(p=>p.category==='Main').length;
+    document.getElementById('tab-parts').innerHTML = `
+      <div class="summary-bar">
+        <div class="sum-item"><div class="sum-val">${sorted.length}</div><div class="sum-label">Parts</div></div>
+        <div class="sum-item"><div class="sum-val">${main}</div><div class="sum-label">Main</div></div>
+        <div class="sum-item"><div class="sum-val">${sorted.length-main}</div><div class="sum-label">Accessories</div></div>
+        <div class="sum-item"><div class="sum-val">${totalQty}</div><div class="sum-label">Total Qty</div></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="parts-wrap">
+          <table class="parts-table" id="partsEditTable">
+            <thead><tr>
+              <th style="width:22px"></th>
+              <th>Part ID</th><th>Desc (AR)</th><th>Desc (EN)</th><th>Cat.</th><th>Material</th>
+              <th style="text-align:center">Qty</th><th style="text-align:center">Thk</th>
+              <th style="text-align:center">W</th><th style="text-align:center">L</th>
+              <th style="text-align:center">Cut</th><th style="text-align:center">Shape</th>
+              <th style="text-align:center">CNC</th><th style="text-align:center">Uph</th>
+              <th style="text-align:center">Wood</th><th style="text-align:center">Paint</th>
+              <th>Bonding</th>
+            </tr></thead>
+            <tbody id="partsEditBody">
+              ${sorted.map(p=>partEditRowHtml(p,false)).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:8px 10px">
+          <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
         </div>
       </div>`;
   }
 
+  function partEditRowHtml(p, isNew) {
+    const op=p.operations||{}, id=p.part_id||p._id||'';
+    const opCb=(f,v)=>`<input type="checkbox" class="ei" data-op="${f}" ${v?'checked':''} style="width:14px;height:14px">`;
+    return `<tr class="part-edit-row" data-orig-id="${escVal(id)}">
+      <td><button class="part-del-btn" onclick="deletePartRow(this)" title="Remove">×</button></td>
+      <td><input class="ei" style="width:90px;font-family:monospace;font-size:10px" data-f="part_id" value="${escVal(id)}" ${isNew?'':'readonly'}></td>
+      <td><input class="ei" style="min-width:80px;direction:rtl" data-f="desc_ar" value="${escVal(p.description?.ar)}"></td>
+      <td><input class="ei" style="min-width:80px" data-f="desc_en" value="${escVal(p.description?.en)}"></td>
+      <td><select class="ei" style="width:90px" data-f="category">
+        <option ${p.category==='Main'?'selected':''}>Main</option>
+        <option ${p.category==='Accessory'?'selected':''}>Accessory</option>
+      </select></td>
+      <td><input class="ei" style="width:70px" data-f="material_code" value="${escVal(p.material_code)}"></td>
+      <td><input class="ei ei-num" type="number" data-f="qty" value="${p.qty??''}"></td>
+      <td><input class="ei ei-num" type="number" step="0.01" data-f="thickness_cm" value="${p.thickness_cm??''}"></td>
+      <td><input class="ei ei-num" type="number" step="0.01" data-f="width_cm" value="${p.width_cm??''}"></td>
+      <td><input class="ei ei-num" type="number" step="0.01" data-f="length_cm" value="${p.length_cm??''}"></td>
+      <td style="text-align:center">${opCb('cut',op.cut)}</td>
+      <td style="text-align:center">${opCb('shape',op.shape)}</td>
+      <td style="text-align:center">${opCb('cnc',op.cnc)}</td>
+      <td style="text-align:center">${opCb('upholstery',op.upholstery)}</td>
+      <td style="text-align:center">${opCb('wooden',op.wooden)}</td>
+      <td style="text-align:center">${opCb('paint_before_assembly',op.paint_before_assembly)}</td>
+      <td><select class="ei" style="width:70px" data-f="bonding">
+        <option value="" ${!p.bonding?'selected':''}>—</option>
+        <option value="bonded" ${p.bonding==='bonded'?'selected':''}>bonded</option>
+        <option value="loose"  ${p.bonding==='loose' ?'selected':''}>loose</option>
+      </select></td>
+    </tr>`;
+  }
+
+  // ── Edit helpers ──────────────────────────────────────────────────
+  function addArrRow(containerId, phStr, styleStr) {
+    const phs = phStr.split('|'), styles = styleStr.split('|');
+    const row = document.createElement('div');
+    row.className = 'arr-row';
+    row.innerHTML = phs.map((ph,i)=>`<input class="ei" style="${styles[i]||'flex:1'}" placeholder="${ph}" value="">`).join('')
+      + `<button class="arr-del" onclick="this.closest('.arr-row').remove()">×</button>`;
+    document.getElementById(containerId).appendChild(row);
+  }
+
+  function addPartRow() {
+    _newPartIdx++;
+    const newPart = { part_id: `${pid}-new-${_newPartIdx}`, description:{ar:'',en:''}, category:'Main', material_code:'', qty:1, thickness_cm:null, width_cm:null, length_cm:null, operations:{cut:false,shape:false,cnc:false,upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'' };
+    const tbody = document.getElementById('partsEditBody');
+    if (!tbody) return;
+    tbody.insertAdjacentHTML('beforeend', partEditRowHtml(newPart, true));
+  }
+
+  function deletePartRow(btn) {
+    const row = btn.closest('tr.part-edit-row');
+    const origId = row.dataset.origId;
+    if (origId && !origId.startsWith(pid + '-new-')) _deletedPartIds.add(origId);
+    row.remove();
+  }
+
+  // ── Edit mode toggle ──────────────────────────────────────────────
+  function startEdit() {
+    _editMode = true;
+    _deletedPartIds = new Set();
+    _newPartIdx = 0;
+    updateHeader();
+    renderOverviewEdit();
+    renderPartsEdit();
+  }
+
+  function cancelEdit() {
+    _editMode = false;
+    _deletedPartIds = new Set();
+    updateHeader();
+    renderOverview();
+    renderParts();
+    document.getElementById('saveStatus').textContent = '';
+  }
+
+  // ── Collect helpers ───────────────────────────────────────────────
+  function collectArrRows(containerId) {
+    return [...document.querySelectorAll(`#${containerId} .arr-row`)].map(row => {
+      const inputs = row.querySelectorAll('input');
+      const [code, en, ar] = [...inputs].map(i => i.value.trim());
+      if (!code && !en) return null;
+      return { code, name: { en, ar: ar||'' } };
+    }).filter(Boolean);
+  }
+
+  function collectProductFromDOM() {
+    const p = _product;
+    const numOrNull = id => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
+    const cats = (document.getElementById('e-categories')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const gallery = (document.getElementById('e-gallery')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    return {
+      ...p,
+      name: { en: document.getElementById('e-name-en')?.value||'', ar: document.getElementById('e-name-ar')?.value||'' },
+      sku:  document.getElementById('e-sku')?.value||'',
+      status: document.getElementById('e-status')?.value||'active',
+      categories: cats,
+      materials: collectArrRows('e-materials'),
+      colors:    collectArrRows('e-colors'),
+      finishes:  collectArrRows('e-finishes'),
+      specs: {
+        dimensions: { length_cm: numOrNull('e-dim-l'), width_cm: numOrNull('e-dim-w'), height_cm: numOrNull('e-dim-h') },
+        weight_kg: numOrNull('e-weight')
+      },
+      requirements: {
+        require_assembly:     document.getElementById('e-req-asm')?.checked||false,
+        require_installation: document.getElementById('e-req-ins')?.checked||false
+      },
+      media: {
+        main_image:  document.getElementById('e-img')?.value||'',
+        drawing_url: document.getElementById('e-drawing')?.value||'',
+        gallery
+      },
+      metadata: { ...(p.metadata||{}), updated_at: new Date().toISOString().slice(0,10) }
+    };
+  }
+
+  function collectPartsFromDOM() {
+    return [...document.querySelectorAll('#partsEditBody tr.part-edit-row')].map(row => {
+      const val  = f => row.querySelector(`[data-f="${f}"]`)?.value??'';
+      const num  = f => { const v=parseFloat(row.querySelector(`[data-f="${f}"]`)?.value); return isNaN(v)?null:v; };
+      const bool = f => row.querySelector(`[data-op="${f}"]`)?.checked||false;
+      const partId = val('part_id').trim();
+      if (!partId) return null;
+      return {
+        part_id: partId,
+        description: { ar: val('desc_ar'), en: val('desc_en') },
+        category: val('category')||'Main',
+        material_code: val('material_code'),
+        qty: num('qty'), thickness_cm: num('thickness_cm'),
+        width_cm: num('width_cm'), length_cm: num('length_cm'),
+        operations: { cut:bool('cut'), shape:bool('shape'), cnc:bool('cnc'), upholstery:bool('upholstery'), wooden:bool('wooden'), paint_before_assembly:bool('paint_before_assembly') },
+        bonding: val('bonding')||''
+      };
+    }).filter(Boolean);
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────
+  async function saveAll() {
+    const btn = document.getElementById('btnSave');
+    const status = document.getElementById('saveStatus');
+    btn.disabled = true;
+    try {
+      status.textContent = 'Saving product…';
+      const updatedProduct = collectProductFromDOM();
+      const updatedParts   = collectPartsFromDOM();
+      await fsWrite(`${COL}/${pid}`, updatedProduct);
+
+      // Delete removed parts
+      for (const delId of _deletedPartIds) {
+        status.textContent = `Deleting part ${delId}…`;
+        await fsDelete(`${COL}/${pid}/parts/${delId}`);
+      }
+      // Write all current parts
+      for (let i = 0; i < updatedParts.length; i++) {
+        const part = updatedParts[i];
+        status.textContent = `Saving part ${i+1}/${updatedParts.length}…`;
+        await fsWrite(`${COL}/${pid}/parts/${part.part_id}`, part);
+      }
+
+      status.textContent = 'Saved ✓';
+      _editMode = false;
+      _deletedPartIds = new Set();
+      await load();
+    } catch (e) {
+      status.textContent = 'Error: ' + e.message;
+      btn.disabled = false;
+    }
+  }
+
+  // ── Add revision ──────────────────────────────────────────────────
+  async function addRevision() {
+    const code     = document.getElementById('rev-code')?.value.trim();
+    const date     = document.getElementById('rev-date')?.value;
+    const approved = document.getElementById('rev-approved')?.value.trim();
+    const descEn   = document.getElementById('rev-desc-en')?.value.trim();
+    const descAr   = document.getElementById('rev-desc-ar')?.value.trim();
+    if (!code) { alert('Revision code is required'); return; }
+    const rev = { revision: code, date, description: { en: descEn, ar: descAr }, approved: { name: approved } };
+    const history = [...(_product.revision_history||[]), rev];
+    const updated = { ..._product, revision_current: code, revision_history: history, metadata: { ...(_product.metadata||{}), updated_at: new Date().toISOString().slice(0,10) } };
+    try {
+      await fsWrite(`${COL}/${pid}`, updated);
+      await load();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // ── Render all (view mode) ─────────────────────────────────────────
+  function renderAll() {
+    updateHeader();
+    renderOverview();
+    renderParts();
+    renderRevisions();
+    setTab('overview');
+  }
+
   // ── Seed data — Dreamy Reads Organizer (16154) ────────────────────
   const SEED_PRODUCT = {
-    product_id: 16154,
-    sku: 'TG-16154',
-    name: { en: 'Dreamy Reads Organizer', ar: '' },
-    status: 'active',
+    product_id: 16154, sku: 'TG-16154',
+    name: { en: 'Dreamy Reads Organizer', ar: '' }, status: 'active',
     categories: [],
     materials: [
       { code: 'MOSKI', name: { en: 'Mosaikki Wood', ar: 'موسكي' } },
@@ -405,76 +723,45 @@
     media: { main_image: '', gallery: [], drawing_url: '' },
     packing_list: [],
     revision_current: 'REV-01',
-    revision_history: [{
-      revision: 'REV-01', date: '2026-04-25',
-      description: { en: 'Initial migration', ar: 'الترحيل الأولي' },
-      approved: { name: 'Omar El Bahrawy' }
-    }],
+    revision_history: [{ revision:'REV-01', date:'2026-04-25', description:{en:'Initial migration',ar:'الترحيل الأولي'}, approved:{name:'Omar El Bahrawy'} }],
     metadata: { created_at: '2026-04-25', updated_at: '2026-04-25' }
   };
-
   const SEED_PARTS = [
-    { part_id:'16154-01', description:{ ar:'جنب يمين', en:'Right Side'  }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{ cut:true, shape:false, cnc:true,  upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
-    { part_id:'16154-02', description:{ ar:'جنب شمال', en:'Left Side'   }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{ cut:true, shape:false, cnc:true,  upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
-    { part_id:'16154-03', description:{ ar:'قاعدة',    en:'Base'        }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:7.5, length_cm:56.6,  operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
-    { part_id:'16154-04', description:{ ar:'رف',       en:'Shelf'       }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:2.5, length_cm:56.6,  operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' },
-    { part_id:'16154-05', description:{ ar:'كوايل',    en:'Coils/Dowels'}, category:'Main', material_code:'ZAN',   qty:24, thickness_cm:0.8, width_cm:0.8, length_cm:2.0,   operations:{ cut:true, shape:false, cnc:false, upholstery:false, accessories:false, wooden:false, paint_before_assembly:false }, bonding:'bonded' }
+    { part_id:'16154-01', description:{ar:'جنب يمين',en:'Right Side'  }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{cut:true,shape:false,cnc:true, upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'bonded' },
+    { part_id:'16154-02', description:{ar:'جنب شمال',en:'Left Side'   }, category:'Main', material_code:'MOSKI', qty:1,  thickness_cm:1.7, width_cm:7.5, length_cm:118.5, operations:{cut:true,shape:false,cnc:true, upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'bonded' },
+    { part_id:'16154-03', description:{ar:'قاعدة',   en:'Base'        }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:7.5, length_cm:56.6,  operations:{cut:true,shape:false,cnc:false,upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'bonded' },
+    { part_id:'16154-04', description:{ar:'رف',      en:'Shelf'       }, category:'Main', material_code:'MOSKI', qty:4,  thickness_cm:1.7, width_cm:2.5, length_cm:56.6,  operations:{cut:true,shape:false,cnc:false,upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'bonded' },
+    { part_id:'16154-05', description:{ar:'كوايل',   en:'Coils/Dowels'}, category:'Main', material_code:'ZAN',   qty:24, thickness_cm:0.8, width_cm:0.8, length_cm:2.0,   operations:{cut:true,shape:false,cnc:false,upholstery:false,accessories:false,wooden:false,paint_before_assembly:false}, bonding:'bonded' }
   ];
 
-  // Fetch existing product from old 'products' collection by product_id field
   async function fetchOldProduct(productId) {
     try {
       const r = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ structuredQuery: {
-          from: [{ collectionId: 'products' }],
-          where: { fieldFilter: {
-            field: { fieldPath: 'product_id' },
-            op: 'EQUAL',
-            value: { integerValue: String(productId) }
-          }},
-          limit: 1
-        }})
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ structuredQuery: { from:[{collectionId:'products'}], where:{fieldFilter:{field:{fieldPath:'product_id'},op:'EQUAL',value:{integerValue:String(productId)}}}, limit:1 }})
       });
       const rows = await r.json();
-      const doc = rows.find(r => r.document)?.document;
+      const doc = rows.find(r=>r.document)?.document;
       return doc ? fromFsDoc(doc) : null;
     } catch { return null; }
   }
 
-  // Merge old-schema fields into the new schema seed object
   function mergeOldIntoSeed(seed, old) {
     if (!old) return seed;
-    const merged = JSON.parse(JSON.stringify(seed)); // deep clone
-
-    // Identity
-    if (old.name)  merged.name.en = old.name;
-    if (old.sku)   merged.sku     = old.sku;
-
-    // Media
-    if (old.image_url)   merged.media.main_image  = old.image_url;
-    if (old.drawing_url) merged.media.drawing_url = old.drawing_url;
-
-    // Dimensions
-    const dl = parseFloat(old.dim_length);
-    const dw = parseFloat(old.dim_width);
-    const dh = parseFloat(old.dim_height);
-    if (!isNaN(dl)) merged.specs.dimensions.length_cm = dl;
-    if (!isNaN(dw)) merged.specs.dimensions.width_cm  = dw;
-    if (!isNaN(dh)) merged.specs.dimensions.height_cm = dh;
-
-    // Stock
-    if (old.manage_stock !== undefined) merged.manage_stock = old.manage_stock;
-    if (old.stock_qty    !== undefined) merged.stock_qty    = old.stock_qty;
-
-    // Material — add to materials array if not already present
-    if (old.material) {
-      const already = merged.materials.some(m => m.name?.ar === old.material || m.code === old.material);
-      if (!already) merged.materials.unshift({ code: old.material, name: { en: old.material, ar: old.material } });
-    }
-
-    return merged;
+    const m = JSON.parse(JSON.stringify(seed));
+    if (old.name) m.name.en = old.name;
+    if (old.sku)  m.sku = old.sku;
+    if (old.image_url)   m.media.main_image  = old.image_url;
+    if (old.drawing_url) m.media.drawing_url = old.drawing_url;
+    const dl=parseFloat(old.dim_length), dw=parseFloat(old.dim_width), dh=parseFloat(old.dim_height);
+    if (!isNaN(dl)) m.specs.dimensions.length_cm = dl;
+    if (!isNaN(dw)) m.specs.dimensions.width_cm  = dw;
+    if (!isNaN(dh)) m.specs.dimensions.height_cm = dh;
+    if (old.manage_stock!==undefined) m.manage_stock = old.manage_stock;
+    if (old.stock_qty!==undefined)    m.stock_qty    = old.stock_qty;
+    if (old.material && !m.materials.some(x=>x.name?.ar===old.material||x.code===old.material))
+      m.materials.unshift({ code: old.material, name: { en: old.material, ar: old.material } });
+    return m;
   }
 
   async function seedProduct() {
@@ -483,59 +770,39 @@
     try {
       btn.textContent = 'Fetching existing data…';
       const old = await fetchOldProduct(SEED_PRODUCT.product_id);
-      const productToWrite = mergeOldIntoSeed(SEED_PRODUCT, old);
-
+      const prod = mergeOldIntoSeed(SEED_PRODUCT, old);
       btn.textContent = 'Writing product…';
-      await fsWrite(`${COL}/${SEED_PRODUCT.product_id}`, productToWrite);
-
-      for (let i = 0; i < SEED_PARTS.length; i++) {
-        const part = SEED_PARTS[i];
-        btn.textContent = `Writing part ${i + 1}/${SEED_PARTS.length}…`;
-        await fsWrite(`${COL}/${SEED_PRODUCT.product_id}/parts/${part.part_id}`, part);
+      await fsWrite(`${COL}/${SEED_PRODUCT.product_id}`, prod);
+      for (let i=0; i<SEED_PARTS.length; i++) {
+        btn.textContent = `Writing part ${i+1}/${SEED_PARTS.length}…`;
+        await fsWrite(`${COL}/${SEED_PRODUCT.product_id}/parts/${SEED_PARTS[i].part_id}`, SEED_PARTS[i]);
       }
       btn.textContent = 'Done ✓';
       await load();
-    } catch (e) {
-      btn.textContent = 'Error — retry';
-      btn.disabled = false;
-      alert(e.message);
-    }
+    } catch(e) { btn.textContent = 'Error — retry'; btn.disabled = false; alert(e.message); }
   }
 
   // ── Load ──────────────────────────────────────────────────────────
   async function load() {
     document.getElementById('stateWrap').innerHTML = '<div class="state-wrap">Loading…</div>';
     document.getElementById('tabBar').classList.remove('visible');
-
-    if (!pid) {
-      document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">No product ID — use <code>?id=16154</code></div>`;
-      return;
-    }
-
+    document.getElementById('btnEdit').classList.remove('visible');
+    document.getElementById('editBar').classList.remove('visible');
+    document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+    if (!pid) { document.getElementById('stateWrap').innerHTML=`<div class="state-wrap">No product ID — use <code>?id=16154</code></div>`; return; }
     try {
       _product = await fsGet(`${COL}/${pid}`);
-
       if (!_product) {
-        const isSeedable = String(pid) === String(SEED_PRODUCT.product_id);
-        document.getElementById('stateWrap').innerHTML = `
-          <div class="state-wrap">
-            Product <strong>#${pid}</strong> not found in the new schema.
-            ${isSeedable
-              ? `<br><br><button class="seed-btn" id="seedBtn" onclick="seedProduct()">Push Dreamy Reads to Firebase</button>`
-              : ''}
-          </div>`;
+        const isSeedable = String(pid)===String(SEED_PRODUCT.product_id);
+        document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">Product <strong>#${pid}</strong> not found in new schema.${isSeedable?`<br><br><button class="seed-btn" id="seedBtn" onclick="seedProduct()">Push Dreamy Reads to Firebase</button>`:''}</div>`;
         return;
       }
-
       _parts = await fsList(`${COL}/${pid}/parts`);
       document.getElementById('stateWrap').style.display = 'none';
       document.getElementById('tabBar').classList.add('visible');
+      _editMode = false;
       renderAll();
-      setTab('overview');
-
-    } catch (e) {
-      document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">Error: ${e.message}</div>`;
-    }
+    } catch(e) { document.getElementById('stateWrap').innerHTML=`<div class="state-wrap">Error: ${e.message}</div>`; }
   }
 
   load();
