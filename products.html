@@ -51,19 +51,9 @@
     .card-body { display: none; border-top: 1px solid #f0ebe4; }
     .prod-card.expanded .card-body { display: block; }
 
-    .card-body-inner { padding: 14px 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 14px; }
-    @media (max-width: 600px) { .card-body-inner { grid-template-columns: 1fr; } }
-
-    /* ── Left col: big image + links ── */
-    .detail-img-wrap { display: flex; flex-direction: column; gap: 8px; }
-    .detail-img { width: 160px; height: 160px; object-fit: cover; border-radius: 8px; border: 1px solid #e8ddd4; background: #f5f0eb; cursor: pointer; }
-    .detail-img-placeholder { width: 160px; height: 160px; border-radius: 8px; border: 1px solid #e8ddd4; background: #f5f0eb; display: flex; align-items: center; justify-content: center; font-size: 36px; color: #ddd; }
-    .detail-links { display: flex; flex-direction: column; gap: 5px; }
-    .dwg-btn { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 6px; padding: 4px 10px; text-decoration: none; text-align: center; }
+    .card-body-inner { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .dwg-btn { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 6px; padding: 4px 10px; text-decoration: none; display: inline-block; }
     .dwg-btn:hover { background: #7A4610; color: #fff; }
-
-    /* ── Right col: fields + BOM ── */
-    .detail-right { display: flex; flex-direction: column; gap: 12px; }
 
     .fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
     .field { background: #f5f0eb; border-radius: 6px; padding: 6px 9px; }
@@ -109,6 +99,7 @@
     .bom-cancel-btn { font-size: 11px; font-weight: 700; color: #777; border: 1.5px solid #ccc; border-radius: 12px; padding: 4px 12px; background: none; cursor: pointer; }
     .bom-cancel-btn:hover { background: #eee; }
     .bom-table td input { display: block; }
+    .bom-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -345,10 +336,6 @@
     const hasBom   = bom.length > 0;
     const dim = [p.dim_length, p.dim_width, p.dim_height].filter(Boolean).join(' × ') || '—';
 
-    const bigImg = p.image_url
-      ? `<img class="detail-img" src="${p.image_url}" alt="" onclick="openImg('${p.image_url}')">`
-      : `<div class="detail-img-placeholder">📦</div>`;
-
     const dwgBtn = p.drawing_url
       ? `<a class="dwg-btn" href="${p.drawing_url}" target="_blank">📐 Drawing</a>`
       : '';
@@ -370,36 +357,47 @@
     if (editMode) {
       const rows = bom.map((row, i) => `
         <tr>
-          <td style="color:#bbb">${i + 1}</td>
-          <td><input class="bom-input" data-field="name" data-idx="${i}" value="${escHtml(row.name)}" placeholder="Part name"></td>
-          <td><input class="bom-input" data-field="thx" data-idx="${i}" value="${escHtml(row.thx)}" placeholder="e.g. 18 mm"></td>
-          <td><input class="bom-input num" data-field="x" data-idx="${i}" value="${row.x ?? ''}"></td>
-          <td><input class="bom-input num" data-field="y" data-idx="${i}" value="${row.y ?? ''}"></td>
-          <td><input class="bom-input num" data-field="qty" data-idx="${i}" value="${row.qty ?? 0}"></td>
-          <td><input class="bom-input" data-field="material" data-idx="${i}" value="${escHtml(row.material)}"></td>
-          <td><input class="bom-input" data-field="remarks" data-idx="${i}" value="${escHtml(row.remarks)}"></td>
-          <td><button class="bom-del-btn" onclick="deleteBomRow(${i})">×</button></td>
+          <td style="padding:4px 2px"><button class="bom-del-btn" onclick="deleteBomRow(${i})">×</button></td>
+          <td style="color:#bbb;text-align:center;padding:4px 2px">${i + 1}</td>
+          <td><input class="bom-input" data-field="name" data-idx="${i}" value="${escHtml(row.name)}" placeholder="Part name" style="width:100%"></td>
+          <td><input class="bom-input num" data-field="thx" data-idx="${i}" value="${escHtml(row.thx)}" placeholder="18" style="width:100%"></td>
+          <td><input class="bom-input num" data-field="x" data-idx="${i}" value="${row.x ?? ''}" style="width:100%"></td>
+          <td><input class="bom-input num" data-field="y" data-idx="${i}" value="${row.y ?? ''}" style="width:100%"></td>
+          <td><input class="bom-input num" data-field="qty" data-idx="${i}" value="${row.qty ?? 0}" style="width:100%"></td>
+          <td><input class="bom-input" data-field="material" data-idx="${i}" value="${escHtml(row.material)}" style="width:100%"></td>
+          <td><input class="bom-input" data-field="remarks" data-idx="${i}" value="${escHtml(row.remarks)}" style="width:100%"></td>
         </tr>`).join('');
       bomHtml = `
-        <table class="bom-table">
+        <div class="bom-table-wrap">
+        <table class="bom-table" style="table-layout:fixed;width:100%;min-width:530px">
           <thead><tr>
-            <th>#</th><th>Part</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
-            <th>Qty</th><th>Material</th><th>Remarks</th><th></th>
+            <th style="width:22px;padding:5px 2px"></th>
+            <th style="width:22px;padding:5px 2px">#</th>
+            <th style="width:90px">Part</th>
+            <th style="width:52px">Thk<br><span style="font-size:9px;font-weight:400;opacity:0.7">(mm)</span></th>
+            <th style="width:44px">X<br><span style="font-size:9px;font-weight:400;opacity:0.7">(cm)</span></th>
+            <th style="width:44px">Y<br><span style="font-size:9px;font-weight:400;opacity:0.7">(cm)</span></th>
+            <th style="width:44px">Qty</th>
+            <th style="width:80px">Material</th>
+            <th>Remarks</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        </div>
         <div class="bom-edit-actions">
           <button class="bom-add-btn" onclick="addBomRow()">+ Add Part</button>
-          <div style="margin-left:auto;display:flex;gap:8px;">
-            <button class="bom-cancel-btn" onclick="cancelEditBom()">Cancel</button>
-            <button class="bom-save-btn" id="bom-save-btn" onclick="saveBom('${p._id}')">Save Changes</button>
-          </div>
+          <button class="bom-cancel-btn" onclick="cancelEditBom()">Cancel</button>
+          <button class="bom-save-btn" id="bom-save-btn" onclick="saveBom('${p._id}')">Save Changes</button>
         </div>`;
     } else {
       bomHtml = hasBom ? `
+        <div class="bom-table-wrap">
         <table class="bom-table">
           <thead><tr>
-            <th>#</th><th>Part</th><th>Thx</th><th>X (cm)</th><th>Y (cm)</th>
+            <th>#</th><th>Part</th>
+            <th>Thk<br><span style="font-size:9px;font-weight:400;opacity:0.7">(mm)</span></th>
+            <th>X<br><span style="font-size:9px;font-weight:400;opacity:0.7">(cm)</span></th>
+            <th>Y<br><span style="font-size:9px;font-weight:400;opacity:0.7">(cm)</span></th>
             <th>Qty</th><th>Material</th><th>Remarks</th>
           </tr></thead>
           <tbody>
@@ -415,25 +413,21 @@
                 <td class="bom-remarks">${row.remarks || ''}</td>
               </tr>`).join('')}
           </tbody>
-        </table>`
+        </table>
+        </div>`
         : `<div class="bom-empty">No BOM data</div>`;
     }
 
     return `
       <div class="card-body-inner">
-        <div class="detail-img-wrap">
-          ${bigImg}
-          <div class="detail-links">${dwgBtn}</div>
-        </div>
-        <div class="detail-right">
-          <div class="fields-grid">${fieldsHtml}</div>
-          <div class="bom-section">
-            <div class="bom-title">
-              Bill of Materials (${bom.length} part${bom.length !== 1 ? 's' : ''})
-              ${editMode ? '' : `<button class="bom-edit-trigger" onclick="startEditBom('${p._id}')">Edit</button>`}
-            </div>
-            ${bomHtml}
+        ${dwgBtn}
+        <div class="fields-grid">${fieldsHtml}</div>
+        <div class="bom-section">
+          <div class="bom-title">
+            Bill of Materials (${bom.length} part${bom.length !== 1 ? 's' : ''})
+            ${editMode ? '' : `<button class="bom-edit-trigger" onclick="startEditBom('${p._id}')">Edit</button>`}
           </div>
+          ${bomHtml}
         </div>
       </div>`;
   }

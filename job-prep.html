@@ -98,18 +98,18 @@
     .section-hdr-line { flex: 1; height: 1px; background: #e8ddd4; }
     .section-hdr-lbl { font-size: 11px; font-weight: 700; color: #7A4610; white-space: nowrap; }
 
-    .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .prod-search { flex: 1; font-size: 12px; padding: 8px 12px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
+    .search-row { margin-bottom: 6px; }
+    .prod-search { width: 100%; font-size: 12px; padding: 8px 12px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
     .prod-search:focus { border-color: #7A4610; }
-    .search-btn { font-size: 12px; font-weight: 700; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
-    .search-btn:disabled { background: #ccc; cursor: not-allowed; }
 
-    .search-results { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .prod-list { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow-y: auto; max-height: 320px; }
     .search-result-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #f5f0eb; }
     .search-result-row:last-child { border-bottom: none; }
-    .sr-thumb { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
-    .sr-thumb-ph { width: 28px; height: 28px; border-radius: 4px; background: #f0e8e0; flex-shrink: 0; }
-    .sr-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-thumb { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .sr-thumb-ph { width: 32px; height: 32px; border-radius: 4px; background: #f0e8e0; flex-shrink: 0; }
+    .sr-info { flex: 1; min-width: 0; }
+    .sr-name { font-size: 12px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-mat { font-size: 10px; color: #999; margin-top: 1px; }
     .sr-add { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
     .sr-add:hover { background: #7A4610; color: #fff; }
     .sr-add:disabled { border-color: #ccc; color: #ccc; cursor: default; }
@@ -361,15 +361,14 @@
         <div class="section-hdr-line"></div>
       </div>
       <div class="search-row">
-        <input class="prod-search" id="prodSearch" type="text" placeholder="Search product name…"
-          onkeydown="if(event.key==='Enter')searchProducts()">
-        <button class="search-btn" id="searchBtn" onclick="searchProducts()">Search</button>
+        <input class="prod-search" id="prodSearch" type="text" placeholder="Search by name…" oninput="filterProducts()">
       </div>
-      <div id="searchResults"></div>
-      <div id="mtsOnlyList"></div>`;
+      <div id="mtsOnlyList"></div>
+      <div class="prod-list" id="prodList"></div>`;
     document.getElementById('submitBar').style.display = 'flex';
     renderMtsOnlyList();
     updateSubmitSummary();
+    loadFsProducts();
   }
 
   function updateTotal(input) {
@@ -396,55 +395,68 @@
     if (submitBtn) submitBtn.disabled = totalItems === 0;
   }
 
-  // ── MTS-only product search & list ───────────────────────────────
-  const WC_PRODUCTS = `https://timberedgroup.com/wp-json/wc/v3/products?${WC_CREDS}&per_page=20&status=publish`;
-  let _mtsOnly = []; // [{ product_id, name, image, qty }]
+  // ── MTS-only product list ─────────────────────────────────────────
+  let _mtsOnly    = [];
+  let _fsProducts = [];
 
-  async function searchProducts() {
-    const q = document.getElementById('prodSearch').value.trim();
-    if (!q) return;
-    const btn = document.getElementById('searchBtn');
-    btn.disabled = true; btn.textContent = '…';
+  async function loadFsProducts() {
     try {
-      const res = await fetch(`${WC_PRODUCTS}&search=${encodeURIComponent(q)}`);
-      const prods = await res.json();
-      const mtoIds = new Set(document.querySelectorAll('.prod-card[data-pid]') ? [...document.querySelectorAll('.prod-card[data-pid]')].map(c => parseInt(c.dataset.pid)) : []);
-      const mtsIds = new Set(_mtsOnly.map(p => p.product_id));
-      const rows = prods.map(p => {
-        const already = mtoIds.has(p.id) || mtsIds.has(p.id);
-        const thumb = p.images?.[0]?.src
-          ? `<img class="sr-thumb" src="${p.images[0].src}" alt="">`
-          : `<div class="sr-thumb-ph"></div>`;
-        return `<div class="search-result-row">
-          ${thumb}
-          <span class="sr-name">${p.name}</span>
-          <button class="sr-add" ${already ? 'disabled' : ''} onclick="addMtsProduct(${p.id},'${p.name.replace(/'/g,"\\'")}','${p.images?.[0]?.src||''}')">
-            ${already ? 'Added' : '+ Add'}
-          </button>
-        </div>`;
-      }).join('');
-      document.getElementById('searchResults').innerHTML = rows
-        ? `<div class="search-results">${rows}</div>`
-        : '<div class="state-msg" style="padding:12px;font-size:12px;">No products found</div>';
-    } catch(e) {
-      document.getElementById('searchResults').innerHTML = `<div class="state-msg" style="padding:12px;font-size:12px;">Error: ${e.message}</div>`;
-    }
-    btn.disabled = false; btn.textContent = 'Search';
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'products' }] } })
+      });
+      const rows = await res.json();
+      _fsProducts = rows.filter(r => r.document).map(r => {
+        const f = r.document.fields || {};
+        const get = k => f[k]?.stringValue ?? f[k]?.integerValue ?? f[k]?.doubleValue ?? null;
+        return {
+          product_id: parseInt(get('product_id')) || null,
+          name:       get('name') || '',
+          material:   get('material') || '',
+          image:      get('image_url') || ''
+        };
+      }).filter(p => p.product_id).sort((a,b) => a.name.localeCompare(b.name));
+      filterProducts();
+    } catch(_) {}
+  }
+
+  function filterProducts() {
+    const el = document.getElementById('prodList');
+    if (!el) return;
+    const q = (document.getElementById('prodSearch')?.value || '').trim().toLowerCase();
+    const mtoIds = new Set([...document.querySelectorAll('.prod-card[data-pid]')].map(c => parseInt(c.dataset.pid)));
+    const mtsIds = new Set(_mtsOnly.map(p => p.product_id));
+    const list = q ? _fsProducts.filter(p => p.name.toLowerCase().includes(q)) : _fsProducts;
+    if (!list.length) { el.innerHTML = '<div class="state-msg" style="padding:12px;font-size:12px;">No products found</div>'; return; }
+    el.innerHTML = list.map(p => {
+      const already = mtoIds.has(p.product_id) || mtsIds.has(p.product_id);
+      const thumb = p.image ? `<img class="sr-thumb" src="${p.image}" alt="" loading="lazy">` : `<div class="sr-thumb-ph"></div>`;
+      return `<div class="search-result-row">
+        ${thumb}
+        <div class="sr-info">
+          <div class="sr-name">${p.name}</div>
+          ${p.material ? `<div class="sr-mat">${p.material}</div>` : ''}
+        </div>
+        <button class="sr-add" ${already ? 'disabled' : ''} onclick="addMtsProduct(${p.product_id},'${p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.image}')">
+          ${already ? 'Added' : '+ Add'}
+        </button>
+      </div>`;
+    }).join('');
   }
 
   function addMtsProduct(pid, name, image) {
     if (_mtsOnly.find(p => p.product_id === pid)) return;
     _mtsOnly.push({ product_id: pid, name, image, qty: 1 });
-    document.getElementById('searchResults').innerHTML = '';
-    document.getElementById('prodSearch').value = '';
     renderMtsOnlyList();
     updateSubmitSummary();
+    filterProducts();
   }
 
   function removeMtsProduct(pid) {
     _mtsOnly = _mtsOnly.filter(p => p.product_id !== pid);
     renderMtsOnlyList();
     updateSubmitSummary();
+    filterProducts();
   }
 
   function renderMtsOnlyList() {
