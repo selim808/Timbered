@@ -81,11 +81,15 @@
     }
 
     @media print {
+      @page { size: A4 portrait; margin: 12mm; }
       .site-header, .controls { display: none !important; }
       body { background: #fff; }
       .wrap { padding: 0; max-width: none; }
-      #cutlist-display { border: none; border-radius: 0; padding: 12px; box-shadow: none; }
+      #cutlist-display { border: none; border-radius: 0; padding: 0; box-shadow: none; }
       .cl-table { min-width: unset; }
+      /* Prevent any product block from splitting across pages */
+      .cl-card { page-break-inside: avoid; break-inside: avoid; }
+      .cl-table tbody tr { page-break-inside: avoid; break-inside: avoid; }
     }
   </style>
 </head>
@@ -391,19 +395,33 @@
     const fullH = el.scrollHeight;
     const clone = el.cloneNode(true);
     Object.assign(clone.style, {
-      position: 'fixed', top: '0', left: '0',
+      position: 'fixed', top: '0', left: '-99999px',
       width: fullW + 'px', minWidth: 'unset',
-      overflow: 'visible', zIndex: '-9999',
-      opacity: '0.001', pointerEvents: 'none'
+      overflow: 'visible', opacity: '1',
+      background: '#fff', pointerEvents: 'none'
     });
     document.body.appendChild(clone);
     await inlineImages(clone);
+
+    const cloneTop = clone.getBoundingClientRect().top;
+
+    // Inter-product break positions (skip first so header + first product share page 1)
+    let blockEls = [...clone.querySelectorAll('.cl-card')];
+    if (!blockEls.length) blockEls = [...clone.querySelectorAll('.cl-product-cell')];
+
+    // "Repeated header" = everything above the first product block.
+    // For table view this includes .cl-header + <thead>; for card view just .cl-header.
+    const firstBlock = blockEls[0] || null;
+    const headerBottom = firstBlock ? firstBlock.getBoundingClientRect().top : cloneTop;
+    const headerHeightPx = Math.round((headerBottom - cloneTop) * CAPTURE_SCALE);
+    const breakPoints = blockEls.slice(1).map(e => e.getBoundingClientRect().top - cloneTop);
+
     const canvas = await html2canvas(clone, {
       scale: CAPTURE_SCALE, backgroundColor: '#ffffff', logging: false,
-      width: fullW, height: fullH
+      width: fullW, height: fullH, useCORS: true
     });
     document.body.removeChild(clone);
-    return canvas;
+    return { canvas, breakPoints, headerHeightPx };
   }
 
   async function downloadPDF() {
@@ -411,31 +429,62 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const canvas = await captureFullWidth(el);
+      const { canvas, breakPoints, headerHeightPx } = await captureFullWidth(el);
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const pxPerMm = canvas.width / pageW;
-      const totalImgH = canvas.height / pxPerMm;
+      const pageHeightPx = Math.round(pageH * pxPerMm);
 
-      let srcY = 0;
-      let page = 0;
+      // Scale break points to canvas pixels
+      const breaksPx = breakPoints.map(y => Math.round(y * CAPTURE_SCALE));
+
+      let srcY = 0, page = 0;
       while (srcY < canvas.height) {
         if (page > 0) pdf.addPage();
-        const slicePx = Math.min(Math.round(pageH * pxPerMm), canvas.height - srcY);
-        const sliceH = slicePx / pxPerMm;
-        const slice = document.createElement('canvas');
-        slice.width = canvas.width;
-        slice.height = slicePx;
-        slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
-        pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pageW, sliceH);
-        srcY += slicePx;
+
+        // Pages after the first reserve space at the top for the repeated header
+        const headerReserve = page === 0 ? 0 : headerHeightPx;
+        const maxEndY = Math.min(srcY + pageHeightPx - headerReserve, canvas.height);
+        // Use the latest valid inter-product break that fits on this page.
+        // Fall back to maxEndY only if a single product is taller than one page.
+        const candidates = breaksPx.filter(bp => bp > srcY && bp <= maxEndY);
+        const endY = candidates.length ? Math.max(...candidates) : maxEndY;
+        const slicePx = endY - srcY;
+
+        let imgCanvas;
+        if (page === 0) {
+          // First page: content as-is (header already included in the slice)
+          imgCanvas = document.createElement('canvas');
+          imgCanvas.width  = canvas.width;
+          imgCanvas.height = slicePx;
+          imgCanvas.getContext('2d').drawImage(
+            canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx
+          );
+        } else {
+          // Subsequent pages: stamp header at top, then content slice below
+          imgCanvas = document.createElement('canvas');
+          imgCanvas.width  = canvas.width;
+          imgCanvas.height = headerHeightPx + slicePx;
+          const ctx = imgCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, imgCanvas.width, imgCanvas.height);
+          // Header strip (from top of original canvas)
+          ctx.drawImage(canvas, 0, 0, canvas.width, headerHeightPx,
+                                0, 0, canvas.width, headerHeightPx);
+          // Content slice
+          ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx,
+                                0, headerHeightPx, canvas.width, slicePx);
+        }
+
+        const sliceH = imgCanvas.height / pxPerMm;
+        pdf.addImage(imgCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, sliceH);
+        srcY = endY;
         page++;
       }
 
-      const ref = _currentJO?.ref || 'JO';
-      pdf.save(`Cutlist-${ref}.pdf`);
+      pdf.save(`Cutlist-${_currentJO?.ref || 'JO'}.pdf`);
     } catch (e) {
       alert('PDF error: ' + e.message);
     }
@@ -447,7 +496,7 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const canvas = await captureFullWidth(el);
+      const { canvas } = await captureFullWidth(el);
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = `Cutlist-${_currentJO?.ref || 'JO'}.png`;
