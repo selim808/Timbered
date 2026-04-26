@@ -25,6 +25,20 @@
     .hdr-edit-btn { font-size: 11px; font-weight: 700; background: none; border: 1.5px solid var(--brand); border-radius: 20px; padding: 4px 12px; color: var(--brand); cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit; display: none; }
     .hdr-edit-btn:hover { background: var(--brand); color: #fff; }
     .hdr-edit-btn.visible { display: inline-block; }
+    /* ── Product picker ── */
+    .prod-picker { flex: 1; min-width: 0; position: relative; }
+    .prod-pick-input { font-size: 13px; font-weight: 700; font-family: inherit; padding: 5px 10px; border: 1.5px solid var(--border); border-radius: 8px; color: var(--brand); background: #fff; outline: none; width: 100%; cursor: text; }
+    .prod-pick-input:focus { border-color: var(--brand); }
+    .prod-pick-input::placeholder { font-weight: 400; color: var(--muted); }
+    .prod-pick-input:disabled { opacity: 0.5; cursor: default; background: #f8f8f8; }
+    .prod-pick-drop { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1.5px solid var(--border); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); z-index: 500; max-height: 280px; overflow-y: auto; }
+    .prod-pick-drop.open { display: block; }
+    .prod-pick-opt { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #f5f0eb; }
+    .prod-pick-opt:last-child { border-bottom: none; }
+    .prod-pick-opt:hover, .prod-pick-opt.cur { background: var(--brand-light); }
+    .prod-pick-opt .opt-en { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .prod-pick-opt.cur .opt-en { color: var(--brand); }
+    .prod-pick-opt .opt-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
     /* ── Tab bar ── */
     .tab-bar { display: none; background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 49px; z-index: 99; }
@@ -142,10 +156,13 @@
 
 <header class="site-header">
   <a class="back-btn" href="products.html">← Products</a>
-  <div class="hdr-names">
-    <div class="hdr-en" id="hdrEn">Loading…</div>
-    <div class="hdr-ar" id="hdrAr"></div>
+  <div class="prod-picker" id="prodPicker">
+    <input class="prod-pick-input" id="prodPickInput" type="text"
+           placeholder="Search products…" autocomplete="off"
+           onfocus="openPicker()" oninput="filterPicker(this.value)">
+    <div class="prod-pick-drop" id="prodPickDrop"></div>
   </div>
+  <div class="hdr-ar" id="hdrAr" style="display:none"></div>
   <span class="pill pill-sku" id="hdrSku"></span>
   <span class="pill pill-rev" id="hdrRev"></span>
   <button class="hdr-edit-btn" id="btnEdit" onclick="startEdit()">✏ Edit</button>
@@ -250,11 +267,75 @@
     document.getElementById('tab-' + tab).classList.add('active');
   }
 
+  // ── Product picker ────────────────────────────────────────────────
+  let _allProducts = []; // { id, name_en, sku, name_ar }
+
+  function navigateToProduct(id) {
+    if (!id) return;
+    location.href = 'product-detail.html?id=' + id;
+  }
+
+  function openPicker() {
+    if (document.getElementById('prodPickInput').disabled) return;
+    document.getElementById('prodPickInput').select();
+    renderPickerList('');
+    document.getElementById('prodPickDrop').classList.add('open');
+  }
+
+  function closePicker() {
+    document.getElementById('prodPickDrop').classList.remove('open');
+    const inp = document.getElementById('prodPickInput');
+    inp.value = _product ? (_product.name?.en || '#' + pid) : '';
+  }
+
+  function filterPicker(q) {
+    renderPickerList(q);
+    document.getElementById('prodPickDrop').classList.add('open');
+  }
+
+  function renderPickerList(q) {
+    const term = q.trim().toLowerCase();
+    const list = term
+      ? _allProducts.filter(p =>
+          p.name_en.toLowerCase().includes(term) ||
+          (p.sku || '').toLowerCase().includes(term) ||
+          (p.name_ar || '').includes(term))
+      : _allProducts;
+    const dd = document.getElementById('prodPickDrop');
+    if (!list.length) {
+      dd.innerHTML = '<div class="prod-pick-opt" style="color:var(--muted);font-style:italic;cursor:default">No products found</div>';
+      return;
+    }
+    dd.innerHTML = list.map(p => `
+      <div class="prod-pick-opt ${String(p.id)===String(pid)?'cur':''}" onclick="navigateToProduct('${p.id}')">
+        <div class="opt-en">${p.name_en}</div>
+        <div class="opt-sub">${[p.sku, p.name_ar].filter(Boolean).join(' · ')}</div>
+      </div>`).join('');
+  }
+
+  async function loadProductList() {
+    try {
+      const docs = await fsList(COL);
+      docs.sort((a, b) => (a.name?.en || '').localeCompare(b.name?.en || ''));
+      _allProducts = docs.map(p => ({
+        id: p._id, name_en: p.name?.en || '#' + p._id,
+        sku: p.sku || '', name_ar: p.name?.ar || ''
+      }));
+      if (pid && _product) {
+        document.getElementById('prodPickInput').value = _product.name?.en || '#' + pid;
+      }
+    } catch(e) { /* non-fatal */ }
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#prodPicker')) closePicker();
+  });
+
   // ── Header update ─────────────────────────────────────────────────
   function updateHeader() {
     const p = _product;
-    document.getElementById('hdrEn').textContent  = p.name?.en || '#' + p._id;
-    document.getElementById('hdrAr').textContent  = p.name?.ar || '';
+    document.getElementById('prodPickInput').value    = p.name?.en || '#' + p._id;
+    document.getElementById('prodPickInput').disabled = _editMode;
     document.getElementById('hdrSku').textContent = p.sku || '';
     document.getElementById('hdrRev').textContent = p.revision_current || '';
     document.title = (p.name?.en || p._id) + ' — Timbered';
@@ -675,6 +756,7 @@
       status.textContent = 'Saved ✓';
       _editMode = false;
       _deletedPartIds = new Set();
+      btn.disabled = false;
       await load();
     } catch (e) {
       status.textContent = 'Error: ' + e.message;
@@ -788,8 +870,12 @@
     document.getElementById('tabBar').classList.remove('visible');
     document.getElementById('btnEdit').classList.remove('visible');
     document.getElementById('editBar').classList.remove('visible');
+    document.getElementById('btnSave').disabled = false;
     document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
-    if (!pid) { document.getElementById('stateWrap').innerHTML=`<div class="state-wrap">No product ID — use <code>?id=16154</code></div>`; return; }
+    if (!pid) {
+      document.getElementById('stateWrap').innerHTML = `<div class="state-wrap">Select a product above to view its details.</div>`;
+      return;
+    }
     try {
       _product = await fsGet(`${COL}/${pid}`);
       if (!_product) {
@@ -805,6 +891,7 @@
     } catch(e) { document.getElementById('stateWrap').innerHTML=`<div class="state-wrap">Error: ${e.message}</div>`; }
   }
 
+  loadProductList();
   load();
 </script>
 </body>
