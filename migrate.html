@@ -216,6 +216,72 @@
     return { stringValue: String(v) };
   }
 
+  // ── STEP 6: Full order_phases migration (all statuses + history) ─────
+  async function migrateAllOrders() {
+    const btn = document.getElementById('btnAllOrders');
+    btn.disabled = true;
+    document.getElementById('logAllOrders').innerHTML = '';
+    log('logAllOrders', '→ Fetching all WC orders (status=any)…', 'info');
+
+    try {
+      let page = 1, allOrders = [];
+      while (true) {
+        setProgress('progressAllOrders', `Fetching orders page ${page}…`);
+        const res = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=any&per_page=100&page=${page}`);
+        const batch = await res.json();
+        if (!batch.length) break;
+        allOrders = allOrders.concat(batch);
+        if (batch.length < 100) break;
+        page++;
+      }
+      log('logAllOrders', `✓ Found ${allOrders.length} orders`, 'ok');
+
+      let ok = 0, skipped = 0, fail = 0, docIdx = 0;
+      const totalItems = allOrders.reduce((s, o) => s + o.line_items.length, 0);
+
+      for (const order of allOrders) {
+        for (const item of order.line_items) {
+          docIdx++;
+          setProgress('progressAllOrders', `Writing ${docIdx} / ${totalItems} — order #${order.id}`);
+
+          const phase = (item.meta_data || []).find(m => m.key === 'tg_phase')?.value || '';
+          if (!phase) { skipped++; continue; }
+
+          const docId = `${order.id}_${item.id}`;
+          const histValues = [{ mapValue: { fields: {
+            phase: { stringValue: phase },
+            at:    { nullValue: null }
+          }}}];
+
+          const fields = {
+            order_id:     { stringValue: String(order.id) },
+            line_item_id: { stringValue: String(item.id) },
+            product_id:   { integerValue: String(item.product_id || 0) },
+            phase:        { stringValue: phase },
+            wc_status:    { stringValue: order.status || '' },
+            history:      { arrayValue: { values: histValues } }
+          };
+
+          try {
+            await fsWrite('order_phases', docId, fields);
+            ok++;
+          } catch(e) {
+            log('logAllOrders', `✗ ${docId} failed: ${e.message}`, 'err');
+            fail++;
+          }
+        }
+      }
+
+      log('logAllOrders', `✓ Done: ${ok} written, ${skipped} skipped (no tg_phase), ${fail} failed`, 'ok');
+      setProgress('progressAllOrders', `Done — ${ok} docs written`);
+    } catch(e) {
+      log('logAllOrders', `✗ Fatal error: ${e.message}`, 'err');
+      setProgress('progressAllOrders', 'Error — see log');
+    }
+
+    btn.disabled = false;
+  }
+
   // ── STEP 4: Migrate all products to products_v2 ──────────────────────
   async function fsWritePath(path, obj) {
     const fields = {};
@@ -986,6 +1052,84 @@
     }
     btn.disabled = false;
   }
+
+  // ── STEP 5: Seed phase_groups ─────────────────────────────────────
+  async function seedPhaseGroups() {
+    const btn = document.getElementById('btnPhaseGroups');
+    btn.disabled = true;
+    document.getElementById('logPhaseGroups').innerHTML = '';
+
+    const GROUPS = [
+      {
+        id: 'order_review', label: 'Order Review', color: '#f59e0b', order: 0,
+        phases: ['Created','WA Message Sent','Call Made','Quotation Sent','Revised',
+                 'Quotation Approved','Awaiting Confirmation','Confirmed',
+                 'Deposit Paid','On Hold','Cancelled']
+      },
+      {
+        id: 'planning', label: 'Planning', color: '#f97316', order: 1,
+        phases: ['Check Inventory','Model & DWG','JO preparation','Procurement',
+                 'Material Received','JO released']
+      },
+      {
+        id: 'production', label: 'Production', color: '#3b82f6', order: 2,
+        phases: ['Cutting','CNC','Upholstery','Shaping & Joint prep.','Sand-fillet',
+                 'Assemble & label','Paint','Inspection']
+      },
+      {
+        id: 'dispatch', label: 'Dispatch', color: '#14b8a6', order: 3,
+        phases: ['Packing List Check','Packaging','Ready to Ship']
+      },
+      {
+        id: 'repair', label: 'Repair', color: '#f43f5e', order: 4,
+        phases: ['Received from WH','QC-Rejected','R-Assessment','R-Cutting','R-CNC',
+                 'R-Upholstery','R-Shaping & Joint prep.','R-Sand-fillet',
+                 'R-Assemble & label','R-Paint','R-Inspection']
+      },
+      {
+        id: 'interface', label: 'Interface', color: '#8b5cf6', order: 5,
+        phases: ['Sent to WH','Not Received in WH','Already in WH',
+                 'Not available in WH','Sent to Production']
+      },
+      {
+        id: 'warehouse', label: 'Warehouse', color: '#ef4444', order: 6,
+        phases: ['WH-Defected','WH-No_Response','WH-Postponed','WH-Returned',
+                 'WH-Stock','WH-Ready']
+      },
+      {
+        id: 'delivery', label: 'Delivery', color: '#10b981', order: 7,
+        phases: ['DLV-Bareed-Cairo','DLV-Bareed-Tanta','DLV-Bosta','DLV-Private',
+                 'Delivered Partially','Delivered Fully']
+      },
+    ];
+
+    log('logPhaseGroups', `→ Seeding ${GROUPS.length} phase groups to Firestore…`, 'info');
+    let ok = 0, fail = 0;
+
+    for (const g of GROUPS) {
+      setProgress('progressPhaseGroups', `Writing ${g.label}…`);
+      const fields = {
+        id:     { stringValue: g.id },
+        label:  { stringValue: g.label },
+        color:  { stringValue: g.color },
+        order:  { integerValue: String(g.order) },
+        phases: { arrayValue: { values: g.phases.map(p => ({ stringValue: p })) } },
+      };
+      try {
+        await fsWrite('phase_groups', g.id, fields);
+        log('logPhaseGroups', `✓ ${g.label} — ${g.phases.length} phases`, 'ok');
+        ok++;
+      } catch(e) {
+        log('logPhaseGroups', `✗ ${g.label}: ${e.message}`, 'err');
+        fail++;
+      }
+    }
+
+    const totalPhases = GROUPS.reduce((s, g) => s + g.phases.length, 0);
+    log('logPhaseGroups', `✓ Done: ${ok} groups, ${totalPhases} total phases written`, 'ok');
+    setProgress('progressPhaseGroups', `Done — ${ok} groups seeded`);
+    btn.disabled = false;
+  }
 </script>
 
 <div class="card">
@@ -1006,6 +1150,24 @@
   <button class="btn" id="btnV2" onclick="migrateToV2()">Run v2 Migration</button>
   <div class="progress" id="progressV2"></div>
   <div class="log" id="logV2"></div>
+</div>
+
+
+<div class="card">
+  <h2>Step 6 — Full <code>order_phases</code> migration (all statuses + history)</h2>
+  <p>Fetches all WooCommerce orders regardless of status, then writes every line item to <code>order_phases/{order_id}_{item_id}</code> with <code>wc_status</code> and a <code>history</code> array seeded from the current <code>tg_phase</code> meta value. Items without a tg_phase are skipped. Safe to re-run — overwrites existing docs.</p>
+  <button class="btn" id="btnAllOrders" onclick="migrateAllOrders()">Run Full Order Migration</button>
+  <div class="progress" id="progressAllOrders"></div>
+  <div class="log" id="logAllOrders"></div>
+</div>
+
+
+<div class="card">
+  <h2>Step 5 — Seed <code>phase_groups</code> collection</h2>
+  <p>Writes all 8 phase groups (Order Review, Planning, Production, Dispatch, Repair, Interface, Warehouse, Delivery) to <code>phase_groups/{id}</code> in Firestore. Each document stores the group label, color, display order, and the full phases array. Safe to re-run — overwrites the document entirely. This becomes the central source of truth for all WIP phases.</p>
+  <button class="btn" id="btnPhaseGroups" onclick="seedPhaseGroups()">Seed Phase Groups</button>
+  <div class="progress" id="progressPhaseGroups"></div>
+  <div class="log" id="logPhaseGroups"></div>
 </div>
 
 </body>
