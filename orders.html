@@ -674,8 +674,10 @@
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
       const visibleItems = o.line_items.filter((item, idx) => phases.includes(getItemPhase(o.id, item.id)));
-      if (!visibleItems.length) return '';
-      const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('');
+      if (o.line_items.length > 0 && !visibleItems.length) return '';
+      const itemsHtml = visibleItems.length
+        ? visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('')
+        : '<div style="padding:10px 14px;font-size:11px;color:#aaa;font-style:italic;">No items in this order</div>';
       const hasCreated = o.line_items.some(item => getItemPhase(o.id, item.id) === 'Created');
       const waNum = o.billing.phone.replace(/\D/g,'').replace(/^0/,'20');
       const waMsg = hasCreated ? encodeURIComponent(`مرحبًا ${name},\n\nتم استلام طلبك رقم #${o.id} من Timbered بنجاح.\nيرجى إرسال لوكشن التوصيل 📍.\n___________________________________\nHello, ${name},\n\nYour Timbered order #${o.id} has been received successfully.\nPlease send delivery location 📍`) : '';

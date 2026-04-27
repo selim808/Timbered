@@ -1049,6 +1049,10 @@ async function loadGoals() {
   function setupDashboard() {
       const sel = document.getElementById("roundSelect");
       sel.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "__all__";
+      allOpt.text  = "All Rounds";
+      sel.appendChild(allOpt);
       businessData.forEach(d => {
           const o = document.createElement("option");
           o.value = d.Round;
@@ -1072,10 +1076,53 @@ async function loadGoals() {
   }
 
   // ----------------------------------------------------------------
+  // AGGREGATE — sum all rounds into a single virtual row
+  // ----------------------------------------------------------------
+  function aggregateAll() {
+      const sum = key => businessData.reduce((acc, d) => acc + (d[key] || 0), 0);
+      const cashIn   = sum('CashIn_Value');
+      const cashInNo = sum('CashIn_No');
+      const compVal  = sum('Completed_Value');
+      const compNo   = sum('Completed_No');
+      const totalExp = sum('Expenses') || 1;
+      const cogsVal  = sum('COGS_Value');
+      const mrkVal   = sum('MRK_Value');
+      const fixVal   = sum('FixedCost_Value');
+      const logVal   = sum('Logistics_Value');
+      const othVal   = sum('Others_Value');
+      return {
+          Round: 'All',
+          Start_Date:          businessData[0]?.Start_Date || null,
+          Duration:            sum('Duration'),
+          Total_Orders_No:     sum('Total_Orders_No'),
+          Total_Orders_Value:  sum('Total_Orders_Value'),
+          CashIn_Value:        cashIn,
+          CashIn_No:           cashInNo,
+          Expenses:            totalExp,
+          Orders_Ceiling:      sum('Orders_Ceiling'),
+          Ceiling_Gap:         cashIn - sum('Orders_Ceiling'),
+          Processing_Value:    sum('Processing_Value'),
+          Processing_No:       sum('Processing_No'),
+          Completed_Value:     compVal,
+          Completed_No:        compNo,
+          Cash_Minus_Com_Value: cashIn - compVal,
+          Cash_Minus_Com_No:   cashInNo - compNo,
+          Cancelled_Value:     sum('Cancelled_Value'),
+          Cancelled_No:        sum('Cancelled_No'),
+          COGS_Value:          cogsVal, COGS_Percent:     cogsVal / totalExp,
+          MRK_Value:           mrkVal,  MRK_Percent:      mrkVal  / totalExp,
+          FixedCost_Value:     fixVal,  FixedCost_Percent: fixVal / totalExp,
+          Logistics_Value:     logVal,  Logistics_Percent: logVal / totalExp,
+          Others_Value:        othVal,  Others_Percent:   othVal  / totalExp,
+      };
+  }
+
+  // ----------------------------------------------------------------
   // RENDER — main update, called on every round change
   // ----------------------------------------------------------------
   function render() {
-      const d = businessData.find(x => x.Round == document.getElementById("roundSelect").value);
+      const selVal = document.getElementById("roundSelect").value;
+      const d = selVal === "__all__" ? aggregateAll() : businessData.find(x => x.Round == selVal);
       if (!d) return;
 
       // -- Header --
@@ -2062,7 +2109,8 @@ async function loadGoals() {
 </script>
 
 <div style="padding:24px 16px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:480px; margin:0 auto;">
-  <a href="orders.html" style="grid-column:1/-1; font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Orders</a>
+  <a href="orders.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Orders</a>
+  <a href="order-review.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Order Review</a>
   <a href="warehouse.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Warehouse</a>
   <a href="job-prep.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Job Order Prep</a>
   <a href="cutlists.html" style="font-size:13px; font-weight:700; color:#27ae60; text-decoration:none; border:2px solid #27ae60; border-radius:20px; padding:6px 20px; background:#eafaf1; display:flex; align-items:center; justify-content:center; text-align:center;">Cutlists</a>

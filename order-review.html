@@ -4,148 +4,74 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Review — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
 
-    /* HEADER */
     .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
-    .site-header img { height: 26px; }
+    .site-header img { height: 26px; display: block; }
     .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
     .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
-    .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+    .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
 
-    /* SUB-NAV */
-    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 100; }
-    .sub-nav-btn { font-size: 12px; font-weight: 700; color: #aaa; background: none; border: none; cursor: pointer; padding: 8px 18px; border-bottom: 2px solid transparent; }
-    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
-    .sub-nav-btn:hover { color: #7A4610; }
+    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sub-nav::-webkit-scrollbar { display: none; }
+    .tab-btn { font-size: 12px; font-weight: 700; color: #aaa; background: none; border: none; cursor: pointer; padding: 9px 14px; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+    .tab-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .tab-btn:hover { color: #7A4610; }
+    .tab-count { font-size: 10px; font-weight: 700; background: #fef3e2; color: #7A4610; border-radius: 8px; padding: 1px 6px; }
+    .tab-btn.active .tab-count { background: #7A4610; color: #fff; }
 
-    /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 83px; z-index: 99; flex-wrap: wrap; }
-    .tb-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .tb-label { font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-    .view-btns { display: flex; gap: 4px; }
-    .view-btn { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; }
-    .view-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
-    .sort-sel { font-size: 11px; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 3px 6px; color: #555; }
+    .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 92px; z-index: 98; }
+    .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; line-height: 1.4; flex-shrink: 0; }
+    #searchInput { flex: 1; font-size: 12px; padding: 6px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; background: #fafaf8; }
 
-    /* STATE */
     #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+    #content { padding: 10px; }
 
-    /* CONTENT */
-    #content { padding: 10px; display: none; }
-
-    /* ── BY ORDER VIEW ── */
     .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
-    .order-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; }
+    .order-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; flex-wrap: wrap; }
     .order-top:hover { background: #fdf8f4; border-radius: 8px 8px 0 0; }
-    .order-id-lbl { font-size: 10px; color: #aaa; flex-shrink: 0; white-space: nowrap; }
-    .order-name-lbl { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .order-total-lbl { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
-    .order-phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-    .order-phone-num { font-size: 11px; color: #555; white-space: nowrap; }
-    .order-phone-lbl, .order-phone-call { display: flex; align-items: center; text-decoration: none; }
-    .order-phone-lbl:hover svg, .order-phone-call:hover svg { opacity: 0.75; }
+    .d-badge { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+    .d-badge.warn   { background: #e67e22; }
+    .d-badge.urgent { background: #e74c3c; }
+    .order-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .order-name { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .order-total { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
     .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
     .order-card.open .order-chevron { transform: rotate(180deg); }
-    .order-meta-row { font-size: 10px; color: #aaa; padding: 0 10px 5px; }
-    .order-phase-row { padding: 4px 10px 8px; display: flex; align-items: center; gap: 8px; }
-    .order-phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; }
-    .details-btn { font-size: 10px; background: none; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 8px; cursor: pointer; color: #7A4610; }
-    .details-btn:hover { background: #fef3e2; }
-    .order-items-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
+
+    .phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
+    .phone-wa, .phone-call { display: flex; align-items: center; text-decoration: none; }
+    .phone-wa:hover svg, .phone-call:hover svg { opacity: 0.7; }
+
+    .order-addr { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .order-addr .state { font-weight: 600; color: #7A4610; white-space: nowrap; }
+
+    .wa-msg-btn { font-size: 10px; font-weight: 700; background: #25d366; color: #fff; border: none; border-radius: 12px; padding: 3px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .wa-msg-btn:active { background: #1da851; }
+
+    .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .order-items-inner { overflow: hidden; }
-    .order-card.open .order-items-wrap { grid-template-rows: 1fr; }
+    .order-card.open .order-items { grid-template-rows: 1fr; }
 
-    /* ── BY PHASE VIEW ── */
-    .phase-group { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
-    .phase-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
-    .phase-header:hover { background: #fdf8f4; }
-    .phase-name { font-size: 13px; font-weight: 700; color: #7A4610; flex: 1; }
-    .phase-meta { font-size: 11px; color: #aaa; }
-    .phase-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
-    .phase-group.open .phase-chevron { transform: rotate(180deg); }
-    .phase-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
-    .phase-items-inner { overflow: hidden; }
-    .phase-group.open .phase-items { grid-template-rows: 1fr; }
-    .phase-group.open .phase-items-inner { overflow-y: auto; max-height: 500px; }
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid #f5f0eb; }
+    .item-thumb { width: 30px; height: 30px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-ph { width: 30px; height: 30px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-qty  { font-size: 11px; color: #888; white-space: nowrap; flex-shrink: 0; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 3px 5px; color: #555; flex-shrink: 0; max-width: 120px; outline: none; cursor: pointer; }
+    .phase-sel:focus { border-color: #7A4610; }
 
-    /* ── BY PRODUCT VIEW ── */
-    .product-group { background: #fff; border: 1px solid #e8ddd4; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
-    .product-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
-    .product-header:hover { background: #fdf8f4; }
-    .product-name { font-size: 13px; font-weight: 700; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .product-count-lbl { font-size: 11px; font-weight: 700; color: #7A4610; background: #fef3e2; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
-    .product-chevron { font-size: 10px; color: #bbb; transition: transform 0.2s; }
-    .product-group.open .product-chevron { transform: rotate(180deg); }
-    .product-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
-    .product-items-inner { overflow: hidden; }
-    .product-group.open .product-items { grid-template-rows: 1fr; }
+    .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 13px; }
 
-    /* ── SHARED ITEM ROW ── */
-    .item-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid #f5f0eb; }
-    .item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #333; font-weight: 500; }
-    .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
-    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
-
-    /* TYPE BADGE */
-    .type-badge { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0; }
-    .type-active    { background: #fef3c7; color: #92400e; }
-    .type-pending   { background: #ffedd5; color: #9a3412; }
-    .type-won       { background: #d1fae5; color: #065f46; }
-    .type-exception { background: #fee2e2; color: #991b1b; }
-    .type-lost      { background: #f3f4f6; color: #374151; }
-
-    /* KANBAN */
-    #kanban-wrap { display: none; overflow: auto; padding: 12px; touch-action: pan-x pan-y; }
-    .kb-board { display: flex; gap: 10px; align-items: flex-start; min-width: max-content; }
-    .kb-col { width: 185px; flex-shrink: 0; background: #fff; border-radius: 10px; border: 1px solid #e8ddd4; overflow: hidden; }
-    .kb-col[data-type="active"]    { border-top: 3px solid #f59e0b; }
-    .kb-col[data-type="pending"]   { border-top: 3px solid #f97316; }
-    .kb-col[data-type="won"]       { border-top: 3px solid #10b981; }
-    .kb-col[data-type="exception"] { border-top: 3px solid #ef4444; }
-    .kb-col[data-type="lost"]      { border-top: 3px solid #9ca3af; }
-    .kb-col-header { padding: 8px 10px; border-bottom: 1px solid #f0e8e0; }
-    .kb-col-title { font-size: 11px; font-weight: 700; color: #333; }
-    .kb-col-count { font-size: 10px; color: #aaa; margin-top: 2px; }
-    .kb-col-body { padding: 6px; min-height: 50px; display: flex; flex-direction: column; gap: 5px; }
-    .kb-card { background: #fafafa; border: 1px solid #e8ddd4; border-radius: 7px; padding: 7px 9px; cursor: pointer; }
-    .kb-card:hover { background: #fef3e2; border-color: #d4a96a; }
-    .kb-card-id   { font-size: 10px; color: #aaa; margin-bottom: 2px; }
-    .kb-card-name { font-size: 11px; font-weight: 600; color: #333; line-height: 1.3; }
-    .kb-card-total { font-size: 10px; color: #7A4610; font-weight: 600; margin-top: 3px; }
-    .kb-card-date  { font-size: 10px; color: #aaa; margin-top: 2px; }
-    .kb-card-phone { font-size: 10px; color: #555; margin-top: 2px; }
-
-    /* ORDER DETAIL POPUP */
-    .od-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 400; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
-    .od-overlay.open { display: flex; }
-    .od-box { background: #fff; border-radius: 14px; width: 100%; max-width: 480px; overflow: hidden; cursor: default; margin: auto; }
-    .od-header { background: #7A4610; color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
-    .od-header-id { font-size: 13px; font-weight: 700; }
-    .od-header-date { font-size: 11px; opacity: 0.75; margin-left: auto; }
-    .od-close { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 0 2px; line-height: 1; margin-left: 8px; }
-    .od-section { padding: 10px 16px; border-bottom: 1px solid #f0e8e0; }
-    .od-section:last-child { border-bottom: none; }
-    .od-label { font-size: 10px; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
-    .od-val { font-size: 12px; color: #333; }
-    .od-items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    .od-items-table th { text-align: left; color: #aaa; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid #f0e8e0; }
-    .od-items-table td { padding: 5px 6px; border-bottom: 1px solid #f8f4f0; vertical-align: top; }
-    .od-items-table tr:last-child td { border-bottom: none; }
-    .od-total-row { display: flex; justify-content: space-between; padding: 10px 16px; background: #fef3e2; font-size: 13px; font-weight: 700; color: #7A4610; }
-
-    /* CONFIRM MODAL */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal-box { background: #fff; border-radius: 14px; padding: 24px 20px; max-width: 320px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
-    .modal-title { font-size: 14px; font-weight: 700; color: #222; margin-bottom: 10px; }
-    .modal-body  { font-size: 13px; color: #555; margin-bottom: 20px; line-height: 1.5; }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .modal-btn { font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 8px; border: none; cursor: pointer; }
-    .modal-btn.yes { background: #27ae60; color: #fff; }
-    .modal-btn.no  { background: #e8ddd4; color: #555; }
+    .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-overlay.open { display: flex; }
+    .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
+    .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
   </style>
 </head>
 <body>
@@ -153,426 +79,252 @@
 <div class="site-header">
   <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
   <span class="title">Order Review</span>
-  <span class="badge" id="orderCount">Loading…</span>
+  <span class="badge" id="totalBadge">Loading…</span>
   <a href="index.html" class="back">← Back</a>
 </div>
 
-<div class="sub-nav">
-  <button class="sub-nav-btn active" id="tabList">Orders</button>
-  <button class="sub-nav-btn" id="tabKanban">Kanban</button>
+<div class="sub-nav" id="subNav">
+  <button class="tab-btn active" data-phase="Created"          onclick="switchTab('Created')">Created          <span class="tab-count" id="cnt-Created">0</span></button>
+  <button class="tab-btn"        data-phase="WA msg"           onclick="switchTab('WA msg')">WA msg           <span class="tab-count" id="cnt-WA msg">0</span></button>
+  <button class="tab-btn"        data-phase="Call"             onclick="switchTab('Call')">Call              <span class="tab-count" id="cnt-Call">0</span></button>
+  <button class="tab-btn"        data-phase="No Confirmation"  onclick="switchTab('No Confirmation')">No Confirm <span class="tab-count" id="cnt-No Confirmation">0</span></button>
+  <button class="tab-btn"        data-phase="Confirmed"        onclick="switchTab('Confirmed')">Confirmed    <span class="tab-count" id="cnt-Confirmed">0</span></button>
 </div>
 
 <div class="toolbar">
-  <div class="tb-group" style="flex-basis:100%;">
-    <span class="tb-label">Group by</span>
-    <div class="view-btns">
-      <button class="view-btn" data-group="phase">Phase</button>
-      <button class="view-btn" data-group="product">Product</button>
-      <button class="view-btn active" data-group="order">Order</button>
-    </div>
-    <select class="sort-sel" id="sortSel" style="margin-left:auto;">
-      <option value="newest">Newest</option>
-      <option value="oldest">Oldest</option>
-      <option value="value-desc">Value ↓</option>
-      <option value="value-asc">Value ↑</option>
-    </select>
-  </div>
-  <input id="searchInput" type="search" placeholder="Search name, order ID, phone…"
-    style="width:100%;font-size:12px;padding:5px 10px;border:1.5px solid #e8ddd4;border-radius:8px;outline:none;color:#333;flex-basis:100%;">
+  <button class="sort-btn" id="sortBtn" onclick="toggleSort()">↓</button>
+  <input id="searchInput" type="search" placeholder="Search order, name, phone…">
 </div>
 
 <div id="state">Loading orders…</div>
-<div id="content"></div>
-<div id="kanban-wrap"><div class="kb-board" id="kb-board"></div></div>
+<div id="content" style="display:none;"></div>
 
-<!-- Order detail popup -->
-<div class="od-overlay" id="odOverlay" onclick="closeOrderDetail()">
-  <div class="od-box" onclick="event.stopPropagation()" id="odBox"></div>
-</div>
-
-<!-- Confirm modal -->
-<div class="modal-overlay" id="confirmModal">
-  <div class="modal-box">
-    <div class="modal-title">Change status?</div>
-    <div class="modal-body" id="confirmBody"></div>
-    <div class="modal-actions">
-      <button class="modal-btn no"  id="modalNo">No</button>
-      <button class="modal-btn yes" id="modalYes">Yes</button>
-    </div>
+<div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
+  <div class="photo-popup" onclick="event.stopPropagation()">
+    <div class="photo-popup-name" id="photoName"></div>
+    <img id="photoImg" src="" alt="">
   </div>
 </div>
 
 <script src="phase-loader.js"></script>
 <script src="phase-utils.js"></script>
 <script>
-  const WC_BASE = 'https://timberedgroup.com/wp-json/wc/v3/orders'
-               + '?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362'
-               + '&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de'
-               + '&status=processing&orderby=date&order=desc&per_page=100';
+  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const FS_KEY    = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE   = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const REVIEW_PHASES = ["Created","WA msg","Call","No Confirmation","Confirmed"];
+  const ALL_PHASES = [
+    "Created","WA msg","Call","No Confirmation","Confirmed",
+    "Check Inventory","Model & DWG","JO preparation","Procurement","Material Received","JO released",
+    "Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint","Inspection",
+    "Received from WH","QC-Rejected",
+    "R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet",
+    "R-Assemble & label","R-Paint","R-Inspection",
+    "Packaging","Ready to Ship",
+    "Sent to WH","Not Received in WH","Already in WH","Not available in WH","Sent to Production",
+    "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready",
+    "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially","Delivered Fully"
+  ];
 
   const EG_STATES = {
-    '0':'Alexandria','1':'Assuit','2':'Aswan','3':'Bani Suif','4':'Behira',
-    '5':'Cairo','6':'Dakahlia','7':'Damietta','8':'El Kalioubia','9':'Fayoum',
-    '10':'Gharbia','11':'Giza','12':'Ismailia','13':'Kafr Alsheikh','14':'Luxor',
-    '15':'Matrouh','16':'Menya','17':'Monufia','18':'New Valley','19':'North Coast',
-    '21':'Port Said','22':'Qena','23':'Red Sea','24':'Sharqia','25':'Sohag',
-    '26':'South Sinai','27':'Suez'
-  };
-
-  const PHASE_TYPE = {
-    'Created':'active','WA Message Sent':'active','Call Made':'active',
-    'Quotation Sent':'active','Revised':'active','Quotation Approved':'active',
-    'Awaiting Confirmation':'pending','Confirmed':'active',
-    'Deposit Paid':'won','On Hold':'exception','Cancelled':'lost',
+    "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
+    "5":"Cairo","6":"Dakahlia","7":"Damietta","8":"El Kalioubia","9":"Fayoum",
+    "10":"Gharbia","11":"Giza","12":"Ismailia","13":"Kafr Alsheikh","14":"Luxor",
+    "15":"Matruh","16":"Minia","17":"Minya","18":"Monufia","19":"New Valley",
+    "20":"North Sinai","21":"Port Said","22":"Qalyubia","23":"Qena","24":"Red Sea",
+    "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
   let allOrders = [];
-  let _search   = '';
-  let _view     = 'list';
-  let _groupBy  = 'order';
-  let _pending  = null; // pending phase change for confirm modal
+  let activeTab = 'Created';
+  let sortAsc   = false;
 
-  function setOrderPhase(order, phase) {
-    order.line_items.forEach(item => {
-      writePhaseFS(order.id, item.id, item.product_id, phase);
-    });
+  function resolvePhase(orderId, item) {
+    return _phasesFS[`${orderId}_${item.id}`]
+        || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
+        || 'Created';
   }
 
-  // ── WooCommerce ──────────────────────────────────────────────────────
-  async function fetchAllWCOrders() {
-    const first = await fetch(WC_BASE + '&page=1');
-    const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
-    const firstRows  = await first.json();
-    const rest = totalPages > 1
-      ? await Promise.all(Array.from({ length: totalPages - 1 }, (_, i) =>
-          fetch(WC_BASE + '&page=' + (i + 2)).then(r => r.json())))
-      : [];
-    return [firstRows, ...rest].flat();
+  function savePhase(orderId, item, phase) {
+    writePhaseFS(orderId, item.id, item.product_id, phase);
+    updateCounts();
+    render();
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  function getOrderPhase(order) {
-    const first = order.line_items[0];
-    if (!first) return 'Created';
-    return _phasesFS[`${order.id}_${first.id}`]
-      || (first.meta_data || []).find(m => m.key === 'tg_phase')?.value
-      || 'Created';
+  // ── WooCommerce ──────────────────────────────────────────────────
+  async function fetchAllOrders() {
+    let page = 1, all = [];
+    while (true) {
+      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      if (!res.ok) break;
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
   }
 
-  function filteredOrders() {
-    const sort = document.getElementById('sortSel').value;
-    return allOrders
-      .filter(o => {
-        if (!ORDER_REVIEW_PHASES.includes(getOrderPhase(o))) return false;
-        if (_search) {
-          const q = _search.toLowerCase();
-          const b = o.billing;
-          const name = `${b.first_name} ${b.last_name}`.toLowerCase();
-          if (!name.includes(q) && !String(o.id).includes(q) && !(b.phone||'').includes(q)) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (sort === 'oldest')     return new Date(a.date_created) - new Date(b.date_created);
-        if (sort === 'value-desc') return parseFloat(b.total) - parseFloat(a.total);
-        if (sort === 'value-asc')  return parseFloat(a.total) - parseFloat(b.total);
-        return new Date(b.date_created) - new Date(a.date_created);
-      });
-  }
+  // ── Helpers ──────────────────────────────────────────────────────
+  function daysSince(d) { return Math.floor((Date.now() - new Date(d)) / 86400000); }
+  function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
 
-  function fmt(n) { return new Intl.NumberFormat('ar-EG').format(parseFloat(n).toFixed(0)); }
-
-  function typeBadgeHtml(phase) {
-    const t = PHASE_TYPE[phase] || 'active';
-    return `<span class="type-badge type-${t}">${phase}</span>`;
-  }
-
-  function phoneHtml(phone) {
-    if (!phone) return '';
-    const d = phone.replace(/\D/g, '');
-    return `<div class="order-phone-wrap">
-      <span class="order-phone-num">${phone}</span>
-      <a class="order-phone-lbl" href="https://wa.me/2${d}" target="_blank" onclick="event.stopPropagation()" title="WhatsApp">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  function phoneHtml(phone, name, orderId, hasCreated) {
+    if (!phone) return '<span class="phone-num">—</span>';
+    const wa   = phone.replace(/\D/g,'').replace(/^0/,'20');
+    const waMsg = hasCreated
+      ? encodeURIComponent(`مرحبًا ${name},\n\nتم استلام طلبك رقم #${orderId} من Timbered بنجاح.\nيرجى إرسال لوكشن التوصيل 📍.\n___________________________________\nHello, ${name},\n\nYour Timbered order #${orderId} has been received successfully.\nPlease send delivery location 📍`)
+      : '';
+    const waHref = waMsg ? `https://wa.me/${wa}?text=${waMsg}` : `https://wa.me/${wa}`;
+    return `<span class="phone-wrap" onclick="event.stopPropagation()">
+      <a class="phone-wa" href="${waHref}" target="_blank" title="WhatsApp">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
       </a>
-      <a class="order-phone-call" href="tel:${phone}" onclick="event.stopPropagation()" title="Call">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>
+      <span class="phone-num">${phone}</span>
+      <a class="phone-call" href="tel:${phone}" title="Call" onclick="event.stopPropagation()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
       </a>
-    </div>`;
+    </span>`;
   }
 
-  function phaseSel(orderId, phase) {
-    return `<select class="order-phase-sel" data-order="${orderId}" onclick="event.stopPropagation()">
-      ${ORDER_REVIEW_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
-    </select>`;
+  const _photoItems = {};
+  function openPhoto(itemId) {
+    const item = _photoItems[itemId];
+    if (!item) return;
+    document.getElementById('photoName').textContent = item.name;
+    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoOverlay').classList.add('open');
+  }
+  function closePhoto() { document.getElementById('photoOverlay').classList.remove('open'); }
+
+  // ── Counts ───────────────────────────────────────────────────────
+  function updateCounts() {
+    let total = 0;
+    REVIEW_PHASES.forEach(phase => {
+      const count = allOrders.reduce((acc, o) =>
+        acc + o.line_items.filter(i => resolvePhase(o.id, i) === phase).length, 0);
+      const el = document.getElementById('cnt-' + phase);
+      if (el) el.textContent = count;
+      total += count;
+    });
+    document.getElementById('totalBadge').textContent = total + ' items';
   }
 
-  function attachPhaseListeners(container) {
-    container.querySelectorAll('.order-phase-sel').forEach(sel => {
-      sel.addEventListener('change', () => {
-        const order = allOrders.find(o => String(o.id) === sel.dataset.order);
-        if (!order) return;
-        const oldPhase = getOrderPhase(order);
-        const newPhase = sel.value;
-        const name = `${order.billing.first_name} ${order.billing.last_name}`.trim();
-        _pending = { order, newPhase, oldPhase, sel };
-        document.getElementById('confirmBody').textContent =
-          `Move "${name}" from "${oldPhase}" → "${newPhase}"?`;
-        document.getElementById('confirmModal').classList.add('open');
-      });
+  // ── Render ───────────────────────────────────────────────────────
+  function getOpenGroups() {
+    return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey);
+  }
+  function restoreOpenGroups(keys) {
+    keys.forEach(k => {
+      const el = document.querySelector(`[data-group-key="${k}"]`);
+      if (el) el.classList.add('open');
     });
   }
 
-  // ── Render: by order ─────────────────────────────────────────────────
-  function renderByOrder(orders) {
-    if (!orders.length) return '<div style="text-align:center;color:#aaa;padding:40px 20px;font-size:13px;">No orders found</div>';
-    return orders.map(order => {
-      const b     = order.billing;
-      const name  = `${b.first_name} ${b.last_name}`.trim() || `Order #${order.id}`;
-      const phase = getOrderPhase(order);
-      const date  = order.date_created?.slice(0, 10) || '';
-      const itemsHtml = order.line_items.map(i =>
-        `<div class="item-row">
-          <span class="item-name">${i.name}</span>
-          <span class="item-qty">×${i.quantity}</span>
-          <span class="item-price">${fmt(i.total)} EGP</span>
-        </div>`
-      ).join('');
-      return `<div class="order-card" id="oc-${order.id}">
-        <div class="order-top" onclick="toggleCard('oc-${order.id}')">
-          <span class="order-id-lbl">#${order.id}</span>
-          <span class="order-name-lbl">${name}</span>
-          ${typeBadgeHtml(phase)}
-          <span class="order-total-lbl">${fmt(parseFloat(order.total))} EGP</span>
-          ${phoneHtml(b.phone)}
-          <span class="order-chevron">▼</span>
-        </div>
-        <div class="order-meta-row">${date} · ${order.line_items.length} item${order.line_items.length!==1?'s':''}</div>
-        <div class="order-phase-row">
-          <span class="tb-label">Status</span>
-          ${phaseSel(order.id, phase)}
-          <button class="details-btn" onclick="event.stopPropagation();showOrderDetail(${order.id})">Details</button>
-        </div>
-        <div class="order-items-wrap"><div class="order-items-inner">${itemsHtml}</div></div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Render: by phase ─────────────────────────────────────────────────
-  function renderByPhase(orders) {
-    const grouped = {};
-    ORDER_REVIEW_PHASES.forEach(p => grouped[p] = []);
-    orders.forEach(o => { const p = getOrderPhase(o); if (grouped[p]) grouped[p].push(o); });
-
-    return ORDER_REVIEW_PHASES.map(phase => {
-      const list = grouped[phase];
-      if (!list.length) return '';
-      const rowsHtml = list.map(o => {
-        const b    = o.billing;
-        const name = `${b.first_name} ${b.last_name}`.trim() || `Order #${o.id}`;
-        return `<div class="item-row">
-          <span class="item-name">${name}</span>
-          <span class="order-id-lbl">#${o.id}</span>
-          <span class="item-price">${fmt(parseFloat(o.total))} EGP</span>
-          ${phoneHtml(b.phone)}
-          ${phaseSel(o.id, phase)}
-          <button class="details-btn" onclick="showOrderDetail(${o.id})">Details</button>
-        </div>`;
-      }).join('');
-      return `<div class="phase-group open" id="pg-${phase.replace(/\s/g,'_')}">
-        <div class="phase-header" onclick="this.parentElement.classList.toggle('open')">
-          <span class="phase-name">${phase}</span>
-          <span class="phase-meta">${list.length} order${list.length!==1?'s':''}</span>
-          <span class="phase-chevron">▼</span>
-        </div>
-        <div class="phase-items"><div class="phase-items-inner">${rowsHtml}</div></div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Render: by product ───────────────────────────────────────────────
-  function renderByProduct(orders) {
-    const grouped = {}; // productName → [{order, item}]
-    orders.forEach(o => {
-      o.line_items.forEach(item => {
-        if (!grouped[item.name]) grouped[item.name] = [];
-        grouped[item.name].push({ order: o, item });
-      });
-    });
-
-    const sorted = Object.keys(grouped).sort();
-    return sorted.map(productName => {
-      const entries = grouped[productName];
-      const rowsHtml = entries.map(({ order, item }) => {
-        const b     = order.billing;
-        const name  = `${b.first_name} ${b.last_name}`.trim() || `Order #${order.id}`;
-        const phase = getOrderPhase(order);
-        return `<div class="item-row">
-          <span class="item-name">${name}</span>
-          <span class="order-id-lbl">#${order.id}</span>
-          <span class="item-qty">×${item.quantity}</span>
-          <span class="item-price">${fmt(item.total)} EGP</span>
-          ${typeBadgeHtml(phase)}
-          <button class="details-btn" onclick="showOrderDetail(${order.id})">Details</button>
-        </div>`;
-      }).join('');
-      const totalQty = entries.reduce((s, e) => s + e.item.quantity, 0);
-      return `<div class="product-group open">
-        <div class="product-header" onclick="this.parentElement.classList.toggle('open')">
-          <span class="product-name">${productName}</span>
-          <span class="product-count-lbl">×${totalQty} · ${entries.length} order${entries.length!==1?'s':''}</span>
-          <span class="product-chevron">▼</span>
-        </div>
-        <div class="product-items"><div class="product-items-inner">${rowsHtml}</div></div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Render: kanban ───────────────────────────────────────────────────
-  function renderKanban() {
-    const orders = filteredOrders();
-    document.getElementById('kb-board').innerHTML = ORDER_REVIEW_PHASES.map(phase => {
-      const cards = orders.filter(o => getOrderPhase(o) === phase);
-      const type  = PHASE_TYPE[phase] || 'active';
-      return `<div class="kb-col" data-type="${type}">
-        <div class="kb-col-header">
-          <div class="kb-col-title">${phase}</div>
-          <div class="kb-col-count">${cards.length}</div>
-        </div>
-        <div class="kb-col-body">${cards.map(o => {
-          const b = o.billing;
-          return `<div class="kb-card" onclick="showOrderDetail(${o.id})">
-            <div class="kb-card-id">#${o.id}</div>
-            <div class="kb-card-name">${`${b.first_name} ${b.last_name}`.trim() || `#${o.id}`}</div>
-            <div class="kb-card-total">${fmt(parseFloat(o.total))} EGP</div>
-            ${b.phone ? `<div class="kb-card-phone">${b.phone}</div>` : ''}
-            <div class="kb-card-date">${o.date_created?.slice(0,10)||''}</div>
-          </div>`;
-        }).join('')}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Render dispatcher ────────────────────────────────────────────────
   function render() {
-    const orders = filteredOrders();
-    document.getElementById('orderCount').textContent = orders.length + ' orders';
+    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const wasOpen = getOpenGroups();
 
-    if (_view === 'kanban') {
-      document.getElementById('content').style.display = 'none';
-      document.getElementById('kanban-wrap').style.display = 'block';
-      renderKanban();
+    let orders = allOrders.filter(o => {
+      const hasPhase = o.line_items.some(i => resolvePhase(o.id, i) === activeTab);
+      if (!hasPhase) return false;
+      if (!q) return true;
+      const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      const phone = (o.billing.phone || '').toLowerCase();
+      return String(o.id).includes(q) || name.includes(q) || phone.includes(q)
+          || o.line_items.some(i => i.name.toLowerCase().includes(q));
+    });
+
+    orders = [...orders].sort((a, b) => {
+      const da = daysSince(a.date_created), db = daysSince(b.date_created);
+      return sortAsc ? da - db : db - da;
+    });
+
+    if (!orders.length) {
+      document.getElementById('content').innerHTML =
+        `<div class="empty-msg">No orders in "${activeTab}"</div>`;
+      restoreOpenGroups(wasOpen);
       return;
     }
 
-    document.getElementById('content').style.display = 'block';
-    document.getElementById('kanban-wrap').style.display = 'none';
+    document.getElementById('content').innerHTML = orders.map(o => {
+      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const state = EG_STATES[o.billing.state] || o.billing.state || '';
+      const addr  = [o.billing.address_1, o.billing.address_2].filter(Boolean).join(', ');
+      const days  = daysSince(o.date_created);
+      const hasCreated = o.line_items.some(i => resolvePhase(o.id, i) === 'Created');
+      const phaseItems = o.line_items.filter(i => resolvePhase(o.id, i) === activeTab);
 
-    const el = document.getElementById('content');
-    if (_groupBy === 'phase')   el.innerHTML = renderByPhase(orders);
-    else if (_groupBy === 'product') el.innerHTML = renderByProduct(orders);
-    else                        el.innerHTML = renderByOrder(orders);
+      const itemsHtml = phaseItems.map(item => {
+        _photoItems[item.id] = item;
+        const thumb = item.image?.src
+          ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
+          : `<span class="item-thumb-ph"></span>`;
+        const phase = resolvePhase(o.id, item);
+        const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
+          onchange="savePhase(${o.id}, ${JSON.stringify(item)}, this.value)">
+          ${ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+        </select>`;
+        return `<div class="item-row">
+          ${thumb}
+          <span class="item-name">${item.name}</span>
+          <span class="item-qty">×${item.quantity}</span>
+          ${sel}
+        </div>`;
+      }).join('');
 
-    attachPhaseListeners(el);
-  }
-
-  // ── Order detail popup ───────────────────────────────────────────────
-  function showOrderDetail(orderId) {
-    const order = allOrders.find(o => String(o.id) === String(orderId));
-    if (!order) return;
-    const b    = order.billing;
-    const date = order.date_created?.replace('T',' ').slice(0,16) || '—';
-    const address = [b.address_1, b.address_2, b.city].filter(Boolean).join(', ');
-    const stateName = EG_STATES[b.state] || b.state || '';
-    const note = order.customer_note || '';
-    const waLink = b.phone
-      ? `<a href="https://wa.me/2${b.phone.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none;">WhatsApp ↗</a>`
-      : '';
-    const itemsHtml = order.line_items.map(item => {
-      const p = _phasesFS[`${order.id}_${item.id}`] || 'Created';
-      const t = PHASE_TYPE[p] || 'active';
-      return `<tr>
-        <td>${item.name}</td>
-        <td style="text-align:center;">×${item.quantity}</td>
-        <td style="text-align:right;color:#7A4610;font-weight:600;">${fmt(item.total)} EGP</td>
-        <td><span class="type-badge type-${t}" style="font-size:9px;">${p}</span></td>
-      </tr>`;
+      return `<div class="order-card" data-group-key="order-${o.id}">
+        <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <span class="d-badge ${dc(days)}">${days}d</span>
+          <span class="order-id">#${o.id}</span>
+          <span class="order-name">${name}</span>
+          <span class="order-total">${parseInt(o.total).toLocaleString()}</span>
+          ${phoneHtml(o.billing.phone, name, o.id, hasCreated)}
+          <span class="order-chevron">▼</span>
+        </div>
+        ${addr || state ? `<div class="order-addr">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${addr}</span>
+          ${state ? `<span class="state">${state}</span>` : ''}
+        </div>` : ''}
+        <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
+      </div>`;
     }).join('');
-    document.getElementById('odBox').innerHTML = `
-      <div class="od-header">
-        <span class="od-header-id">Order #${order.id}</span>
-        <span class="od-header-date">${date}</span>
-        <button class="od-close" onclick="closeOrderDetail()">✕</button>
-      </div>
-      <div class="od-section">
-        <div class="od-label">Customer</div>
-        <div class="od-val">${b.first_name} ${b.last_name}</div>
-        ${b.phone ? `<div class="od-val" style="margin-top:4px;display:flex;align-items:center;gap:8px;">${b.phone} ${waLink}</div>` : ''}
-        ${b.email ? `<div class="od-val" style="color:#888;font-size:11px;margin-top:2px;">${b.email}</div>` : ''}
-      </div>
-      ${address ? `<div class="od-section"><div class="od-label">Address</div><div class="od-val">${address}${stateName ? ', '+stateName : ''}</div></div>` : ''}
-      ${note ? `<div class="od-section"><div class="od-label">Customer Note</div><div class="od-val" style="background:#fef3c7;color:#92400e;padding:6px 8px;border-radius:6px;">${note}</div></div>` : ''}
-      <div class="od-section">
-        <div class="od-label">Items</div>
-        <table class="od-items-table">
-          <thead><tr><th>Product</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-      </div>
-      <div class="od-total-row"><span>Order Total</span><span>${fmt(parseFloat(order.total))} EGP</span></div>`;
-    document.getElementById('odOverlay').classList.add('open');
+
+    restoreOpenGroups(wasOpen);
   }
 
-  function closeOrderDetail() { document.getElementById('odOverlay').classList.remove('open'); }
-  function toggleCard(id) { document.getElementById(id)?.classList.toggle('open'); }
-
-  // ── Modal (defined once) ─────────────────────────────────────────────
-  document.getElementById('modalYes').addEventListener('click', () => {
-    if (_pending) { setOrderPhase(_pending.order, _pending.newPhase); _pending = null; }
-    document.getElementById('confirmModal').classList.remove('open');
+  // ── Tab switch ───────────────────────────────────────────────────
+  function switchTab(phase) {
+    activeTab = phase;
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.phase === phase));
     render();
-  });
-  document.getElementById('modalNo').addEventListener('click', () => {
-    if (_pending) { _pending.sel.value = _pending.oldPhase; _pending = null; }
-    document.getElementById('confirmModal').classList.remove('open');
-  });
+  }
 
-  // ── UI events ────────────────────────────────────────────────────────
-  document.getElementById('tabList').addEventListener('click', () => {
-    document.getElementById('tabList').classList.add('active');
-    document.getElementById('tabKanban').classList.remove('active');
-    _view = 'list'; render();
-  });
-  document.getElementById('tabKanban').addEventListener('click', () => {
-    document.getElementById('tabKanban').classList.add('active');
-    document.getElementById('tabList').classList.remove('active');
-    _view = 'kanban'; render();
-  });
-
-  document.querySelectorAll('.view-btn[data-group]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.view-btn[data-group]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      _groupBy = btn.dataset.group;
-      render();
-    });
-  });
-
-  document.getElementById('sortSel').addEventListener('change', render);
-  document.getElementById('searchInput').addEventListener('input', e => {
-    _search = e.target.value.trim();
+  function toggleSort() {
+    sortAsc = !sortAsc;
+    document.getElementById('sortBtn').textContent = sortAsc ? '↑' : '↓';
     render();
-  });
+  }
 
-  // ── Init ─────────────────────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('input', render);
+
+  // ── Init ─────────────────────────────────────────────────────────
   (async () => {
-    await Promise.all([window.phasesLoaded, loadPhasesFS()]);
-    allOrders = await fetchAllWCOrders();
-    document.getElementById('state').style.display = 'none';
-    render();
+    try {
+      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), window.phasesLoaded]);
+      allOrders = orders;
+      document.getElementById('state').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      updateCounts();
+      render();
+    } catch (e) {
+      document.getElementById('state').textContent = 'Failed to load: ' + e.message;
+    }
   })();
 </script>
 </body>
