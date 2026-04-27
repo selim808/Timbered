@@ -87,6 +87,20 @@
     .phase-row.dragging { opacity: .35; background: #f5f0eb; }
     .phase-row.drag-over { border-top: 2px solid #7A4610; background: #fdf9f6; }
 
+    /* ── group card drag ── */
+    .group-drag-handle {
+      width: 10px; height: 14px; flex-shrink: 0;
+      cursor: grab; user-select: none;
+      background-image: radial-gradient(circle, #bbb 1.5px, transparent 1.5px);
+      background-size: 5px 6px;
+      background-repeat: repeat;
+      opacity: 0.5; transition: opacity .15s;
+    }
+    .group-drag-handle:active { cursor: grabbing; }
+    .card-header:hover .group-drag-handle { opacity: 1; background-image: radial-gradient(circle, #888 1.5px, transparent 1.5px); }
+    .group-card.group-dragging { opacity: .4; }
+    .group-card.group-drag-over { outline: 2px dashed #7A4610; outline-offset: -2px; }
+
     .drag-handle {
       width: 12px; height: 18px; flex-shrink: 0;
       cursor: grab; user-select: none;
@@ -371,8 +385,15 @@
       : '<div class="empty-phases">No phases yet</div>';
 
     return `
-      <div class="group-card collapsed" style="border-left-color:${g.color}" id="card-${g.id}">
+      <div class="group-card collapsed" style="border-left-color:${g.color}" id="card-${g.id}"
+           draggable="true"
+           ondragstart="onGroupDragStart(event,'${g.id}')"
+           ondragend="onGroupDragEnd(event,'${g.id}')"
+           ondragover="onGroupDragOver(event,'${g.id}')"
+           ondragleave="onGroupDragLeave(event)"
+           ondrop="onGroupDrop(event,'${g.id}')">
         <div class="card-header" onclick="toggleCard('${g.id}')">
+          <span class="group-drag-handle" title="Drag to reorder group" onclick="event.stopPropagation()"></span>
           <span class="card-title">${esc(g.label)}</span>
           <span class="card-count" id="cnt-${g.id}">${g.phases.length}</span>
           <span class="chevron">▼</span>
@@ -492,6 +513,75 @@
 
     refreshCard(g);
     save(g);
+  }
+
+  // ── Group drag & drop ─────────────────────────────────────────────────
+  let _groupDrag = null;
+
+  function onGroupDragStart(e, gid) {
+    if (e.target.closest('.phase-row')) return; // let phase drag handle it
+    _groupDrag = gid;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    e.currentTarget.classList.add('group-dragging');
+  }
+
+  function onGroupDragEnd(e, gid) {
+    document.getElementById(`card-${gid}`)?.classList.remove('group-dragging');
+    document.querySelectorAll('.group-card.group-drag-over').forEach(c => c.classList.remove('group-drag-over'));
+    _groupDrag = null;
+  }
+
+  function onGroupDragOver(e, gid) {
+    if (!_groupDrag || _groupDrag === gid) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.group-card.group-drag-over').forEach(c => {
+      if (c.id !== `card-${gid}`) c.classList.remove('group-drag-over');
+    });
+    e.currentTarget.classList.add('group-drag-over');
+  }
+
+  function onGroupDragLeave(e) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      e.currentTarget.classList.remove('group-drag-over');
+    }
+  }
+
+  function onGroupDrop(e, toGid) {
+    document.querySelectorAll('.group-card.group-drag-over').forEach(c => c.classList.remove('group-drag-over'));
+    if (!_groupDrag || _groupDrag === toGid) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const fromIdx = groups.findIndex(g => g.id === _groupDrag);
+    const toIdx   = groups.findIndex(g => g.id === toGid);
+    _groupDrag = null;
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    const [moved] = groups.splice(fromIdx, 1);
+    groups.splice(toIdx, 0, moved);
+    groups.forEach((g, i) => { g.order = i; });
+
+    render();
+    saveGroupOrders();
+  }
+
+  async function saveGroupOrders() {
+    toast('Saving order…', 'saving');
+    try {
+      await Promise.all(groups.map(g =>
+        fetch(`${FS_BASE}/phase_groups/${g.id}?key=${FS_KEY}&updateMask.fieldPaths=order`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { order: { integerValue: String(g.order) } } })
+        })
+      ));
+      toast('Order saved', 'ok');
+    } catch (_) {
+      toast('Save failed', 'err');
+    }
   }
 
   // ── Delete-warning modal ──────────────────────────────────────────────
