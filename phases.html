@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phases — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; min-height: 100vh; }
+
+    .topbar {
+      background: #7A4610; color: #fff; padding: 0 20px;
+      height: 52px; display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .topbar-sub { font-size: 12px; opacity: .6; }
+
+    .status-toast {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      transition: opacity .3s; z-index: 200; pointer-events: none;
+    }
+    .status-toast.hidden  { opacity: 0; }
+    .status-toast.saving  { background: #fef3c7; color: #92400e; opacity: 1; }
+    .status-toast.ok      { background: #d1fae5; color: #065f46; opacity: 1; }
+    .status-toast.err     { background: #fee2e2; color: #991b1b; opacity: 1; }
+
+    .page-body { padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .empty-state, .loading-state {
+      grid-column: 1 / -1;
+      background: #fff; border-radius: 10px; padding: 40px;
+      text-align: center; color: #999; font-size: 14px;
+      border: 1px solid #e8ddd4;
+    }
+    .empty-state a { color: #7A4610; }
+
+    .group-card {
+      background: #fff;
+      border: 1px solid #e8ddd4;
+      border-left: 4px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #f0e8e0;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; user-select: none;
+    }
+    .card-header:hover { background: #faf7f4; }
+    .card-title { font-size: 13px; font-weight: 700; color: #333; flex: 1; }
+    .card-count {
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 20px; background: #f5f0eb; color: #7A4610;
+    }
+    .chevron {
+      font-size: 10px; color: #aaa; transition: transform .2s;
+      margin-left: 2px;
+    }
+    .group-card.collapsed .chevron { transform: rotate(-90deg); }
+    .group-card.collapsed .phases-list,
+    .group-card.collapsed .add-row { display: none; }
+    .group-card.collapsed .card-header { border-bottom: none; }
+
+    .phases-list { flex: 1; padding: 6px 0; }
+
+    .phase-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px 5px 8px; font-size: 13px;
+      transition: background .15s;
+      cursor: default;
+    }
+    .phase-row:hover { background: #faf7f4; }
+    .phase-row:hover .del-btn { opacity: 1; }
+    .phase-row.dragging { opacity: .35; background: #f5f0eb; }
+    .phase-row.drag-over { border-top: 2px solid #7A4610; background: #fdf9f6; }
+
+    .drag-handle {
+      cursor: grab; color: #ccc; font-size: 15px;
+      padding: 0 2px; user-select: none; flex-shrink: 0;
+      line-height: 1; letter-spacing: -1px;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .phase-row:hover .drag-handle { color: #bbb; }
+
+    .phase-idx {
+      font-size: 10px; color: #bbb; font-weight: 600;
+      min-width: 16px; text-align: right; flex-shrink: 0;
+    }
+    .phase-name { flex: 1; color: #333; }
+
+    .del-btn {
+      opacity: 0;
+      background: none; border: none; cursor: pointer;
+      color: #ef4444; font-size: 15px; line-height: 1;
+      padding: 2px 4px; border-radius: 4px;
+      transition: opacity .15s, background .15s; flex-shrink: 0;
+    }
+    .del-btn:hover { background: #fee2e2; }
+
+    .empty-phases {
+      padding: 12px 14px;
+      font-size: 12px; color: #bbb; font-style: italic;
+    }
+
+    .add-row {
+      padding: 8px 10px;
+      border-top: 1px solid #f0e8e0;
+      display: flex; gap: 6px;
+    }
+    .add-input {
+      flex: 1; border: 1px solid #e0d8d0; border-radius: 6px;
+      padding: 5px 10px; font-size: 12px; color: #333;
+      background: #faf7f4; outline: none;
+    }
+    .add-input:focus { border-color: #7A4610; background: #fff; }
+    .add-btn {
+      background: #7A4610; color: #fff;
+      border: none; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+    }
+    .add-btn:hover { background: #5e340c; }
+
+    .topbar-btn {
+      background: rgba(255,255,255,.15); color: #fff;
+      border: 1px solid rgba(255,255,255,.3); border-radius: 7px;
+      padding: 6px 14px; font-size: 12px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+    }
+    .topbar-btn:hover { background: rgba(255,255,255,.25); }
+
+    /* ── New group modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.35); z-index: 300;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 12px;
+      padding: 24px; width: 360px; max-width: calc(100vw - 32px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+    .modal h2 { font-size: 15px; font-weight: 700; color: #333; margin: 0 0 18px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .field input[type=text] {
+      width: 100%; border: 1px solid #e0d8d0; border-radius: 7px;
+      padding: 7px 10px; font-size: 13px; outline: none; color: #333;
+    }
+    .field input[type=text]:focus { border-color: #7A4610; }
+    .swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .swatch {
+      width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: transform .15s, border-color .15s;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.selected { border-color: #333; transform: scale(1.15); }
+    .swatch-custom {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px dashed #ccc; cursor: pointer; overflow: hidden;
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .swatch-custom input[type=color] {
+      opacity: 0; position: absolute; inset: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .swatch-custom-icon { font-size: 14px; color: #aaa; pointer-events: none; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .modal-cancel {
+      background: #f5f0eb; color: #555; border: none; border-radius: 7px;
+      padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .modal-cancel:hover { background: #ede5dc; }
+    .modal-create {
+      background: #7A4610; color: #fff; border: none; border-radius: 7px;
+      padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .modal-create:hover { background: #5e340c; }
+    .modal-create:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ── Delete-warning modal ── */
+    .warn-modal {
+      background: #fff; border-radius: 12px;
+      padding: 24px; width: 460px; max-width: calc(100vw - 32px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    }
+    .warn-icon { font-size: 28px; margin-bottom: 10px; }
+    .warn-title { font-size: 15px; font-weight: 700; color: #333; margin: 0 0 5px; }
+    .warn-sub { font-size: 13px; color: #666; margin: 0 0 14px; line-height: 1.5; }
+    .warn-list {
+      max-height: 180px; overflow-y: auto;
+      border: 1px solid #e8ddd4; border-radius: 8px;
+      margin-bottom: 16px;
+      background: #faf7f4;
+    }
+    .warn-item {
+      display: flex; gap: 10px; align-items: center;
+      padding: 7px 12px; border-bottom: 1px solid #f0ebe4;
+      font-size: 12px;
+    }
+    .warn-item:last-child { border-bottom: none; }
+    .warn-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
+    .warn-oid { font-weight: 700; color: #333; }
+    .warn-lid { color: #aaa; }
+
+    .move-field { margin-bottom: 6px; }
+    .move-field label { display: block; font-size: 11px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .move-select {
+      width: 100%; border: 1px solid #e0d8d0; border-radius: 7px;
+      padding: 8px 10px; font-size: 13px; outline: none; color: #333;
+      background: #fff; cursor: pointer;
+    }
+    .move-select:focus { border-color: #7A4610; }
+    .move-hint { font-size: 11px; color: #aaa; margin: 5px 0 0; }
+
+    .warn-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn-cancel {
+      background: #f5f0eb; color: #555; border: none; border-radius: 7px;
+      padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #ede5dc; }
+    .btn-del-only {
+      background: #fff0f0; color: #dc2626; border: 1px solid #fca5a5; border-radius: 7px;
+      padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .btn-del-only:hover { background: #fee2e2; }
+    .btn-move-del {
+      background: #7A4610; color: #fff; border: none; border-radius: 7px;
+      padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .btn-move-del:hover { background: #5e340c; }
+    .btn-move-del:disabled, .btn-del-only:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">Phase Groups</div>
+  <div class="topbar-sub" id="totalBadge">Firebase · phase_groups collection</div>
+  <button class="topbar-btn" onclick="openNewGroupModal()">+ New Group</button>
+</div>
+
+<!-- New Group modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2>New Phase Group</h2>
+    <div class="field">
+      <label>Group Name</label>
+      <input type="text" id="newGroupLabel" placeholder="e.g. Quality Control" onkeydown="if(event.key==='Enter')createGroup()">
+    </div>
+    <div class="field">
+      <label>Color</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-create" id="btnCreate" onclick="createGroup()">Create Group</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete-warning modal -->
+<div class="modal-overlay" id="warnOverlay" onclick="if(event.target===this)closeWarnModal()">
+  <div class="warn-modal">
+    <div class="warn-icon">⚠️</div>
+    <div class="warn-title" id="warnTitle"></div>
+    <div class="warn-sub" id="warnSub"></div>
+    <div class="warn-list" id="warnList"></div>
+    <div class="move-field">
+      <label>Move items to</label>
+      <select class="move-select" id="moveTarget">
+        <option value="">— select target phase —</option>
+      </select>
+      <div class="move-hint" id="moveHint"></div>
+    </div>
+    <div class="warn-actions">
+      <button class="btn-cancel" onclick="closeWarnModal()">Cancel</button>
+      <button class="btn-del-only" id="btnDelOnly" onclick="proceedDelete(false)">Delete only</button>
+      <button class="btn-move-del" id="btnMoveDel" onclick="proceedDelete(true)">Move &amp; Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-toast hidden" id="toast"></div>
+
+<div class="page-body">
+  <div class="grid" id="grid">
+    <div class="loading-state">Loading phase groups…</div>
+  </div>
+</div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  let groups = [];
+
+  // ── Load ─────────────────────────────────────────────────────────────
+  async function load() {
+    try {
+      const res  = await fetch(`${FS_BASE}/phase_groups?key=${FS_KEY}`);
+      const data = await res.json();
+
+      if (!data.documents || data.documents.length === 0) {
+        document.getElementById('grid').innerHTML =
+          `<div class="empty-state">No phase groups found.<br>Run <a href="migrate.html">Step 5 in migrate.html</a> to seed them first.</div>`;
+        return;
+      }
+
+      groups = data.documents.map(doc => ({
+        id:     doc.name.split('/').pop(),
+        label:  doc.fields.label?.stringValue  || '',
+        color:  doc.fields.color?.stringValue  || '#ccc',
+        order:  parseInt(doc.fields.order?.integerValue || 0),
+        phases: (doc.fields.phases?.arrayValue?.values || []).map(v => v.stringValue),
+      })).sort((a, b) => a.order - b.order);
+
+      render();
+    } catch (e) {
+      document.getElementById('grid').innerHTML =
+        `<div class="empty-state">Failed to load: ${esc(e.message)}</div>`;
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function render() {
+    document.getElementById('grid').innerHTML = groups.map(g => cardHtml(g)).join('');
+    updateBadge();
+  }
+
+  function updateBadge() {
+    const total = groups.reduce((s, g) => s + g.phases.length, 0);
+    document.getElementById('totalBadge').textContent =
+      `${groups.length} groups · ${total} phases total`;
+  }
+
+  function cardHtml(g) {
+    const phaseRows = g.phases.length
+      ? g.phases.map((p, i) => `
+          <div class="phase-row"
+               draggable="true"
+               data-gid="${g.id}"
+               data-idx="${i}"
+               ondragstart="onDragStart(event,'${g.id}',${i})"
+               ondragend="onDragEnd(event)"
+               ondragover="onDragOver(event)"
+               ondragleave="onDragLeave(event)"
+               ondrop="onDrop(event,'${g.id}')">
+            <span class="drag-handle" title="Drag to reorder">⠿</span>
+            <span class="phase-idx">${i + 1}</span>
+            <span class="phase-name">${esc(p)}</span>
+            <button class="del-btn" onclick="delPhase('${g.id}',${i})" title="Delete phase">×</button>
+          </div>`).join('')
+      : '<div class="empty-phases">No phases yet</div>';
+
+    return `
+      <div class="group-card collapsed" style="border-left-color:${g.color}" id="card-${g.id}">
+        <div class="card-header" onclick="toggleCard('${g.id}')">
+          <span class="card-title">${esc(g.label)}</span>
+          <span class="card-count" id="cnt-${g.id}">${g.phases.length}</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="phases-list">${phaseRows}</div>
+        <div class="add-row">
+          <input class="add-input" id="inp-${g.id}" placeholder="New phase name…"
+            onkeydown="if(event.key==='Enter')addPhase('${g.id}')">
+          <button class="add-btn" onclick="addPhase('${g.id}')">Add</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Add / Delete ──────────────────────────────────────────────────────
+  async function addPhase(gid) {
+    const inp = document.getElementById(`inp-${gid}`);
+    const name = inp.value.trim();
+    if (!name) return;
+    const g = groups.find(x => x.id === gid);
+    if (!g) return;
+    g.phases.push(name);
+    inp.value = '';
+    refreshCard(g);
+    await save(g);
+  }
+
+  async function delPhase(gid, idx) {
+    const g = groups.find(x => x.id === gid);
+    if (!g) return;
+    const phaseName = g.phases[idx];
+
+    toast('Checking usage…', 'saving');
+    let affected = [];
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: 'order_phases' }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: 'phase' },
+                op: 'EQUAL',
+                value: { stringValue: phaseName }
+              }
+            }
+          }
+        })
+      });
+      const rows = await res.json();
+      affected = rows.filter(r => r.document).map(r => ({
+        docId:     r.document.name.split('/').pop(),
+        order_id:  r.document.fields?.order_id?.stringValue  || '',
+        line_item: r.document.fields?.line_item_id?.stringValue || '',
+      }));
+    } catch (_) {}
+
+    clearToast();
+
+    if (affected.length === 0) {
+      if (!confirm(`Delete "${phaseName}" from ${g.label}?`)) return;
+      g.phases.splice(idx, 1);
+      refreshCard(g);
+      save(g);
+      return;
+    }
+
+    openWarnModal(g, idx, phaseName, affected);
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────
+  let _drag = null;
+
+  function onDragStart(e, gid, idx) {
+    _drag = { gid, idx };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // Firefox requires this
+    e.currentTarget.classList.add('dragging');
+  }
+
+  function onDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    document.querySelectorAll('.phase-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+    _drag = null;
+  }
+
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.currentTarget;
+    document.querySelectorAll('.phase-row.drag-over').forEach(r => r !== row && r.classList.remove('drag-over'));
+    row.classList.add('drag-over');
+  }
+
+  function onDragLeave(e) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+  }
+
+  function onDrop(e, gid) {
+    e.preventDefault();
+    document.querySelectorAll('.phase-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+    if (!_drag || _drag.gid !== gid) return;
+
+    const toRow = e.currentTarget;
+    const toIdx = parseInt(toRow.dataset.idx);
+    if (isNaN(toIdx) || toIdx === _drag.idx) return;
+
+    const g = groups.find(x => x.id === gid);
+    if (!g) return;
+
+    const [moved] = g.phases.splice(_drag.idx, 1);
+    g.phases.splice(toIdx, 0, moved);
+    _drag = null;
+
+    refreshCard(g);
+    save(g);
+  }
+
+  // ── Delete-warning modal ──────────────────────────────────────────────
+  let _pending = null; // { g, idx, phaseName, affected }
+
+  function openWarnModal(g, idx, phaseName, affected) {
+    _pending = { g, idx, phaseName, affected };
+
+    document.getElementById('warnTitle').textContent = `Delete phase "${phaseName}"?`;
+    document.getElementById('warnSub').textContent =
+      `${affected.length} order item${affected.length !== 1 ? 's are' : ' is'} currently assigned to this phase. ` +
+      `Choose a target phase to move them before deleting, or delete without moving.`;
+
+    document.getElementById('warnList').innerHTML = affected.map(a => `
+      <div class="warn-item">
+        <span class="warn-dot"></span>
+        <span class="warn-oid">Order #${esc(a.order_id)}</span>
+        <span class="warn-lid">item ${esc(a.line_item)}</span>
+      </div>`).join('');
+
+    // populate target phases — all phases across all groups except the one being deleted
+    const opts = groups.flatMap(grp =>
+      grp.phases
+        .filter(p => !(grp.id === g.id && p === phaseName))
+        .map(p => `<option value="${esc(p)}">[${esc(grp.label)}] ${esc(p)}</option>`)
+    );
+    document.getElementById('moveTarget').innerHTML =
+      '<option value="">— select target phase —</option>' + opts.join('');
+    document.getElementById('moveHint').textContent = '';
+
+    document.getElementById('warnOverlay').classList.add('open');
+  }
+
+  function closeWarnModal() {
+    document.getElementById('warnOverlay').classList.remove('open');
+    _pending = null;
+  }
+
+  async function proceedDelete(doMove) {
+    if (!_pending) return;
+    const { g, idx, phaseName, affected } = _pending;
+
+    if (doMove) {
+      const target = document.getElementById('moveTarget').value;
+      if (!target) {
+        document.getElementById('moveHint').textContent = 'Please select a target phase first.';
+        document.getElementById('moveHint').style.color = '#dc2626';
+        return;
+      }
+      document.getElementById('btnMoveDel').disabled = true;
+      document.getElementById('btnDelOnly').disabled = true;
+      toast(`Moving ${affected.length} item${affected.length !== 1 ? 's' : ''}…`, 'saving');
+
+      // Patch each affected order_phases doc
+      await Promise.all(affected.map(a =>
+        fetch(`${FS_BASE}/order_phases/${a.docId}?key=${FS_KEY}&updateMask.fieldPaths=phase`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { phase: { stringValue: target } } })
+        }).catch(() => {})
+      ));
+    }
+
+    // Remove phase from group and save
+    g.phases.splice(idx, 1);
+    closeWarnModal();
+    refreshCard(g);
+    await save(g);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+  function toggleCard(gid) {
+    document.getElementById(`card-${gid}`)?.classList.toggle('collapsed');
+  }
+
+  function refreshCard(g) {
+    const old = document.getElementById(`card-${g.id}`);
+    if (!old) return;
+    const wasCollapsed = old.classList.contains('collapsed');
+    old.outerHTML = cardHtml(g);
+    if (!wasCollapsed) document.getElementById(`card-${g.id}`)?.classList.remove('collapsed');
+    updateBadge();
+  }
+
+  async function save(g) {
+    toast('Saving…', 'saving');
+    try {
+      const res = await fetch(
+        `${FS_BASE}/phase_groups/${g.id}?key=${FS_KEY}&updateMask.fieldPaths=phases`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fields: { phases: { arrayValue: { values: g.phases.map(p => ({ stringValue: p })) } } }
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast('Saved', 'ok');
+    } catch (e) {
+      toast('Save failed: ' + e.message, 'err');
+    }
+  }
+
+  let _toastTimer;
+  function toast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `status-toast ${type}`;
+    clearTimeout(_toastTimer);
+    if (type !== 'saving') _toastTimer = setTimeout(() => { el.className = 'status-toast hidden'; }, 2000);
+  }
+  function clearToast() {
+    clearTimeout(_toastTimer);
+    document.getElementById('toast').className = 'status-toast hidden';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── New group modal ───────────────────────────────────────────────────
+  const PRESET_COLORS = [
+    '#f59e0b','#f97316','#3b82f6','#14b8a6',
+    '#f43f5e','#8b5cf6','#ef4444','#10b981',
+    '#ec4899','#06b6d4','#84cc16','#64748b',
+  ];
+  let _selectedColor = PRESET_COLORS[0];
+
+  function buildSwatches() {
+    const el = document.getElementById('swatches');
+    el.innerHTML = PRESET_COLORS.map(c => `
+      <div class="swatch${c === _selectedColor ? ' selected' : ''}"
+           style="background:${c}"
+           onclick="pickColor('${c}',this)"></div>
+    `).join('') + `
+      <label class="swatch-custom" title="Custom color">
+        <input type="color" value="${_selectedColor}" oninput="pickColorCustom(this.value)">
+        <span class="swatch-custom-icon">+</span>
+      </label>`;
+  }
+
+  function pickColor(color, el) {
+    _selectedColor = color;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function pickColorCustom(color) {
+    _selectedColor = color;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  }
+
+  function openNewGroupModal() {
+    _selectedColor = PRESET_COLORS[0];
+    document.getElementById('newGroupLabel').value = '';
+    buildSwatches();
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('newGroupLabel').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  async function createGroup() {
+    const label = document.getElementById('newGroupLabel').value.trim();
+    if (!label) { document.getElementById('newGroupLabel').focus(); return; }
+
+    const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (groups.find(g => g.id === id)) {
+      alert(`A group with id "${id}" already exists. Choose a different name.`);
+      return;
+    }
+
+    const order = groups.length ? Math.max(...groups.map(g => g.order)) + 1 : 0;
+    const newGroup = { id, label, color: _selectedColor, order, phases: [] };
+
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    toast('Creating…', 'saving');
+
+    try {
+      const res = await fetch(`${FS_BASE}/phase_groups/${id}?key=${FS_KEY}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            label:  { stringValue:  label },
+            color:  { stringValue:  _selectedColor },
+            order:  { integerValue: String(order) },
+            phases: { arrayValue:   { values: [] } },
+          }
+        })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      groups.push(newGroup);
+      groups.sort((a, b) => a.order - b.order);
+      render();
+      closeModal();
+      toast('Group created', 'ok');
+    } catch (e) {
+      toast('Create failed: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>
