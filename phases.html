@@ -88,12 +88,16 @@
     .phase-row.drag-over { border-top: 2px solid #7A4610; background: #fdf9f6; }
 
     .drag-handle {
-      cursor: grab; color: #ccc; font-size: 15px;
-      padding: 0 2px; user-select: none; flex-shrink: 0;
-      line-height: 1; letter-spacing: -1px;
+      width: 12px; height: 18px; flex-shrink: 0;
+      cursor: grab; user-select: none;
+      background-image: radial-gradient(circle, #bbb 1.5px, transparent 1.5px);
+      background-size: 5px 6px;
+      background-repeat: repeat;
+      opacity: 0.55;
+      transition: opacity .15s;
     }
     .drag-handle:active { cursor: grabbing; }
-    .phase-row:hover .drag-handle { color: #bbb; }
+    .phase-row:hover .drag-handle { opacity: 1; }
 
     .phase-idx {
       font-size: 10px; color: #bbb; font-weight: 600;
@@ -359,7 +363,7 @@
                ondragover="onDragOver(event)"
                ondragleave="onDragLeave(event)"
                ondrop="onDrop(event,'${g.id}')">
-            <span class="drag-handle" title="Drag to reorder">⠿</span>
+            <span class="drag-handle" title="Drag to reorder"></span>
             <span class="phase-idx">${i + 1}</span>
             <span class="phase-name">${esc(p)}</span>
             <button class="del-btn" onclick="delPhase('${g.id}',${i})" title="Delete phase">×</button>
