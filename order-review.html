@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Review — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
+    .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
+    .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sub-nav::-webkit-scrollbar { display: none; }
+    .tab-btn { font-size: 12px; font-weight: 700; color: #aaa; background: none; border: none; cursor: pointer; padding: 9px 14px; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+    .tab-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .tab-btn:hover { color: #7A4610; }
+    .tab-count { font-size: 10px; font-weight: 700; background: #fef3e2; color: #7A4610; border-radius: 8px; padding: 1px 6px; }
+    .tab-btn.active .tab-count { background: #7A4610; color: #fff; }
+
+    .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 92px; z-index: 98; }
+    .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; line-height: 1.4; flex-shrink: 0; }
+    #searchInput { flex: 1; font-size: 12px; padding: 6px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; background: #fafaf8; }
+
+    #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+    #content { padding: 10px; }
+
+    .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
+    .order-top { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; flex-wrap: wrap; }
+    .order-top:hover { background: #fdf8f4; border-radius: 8px 8px 0 0; }
+    .d-badge { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+    .d-badge.warn   { background: #e67e22; }
+    .d-badge.urgent { background: #e74c3c; }
+    .order-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .order-name { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .order-total { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
+    .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
+    .order-card.open .order-chevron { transform: rotate(180deg); }
+
+    .phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
+    .phone-wa, .phone-call { display: flex; align-items: center; text-decoration: none; }
+    .phone-wa:hover svg, .phone-call:hover svg { opacity: 0.7; }
+
+    .order-addr { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .order-addr .state { font-weight: 600; color: #7A4610; white-space: nowrap; }
+
+    .wa-msg-btn { font-size: 10px; font-weight: 700; background: #25d366; color: #fff; border: none; border-radius: 12px; padding: 3px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .wa-msg-btn:active { background: #1da851; }
+
+    .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
+    .order-items-inner { overflow: hidden; }
+    .order-card.open .order-items { grid-template-rows: 1fr; }
+
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid #f5f0eb; }
+    .item-thumb { width: 30px; height: 30px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-ph { width: 30px; height: 30px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-qty  { font-size: 11px; color: #888; white-space: nowrap; flex-shrink: 0; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 3px 5px; color: #555; flex-shrink: 0; max-width: 120px; outline: none; cursor: pointer; }
+    .phase-sel:focus { border-color: #7A4610; }
+
+    .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 13px; }
+
+    .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-overlay.open { display: flex; }
+    .photo-popup { background: #fff; border-radius: 14px; padding: 14px; max-width: 90vw; display: flex; flex-direction: column; gap: 10px; cursor: default; }
+    .photo-popup img { max-width: min(420px, 85vw); max-height: 70vh; object-fit: contain; border-radius: 8px; display: block; }
+    .photo-popup-name { font-size: 13px; font-weight: 700; color: #333; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <span class="title">Order Review</span>
+  <span class="badge" id="totalBadge">Loading…</span>
+  <a href="index.html" class="back">← Back</a>
+</div>
+
+<div class="sub-nav" id="subNav">
+  <button class="tab-btn active" data-phase="Created"          onclick="switchTab('Created')">Created          <span class="tab-count" id="cnt-Created">0</span></button>
+  <button class="tab-btn"        data-phase="WA msg"           onclick="switchTab('WA msg')">WA msg           <span class="tab-count" id="cnt-WA msg">0</span></button>
+  <button class="tab-btn"        data-phase="Call"             onclick="switchTab('Call')">Call              <span class="tab-count" id="cnt-Call">0</span></button>
+  <button class="tab-btn"        data-phase="No Confirmation"  onclick="switchTab('No Confirmation')">No Confirm <span class="tab-count" id="cnt-No Confirmation">0</span></button>
+  <button class="tab-btn"        data-phase="Confirmed"        onclick="switchTab('Confirmed')">Confirmed    <span class="tab-count" id="cnt-Confirmed">0</span></button>
+</div>
+
+<div class="toolbar">
+  <button class="sort-btn" id="sortBtn" onclick="toggleSort()">↓</button>
+  <input id="searchInput" type="search" placeholder="Search order, name, phone…">
+</div>
+
+<div id="state">Loading orders…</div>
+<div id="content" style="display:none;"></div>
+
+<div class="photo-overlay" id="photoOverlay" onclick="closePhoto()">
+  <div class="photo-popup" onclick="event.stopPropagation()">
+    <div class="photo-popup-name" id="photoName"></div>
+    <img id="photoImg" src="" alt="">
+  </div>
+</div>
+
+<script>
+  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
+  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const FS_KEY    = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE   = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  const REVIEW_PHASES = ["Created","WA msg","Call","No Confirmation","Confirmed"];
+  const ALL_PHASES = [
+    "Created","WA msg","Call","No Confirmation","Confirmed",
+    "Check Inventory","Model & DWG","JO preparation","Procurement","Material Received","JO released",
+    "Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label",
+    "Paint","Inspection",
+    "Received from WH","QC-Rejected",
+    "R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet",
+    "R-Assemble & label","R-Paint","R-Inspection",
+    "Packaging","Ready to Ship",
+    "Sent to WH","Not Received in WH","Already in WH","Not available in WH","Sent to Production",
+    "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready",
+    "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially","Delivered Fully"
+  ];
+
+  const EG_STATES = {
+    "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
+    "5":"Cairo","6":"Dakahlia","7":"Damietta","8":"El Kalioubia","9":"Fayoum",
+    "10":"Gharbia","11":"Giza","12":"Ismailia","13":"Kafr Alsheikh","14":"Luxor",
+    "15":"Matruh","16":"Minia","17":"Minya","18":"Monufia","19":"New Valley",
+    "20":"North Sinai","21":"Port Said","22":"Qalyubia","23":"Qena","24":"Red Sea",
+    "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
+  };
+
+  let _phasesFS = {};
+  let allOrders = [];
+  let activeTab = 'Created';
+  let sortAsc   = false;
+
+  // ── Firestore ────────────────────────────────────────────────────
+  async function loadPhasesFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f = r.document.fields || {};
+        const oid = f.order_id?.stringValue || '';
+        const lid = f.line_item_id?.stringValue || '';
+        const ph  = f.phase?.stringValue || '';
+        if (oid && lid && ph) _phasesFS[`${oid}_${lid}`] = ph;
+      });
+    } catch(_) {}
+  }
+
+  function resolvePhase(orderId, item) {
+    return _phasesFS[`${orderId}_${item.id}`]
+        || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
+        || 'Created';
+  }
+
+  function savePhase(orderId, item, phase) {
+    _phasesFS[`${orderId}_${item.id}`] = phase;
+    const productId = item.product_id || 0;
+    fetch(`${FS_BASE}/order_phases/${orderId}_${item.id}?key=${FS_KEY}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: {
+        order_id:     { stringValue: String(orderId) },
+        line_item_id: { stringValue: String(item.id) },
+        product_id:   { integerValue: String(productId) },
+        phase:        { stringValue: phase }
+      }})
+    }).catch(() => {});
+    updateCounts();
+    render();
+  }
+
+  // ── WooCommerce ──────────────────────────────────────────────────
+  async function fetchAllOrders() {
+    let page = 1, all = [];
+    while (true) {
+      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      if (!res.ok) break;
+      const batch = await res.json();
+      if (!batch.length) break;
+      all = all.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return all;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function daysSince(d) { return Math.floor((Date.now() - new Date(d)) / 86400000); }
+  function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
+
+  function phoneHtml(phone, name, orderId, hasCreated) {
+    if (!phone) return '<span class="phone-num">—</span>';
+    const wa   = phone.replace(/\D/g,'').replace(/^0/,'20');
+    const waMsg = hasCreated
+      ? encodeURIComponent(`مرحبًا ${name},\n\nتم استلام طلبك رقم #${orderId} من Timbered بنجاح.\nيرجى إرسال لوكشن التوصيل 📍.\n___________________________________\nHello, ${name},\n\nYour Timbered order #${orderId} has been received successfully.\nPlease send delivery location 📍`)
+      : '';
+    const waHref = waMsg ? `https://wa.me/${wa}?text=${waMsg}` : `https://wa.me/${wa}`;
+    return `<span class="phone-wrap" onclick="event.stopPropagation()">
+      <a class="phone-wa" href="${waHref}" target="_blank" title="WhatsApp">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
+      </a>
+      <span class="phone-num">${phone}</span>
+      <a class="phone-call" href="tel:${phone}" title="Call" onclick="event.stopPropagation()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      </a>
+    </span>`;
+  }
+
+  const _photoItems = {};
+  function openPhoto(itemId) {
+    const item = _photoItems[itemId];
+    if (!item) return;
+    document.getElementById('photoName').textContent = item.name;
+    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoOverlay').classList.add('open');
+  }
+  function closePhoto() { document.getElementById('photoOverlay').classList.remove('open'); }
+
+  // ── Counts ───────────────────────────────────────────────────────
+  function updateCounts() {
+    let total = 0;
+    REVIEW_PHASES.forEach(phase => {
+      const count = allOrders.reduce((acc, o) =>
+        acc + o.line_items.filter(i => resolvePhase(o.id, i) === phase).length, 0);
+      const el = document.getElementById('cnt-' + phase);
+      if (el) el.textContent = count;
+      total += count;
+    });
+    document.getElementById('totalBadge').textContent = total + ' items';
+  }
+
+  // ── Render ───────────────────────────────────────────────────────
+  function getOpenGroups() {
+    return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey);
+  }
+  function restoreOpenGroups(keys) {
+    keys.forEach(k => {
+      const el = document.querySelector(`[data-group-key="${k}"]`);
+      if (el) el.classList.add('open');
+    });
+  }
+
+  function render() {
+    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const wasOpen = getOpenGroups();
+
+    let orders = allOrders.filter(o => {
+      const hasPhase = o.line_items.some(i => resolvePhase(o.id, i) === activeTab);
+      if (!hasPhase) return false;
+      if (!q) return true;
+      const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+      const phone = (o.billing.phone || '').toLowerCase();
+      return String(o.id).includes(q) || name.includes(q) || phone.includes(q)
+          || o.line_items.some(i => i.name.toLowerCase().includes(q));
+    });
+
+    orders = [...orders].sort((a, b) => {
+      const da = daysSince(a.date_created), db = daysSince(b.date_created);
+      return sortAsc ? da - db : db - da;
+    });
+
+    if (!orders.length) {
+      document.getElementById('content').innerHTML =
+        `<div class="empty-msg">No orders in "${activeTab}"</div>`;
+      restoreOpenGroups(wasOpen);
+      return;
+    }
+
+    document.getElementById('content').innerHTML = orders.map(o => {
+      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const state = EG_STATES[o.billing.state] || o.billing.state || '';
+      const addr  = [o.billing.address_1, o.billing.address_2].filter(Boolean).join(', ');
+      const days  = daysSince(o.date_created);
+      const hasCreated = o.line_items.some(i => resolvePhase(o.id, i) === 'Created');
+      const phaseItems = o.line_items.filter(i => resolvePhase(o.id, i) === activeTab);
+
+      const itemsHtml = phaseItems.map(item => {
+        _photoItems[item.id] = item;
+        const thumb = item.image?.src
+          ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
+          : `<span class="item-thumb-ph"></span>`;
+        const phase = resolvePhase(o.id, item);
+        const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
+          onchange="savePhase(${o.id}, ${JSON.stringify(item)}, this.value)">
+          ${ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+        </select>`;
+        return `<div class="item-row">
+          ${thumb}
+          <span class="item-name">${item.name}</span>
+          <span class="item-qty">×${item.quantity}</span>
+          ${sel}
+        </div>`;
+      }).join('');
+
+      return `<div class="order-card" data-group-key="order-${o.id}">
+        <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <span class="d-badge ${dc(days)}">${days}d</span>
+          <span class="order-id">#${o.id}</span>
+          <span class="order-name">${name}</span>
+          <span class="order-total">${parseInt(o.total).toLocaleString()}</span>
+          ${phoneHtml(o.billing.phone, name, o.id, hasCreated)}
+          <span class="order-chevron">▼</span>
+        </div>
+        ${addr || state ? `<div class="order-addr">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${addr}</span>
+          ${state ? `<span class="state">${state}</span>` : ''}
+        </div>` : ''}
+        <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
+      </div>`;
+    }).join('');
+
+    restoreOpenGroups(wasOpen);
+  }
+
+  // ── Tab switch ───────────────────────────────────────────────────
+  function switchTab(phase) {
+    activeTab = phase;
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.phase === phase));
+    render();
+  }
+
+  function toggleSort() {
+    sortAsc = !sortAsc;
+    document.getElementById('sortBtn').textContent = sortAsc ? '↑' : '↓';
+    render();
+  }
+
+  document.getElementById('searchInput').addEventListener('input', render);
+
+  // ── Init ─────────────────────────────────────────────────────────
+  (async () => {
+    try {
+      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS()]);
+      allOrders = orders;
+      document.getElementById('state').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      updateCounts();
+      render();
+    } catch (e) {
+      document.getElementById('state').textContent = 'Failed to load: ' + e.message;
+    }
+  })();
+</script>
+</body>
+</html>
