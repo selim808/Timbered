@@ -83,13 +83,7 @@
   <a href="index.html" class="back">← Back</a>
 </div>
 
-<div class="sub-nav" id="subNav">
-  <button class="tab-btn active" data-phase="Created"          onclick="switchTab('Created')">Created          <span class="tab-count" id="cnt-Created">0</span></button>
-  <button class="tab-btn"        data-phase="WA msg"           onclick="switchTab('WA msg')">WA msg           <span class="tab-count" id="cnt-WA msg">0</span></button>
-  <button class="tab-btn"        data-phase="Call"             onclick="switchTab('Call')">Call              <span class="tab-count" id="cnt-Call">0</span></button>
-  <button class="tab-btn"        data-phase="No Confirmation"  onclick="switchTab('No Confirmation')">No Confirm <span class="tab-count" id="cnt-No Confirmation">0</span></button>
-  <button class="tab-btn"        data-phase="Confirmed"        onclick="switchTab('Confirmed')">Confirmed    <span class="tab-count" id="cnt-Confirmed">0</span></button>
-</div>
+<div class="sub-nav" id="subNav"></div>
 
 <div class="toolbar">
   <button class="sort-btn" id="sortBtn" onclick="toggleSort()">↓</button>
@@ -114,7 +108,8 @@
   const FS_KEY    = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE   = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
-  const REVIEW_PHASES = ["Created","WA msg","Call","No Confirmation","Confirmed"];
+  let REVIEW_PHASES = []; // loaded from "Order Review" phase group in Firebase
+  let PHASE_GROUPS  = []; // all groups — drives optgroup dropdown
   const ALL_PHASES = [
     "Created","WA msg","Call","No Confirmation","Confirmed",
     "Check Inventory","Model & DWG","JO preparation","Procurement","Material Received","JO released",
@@ -139,8 +134,44 @@
   };
 
   let allOrders = [];
-  let activeTab = 'Created';
+  let activeTab = '';
   let sortAsc   = false;
+
+  async function loadPhaseGroups() {
+    try {
+      const res  = await fetch(`${FS_BASE}/phase_groups?key=${FS_KEY}`);
+      const data = await res.json();
+      if (!data.documents?.length) return;
+      const groups = data.documents.map(doc => ({
+        id:     doc.name.split('/').pop(),
+        label:  doc.fields.label?.stringValue || '',
+        order:  parseInt(doc.fields.order?.integerValue || 0),
+        phases: (doc.fields.phases?.arrayValue?.values || []).map(v => v.stringValue),
+      })).filter(g => g.phases.length).sort((a, b) => a.order - b.order);
+
+      PHASE_GROUPS = groups;
+
+      // "Order Review" group drives the tabs
+      const reviewGroup = groups.find(g =>
+        g.id === 'order_review' ||
+        g.label.toLowerCase().replace(/\s+/g, '_') === 'order_review'
+      );
+      REVIEW_PHASES = reviewGroup?.phases || [];
+    } catch (_) {}
+  }
+
+  function buildTabs() {
+    const nav = document.getElementById('subNav');
+    if (!REVIEW_PHASES.length) return;
+    if (!REVIEW_PHASES.includes(activeTab)) activeTab = REVIEW_PHASES[0];
+    nav.innerHTML = REVIEW_PHASES.map(p =>
+      `<button class="tab-btn${p === activeTab ? ' active' : ''}"
+               data-phase="${p.replace(/"/g,'&quot;')}"
+               onclick="switchTab(${JSON.stringify(p)})">
+         ${p} <span class="tab-count" id="cnt-${p.replace(/"/g,'&quot;')}">0</span>
+       </button>`
+    ).join('');
+  }
 
   function resolvePhase(orderId, item) {
     return _phasesFS[`${orderId}_${item.id}`]
@@ -267,7 +298,12 @@
         const phase = resolvePhase(o.id, item);
         const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
           onchange="savePhase(${o.id}, ${JSON.stringify(item)}, this.value)">
-          ${ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+          ${PHASE_GROUPS.length
+            ? PHASE_GROUPS.map(g =>
+                `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
+                  g.phases.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')
+                }</optgroup>`).join('')
+            : ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
         </select>`;
         return `<div class="item-row">
           ${thumb}
@@ -316,8 +352,9 @@
   // ── Init ─────────────────────────────────────────────────────────
   (async () => {
     try {
-      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), window.phasesLoaded]);
+      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), loadPhaseGroups(), window.phasesLoaded]);
       allOrders = orders;
+      buildTabs();
       document.getElementById('state').style.display = 'none';
       document.getElementById('content').style.display = 'block';
       updateCounts();
