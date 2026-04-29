@@ -305,7 +305,7 @@
     return `<table class="cl-table">
       <thead><tr>
         <th>Product</th><th>QTY</th><th>Picture</th>
-        <th>Name</th><th>Thk<br><span style="font-size:9px;font-weight:400;opacity:0.8">(mm)</span></th><th>X (cm)</th><th>Y (cm)</th>
+        <th>Name</th><th>Thk</th><th>X (cm)</th><th>Y (cm)</th>
         <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -322,7 +322,7 @@
       const partsHtml = bom.length
         ? `<table class="cl-parts-table">
             <thead><tr>
-              <th>#</th><th>Name</th><th>Thk<br><span style="font-size:9px;font-weight:400;opacity:0.8">(mm)</span></th><th>X (cm)</th><th>Y (cm)</th>
+              <th>#</th><th>Name</th><th>Thk</th><th>X (cm)</th><th>Y (cm)</th>
               <th>QTY</th><th>Total Qty</th><th>Material</th><th>Remarks</th>
             </tr></thead>
             <tbody>${bom.map((part, i) => {
