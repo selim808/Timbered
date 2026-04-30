@@ -10,11 +10,11 @@
     .logo { height: 48px; margin-bottom: 32px; }
     .title { font-size: 18px; font-weight: 700; color: #7A4610; margin-bottom: 8px; }
     .sub { font-size: 13px; color: #aaa; margin-bottom: 40px; }
-    .cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
-    .card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 140px; height: 140px; background: #fff; border-radius: 20px; border: 2px solid #e8ddd4; text-decoration: none; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+    .cards { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; padding: 0 20px; }
+    .card { display: flex; flex-direction: row; align-items: center; gap: 16px; padding: 18px 24px; background: #fff; border-radius: 16px; border: 2px solid #e8ddd4; text-decoration: none; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
     .card:hover { border-color: #7A4610; box-shadow: 0 4px 16px rgba(122,70,16,0.12); }
-    .card .icon { font-size: 36px; }
-    .card .label { font-size: 13px; font-weight: 700; color: #7A4610; }
+    .card .icon { font-size: 32px; flex-shrink: 0; }
+    .card .label { font-size: 15px; font-weight: 700; color: #7A4610; }
   </style>
 </head>
 <body>
