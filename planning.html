@@ -183,7 +183,7 @@
     nav.innerHTML = PLAN_PHASES.map(p =>
       `<button class="tab-btn${p === activeTab ? ' active' : ''}"
                data-phase="${p.replace(/"/g,'&quot;')}"
-               onclick="switchTab(${JSON.stringify(p)})">
+               onclick="switchTab(this.dataset.phase)">
          ${p} <span class="tab-count" id="cnt-${p.replace(/[^a-z0-9]/gi,'-')}">0</span>
        </button>`
     ).join('');
