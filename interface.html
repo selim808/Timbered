@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Review — Timbered</title>
+  <title>Interface — Timbered</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <script src="phase-loader.js"></script>
+  <script src="phase-utils.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -45,13 +47,9 @@
     .phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
     .phone-num  { font-size: 11px; color: #555; white-space: nowrap; }
     .phone-wa, .phone-call { display: flex; align-items: center; text-decoration: none; }
-    .phone-wa:hover svg, .phone-call:hover svg { opacity: 0.7; }
 
     .order-addr { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; flex-wrap: wrap; }
     .order-addr .state { font-weight: 600; color: #7A4610; white-space: nowrap; }
-
-    .wa-msg-btn { font-size: 10px; font-weight: 700; background: #25d366; color: #fff; border: none; border-radius: 12px; padding: 3px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-    .wa-msg-btn:active { background: #1da851; }
 
     .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .order-items-inner { overflow: hidden; }
@@ -78,7 +76,7 @@
 
 <div class="site-header">
   <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
-  <span class="title">Order Review</span>
+  <span class="title">Interface</span>
   <span class="badge" id="totalBadge">Loading…</span>
   <a href="index.html" class="back">← Back</a>
 </div>
@@ -100,84 +98,32 @@
   </div>
 </div>
 
-<script src="phase-loader.js"></script>
-<script src="phase-utils.js"></script>
 <script>
   const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
-  const FS_KEY    = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE   = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
-  let REVIEW_PHASES = []; // loaded from "Order Review" phase group in Firebase
-  let PHASE_GROUPS  = []; // all groups — drives optgroup dropdown
-  const ALL_PHASES = [
-    "Created","WA msg","Call","No Confirmation","Confirmed",
-    "Check Inventory","Model & DWG","JO preparation","Procurement","Material Received","JO released",
-    "Cutting","CNC","Upholstery","Shaping & Joint prep.","Sand-fillet","Assemble & label",
-    "Paint","Inspection",
-    "Received from WH","QC-Rejected",
-    "R-Assessment","R-Cutting","R-CNC","R-Upholstery","R-Shaping & Joint prep.","R-Sand-fillet",
-    "R-Assemble & label","R-Paint","R-Inspection",
-    "Packaging","Ready to Ship",
-    "Sent to WH","Not Received in WH","Already in WH","Not available in WH","Sent to Production",
-    "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready",
-    "DLV-Bareed-Cairo","DLV-Bareed-Tanta","DLV-Bosta","DLV-Private","Delivered Partially","Delivered Fully"
-  ];
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
     "5":"Cairo","6":"Dakahlia","7":"Damietta","8":"El Kalioubia","9":"Fayoum",
     "10":"Gharbia","11":"Giza","12":"Ismailia","13":"Kafr Alsheikh","14":"Luxor",
-    "15":"Matruh","16":"Minia","17":"Minya","18":"Monufia","19":"New Valley",
+    "15":"Matruh","16":"Minia","17":"Monufia","18":"New Valley","19":"North Coast",
     "20":"North Sinai","21":"Port Said","22":"Qalyubia","23":"Qena","24":"Red Sea",
     "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
-  let allOrders = [];
-  let activeTab = '';
-  let sortAsc   = false;
+  let allOrders    = [];
+  let activeTab    = '';
+  let sortAsc      = false;
+  let IFACE_PHASES = [];
+  let _orderMeta   = {};
 
-  async function loadPhaseGroups() {
-    try {
-      const res  = await fetch(`${FS_BASE}/phase_groups?key=${FS_KEY}`);
-      const data = await res.json();
-      if (!data.documents?.length) return;
-      const groups = data.documents.map(doc => ({
-        id:     doc.name.split('/').pop(),
-        label:  doc.fields.label?.stringValue || '',
-        order:  parseInt(doc.fields.order?.integerValue || 0),
-        phases: (doc.fields.phases?.arrayValue?.values || []).map(v => v.stringValue),
-      })).filter(g => g.phases.length).sort((a, b) => a.order - b.order);
-
-      PHASE_GROUPS = groups;
-
-      // "Order Review" group drives the tabs
-      const reviewGroup = groups.find(g =>
-        g.id === 'order_review' ||
-        g.label.toLowerCase().replace(/\s+/g, '_') === 'order_review'
-      );
-      REVIEW_PHASES = reviewGroup?.phases || [];
-    } catch (_) {}
-  }
-
-  function buildTabs() {
-    const nav = document.getElementById('subNav');
-    if (!REVIEW_PHASES.length) return;
-    if (!REVIEW_PHASES.includes(activeTab)) activeTab = REVIEW_PHASES[0];
-    nav.innerHTML = REVIEW_PHASES.map(p =>
-      `<button class="tab-btn${p === activeTab ? ' active' : ''}"
-               data-phase="${p.replace(/"/g,'&quot;')}"
-               onclick="switchTab(${JSON.stringify(p)})">
-         ${p} <span class="tab-count" id="cnt-${p.replace(/"/g,'&quot;')}">0</span>
-       </button>`
-    ).join('');
-  }
-
+  // ── Phase resolve ─────────────────────────────────────────────────
   function resolvePhase(orderId, item) {
     return _phasesFS[`${orderId}_${item.id}`]
         || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
-        || (window.PHASE_GROUPS?.[0]?.phases?.[0])
-        || 'Created';
+        || _orderMeta[orderId]
+        || IFACE_PHASES[0]
+        || '';
   }
 
   function savePhase(orderId, item, phase) {
@@ -186,11 +132,11 @@
     render();
   }
 
-  // ── WooCommerce ──────────────────────────────────────────────────
+  // ── WooCommerce ───────────────────────────────────────────────────
   async function fetchAllOrders() {
     let page = 1, all = [];
     while (true) {
-      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      const res = await fetch(`${WC_ORDERS}&status=processing,on-hold&orderby=date&order=desc&per_page=100&page=${page}`);
       if (!res.ok) break;
       const batch = await res.json();
       if (!batch.length) break;
@@ -201,19 +147,15 @@
     return all;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────
   function daysSince(d) { return Math.floor((Date.now() - new Date(d)) / 86400000); }
   function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
 
-  function phoneHtml(phone, name, orderId, hasCreated) {
+  function phoneHtml(phone) {
     if (!phone) return '<span class="phone-num">—</span>';
-    const wa   = phone.replace(/\D/g,'').replace(/^0/,'20');
-    const waMsg = hasCreated
-      ? encodeURIComponent(`مرحبًا ${name},\n\nتم استلام طلبك رقم #${orderId} من Timbered بنجاح.\nيرجى إرسال لوكشن التوصيل 📍.\n___________________________________\nHello, ${name},\n\nYour Timbered order #${orderId} has been received successfully.\nPlease send delivery location 📍`)
-      : '';
-    const waHref = waMsg ? `https://wa.me/${wa}?text=${waMsg}` : `https://wa.me/${wa}`;
+    const wa = phone.replace(/\D/g,'').replace(/^0/,'20');
     return `<span class="phone-wrap" onclick="event.stopPropagation()">
-      <a class="phone-wa" href="${waHref}" target="_blank" title="WhatsApp">
+      <a class="phone-wa" href="https://wa.me/${wa}" target="_blank" title="WhatsApp">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.855L0 24l6.335-1.51A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.726.888.936-3.618-.235-.372A9.818 9.818 0 0112 2.182c5.424 0 9.818 4.394 9.818 9.818 0 5.423-4.394 9.818-9.818 9.818z"/></svg>
       </a>
       <span class="phone-num">${phone}</span>
@@ -233,33 +175,42 @@
   }
   function closePhoto() { document.getElementById('photoOverlay').classList.remove('open'); }
 
-  // ── Counts ───────────────────────────────────────────────────────
+  // ── Tabs ──────────────────────────────────────────────────────────
+  function buildTabs() {
+    const nav = document.getElementById('subNav');
+    if (!IFACE_PHASES.length) { nav.innerHTML = '<span style="padding:10px 14px;font-size:12px;color:#aaa;">No interface phases configured</span>'; return; }
+    if (!IFACE_PHASES.includes(activeTab)) activeTab = IFACE_PHASES[0];
+    nav.innerHTML = IFACE_PHASES.map(p =>
+      `<button class="tab-btn${p === activeTab ? ' active' : ''}"
+               data-phase="${p.replace(/"/g,'&quot;')}"
+               onclick="switchTab(${JSON.stringify(p)})">
+         ${p} <span class="tab-count" id="cnt-${p.replace(/[^a-z0-9]/gi,'-')}">0</span>
+       </button>`
+    ).join('');
+  }
+
+  function switchTab(phase) {
+    activeTab = phase;
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.phase === phase));
+    render();
+  }
+
   function updateCounts() {
     let total = 0;
-    REVIEW_PHASES.forEach(phase => {
+    IFACE_PHASES.forEach(phase => {
       const count = allOrders.reduce((acc, o) =>
         acc + o.line_items.filter(i => resolvePhase(o.id, i) === phase).length, 0);
-      const el = document.getElementById('cnt-' + phase);
+      const el = document.getElementById('cnt-' + phase.replace(/[^a-z0-9]/gi,'-'));
       if (el) el.textContent = count;
       total += count;
     });
     document.getElementById('totalBadge').textContent = total + ' items';
   }
 
-  // ── Render ───────────────────────────────────────────────────────
-  function getOpenGroups() {
-    return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey);
-  }
-  function restoreOpenGroups(keys) {
-    keys.forEach(k => {
-      const el = document.querySelector(`[data-group-key="${k}"]`);
-      if (el) el.classList.add('open');
-    });
-  }
-
+  // ── Render ────────────────────────────────────────────────────────
   function render() {
     const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-    const wasOpen = getOpenGroups();
 
     let orders = allOrders.filter(o => {
       const hasPhase = o.line_items.some(i => resolvePhase(o.id, i) === activeTab);
@@ -279,7 +230,6 @@
     if (!orders.length) {
       document.getElementById('content').innerHTML =
         `<div class="empty-msg">No orders in "${activeTab}"</div>`;
-      restoreOpenGroups(wasOpen);
       return;
     }
 
@@ -288,7 +238,6 @@
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
       const addr  = [o.billing.address_1, o.billing.address_2].filter(Boolean).join(', ');
       const days  = daysSince(o.date_created);
-      const hasCreated = o.line_items.some(i => resolvePhase(o.id, i) === 'Created');
       const phaseItems = o.line_items.filter(i => resolvePhase(o.id, i) === activeTab);
 
       const itemsHtml = phaseItems.map(item => {
@@ -297,14 +246,15 @@
           ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
           : `<span class="item-thumb-ph"></span>`;
         const phase = resolvePhase(o.id, item);
+        const allGroups = window.PHASE_GROUPS || [];
         const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
           onchange="savePhase(${o.id}, ${JSON.stringify(item)}, this.value)">
-          ${PHASE_GROUPS.length
-            ? PHASE_GROUPS.map(g =>
+          ${allGroups.length
+            ? allGroups.map(g =>
                 `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
                   g.phases.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')
                 }</optgroup>`).join('')
-            : ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+            : `<option value="${phase}" selected>${phase}</option>`}
         </select>`;
         return `<div class="item-row">
           ${thumb}
@@ -314,13 +264,13 @@
         </div>`;
       }).join('');
 
-      return `<div class="order-card" data-group-key="order-${o.id}">
+      return `<div class="order-card">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
           <span class="d-badge ${dc(days)}">${days}d</span>
           <span class="order-id">#${o.id}</span>
           <span class="order-name">${name}</span>
           <span class="order-total">${parseInt(o.total).toLocaleString()}</span>
-          ${phoneHtml(o.billing.phone, name, o.id, hasCreated)}
+          ${phoneHtml(o.billing.phone)}
           <span class="order-chevron">▼</span>
         </div>
         ${addr || state ? `<div class="order-addr">
@@ -330,16 +280,6 @@
         <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
       </div>`;
     }).join('');
-
-    restoreOpenGroups(wasOpen);
-  }
-
-  // ── Tab switch ───────────────────────────────────────────────────
-  function switchTab(phase) {
-    activeTab = phase;
-    document.querySelectorAll('.tab-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.phase === phase));
-    render();
   }
 
   function toggleSort() {
@@ -350,11 +290,16 @@
 
   document.getElementById('searchInput').addEventListener('input', render);
 
-  // ── Init ─────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────
   (async () => {
     try {
-      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), loadPhaseGroups(), window.phasesLoaded]);
-      allOrders = orders;
+      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), window.phasesLoaded]);
+      allOrders    = orders;
+      IFACE_PHASES = window.INTERFACE_PHASES || [];
+      orders.forEach(o => {
+        const p = (o.meta_data || []).find(m => m.key === 'tg_phase')?.value;
+        if (p) _orderMeta[o.id] = p;
+      });
       buildTabs();
       document.getElementById('state').style.display = 'none';
       document.getElementById('content').style.display = 'block';

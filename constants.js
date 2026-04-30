@@ -6,7 +6,9 @@ const WC_CREDS  = `consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
 
 // ── Phases ────────────────────────────────────────────────────────────────────
 const ORDER_REVIEW_PHASES = [
-  "Created","WA msg","Call","No Confirmation","Confirmed"
+  "Created","WA Message Sent","Call Made","Quotation Sent",
+  "Revised","Quotation Approved","Awaiting Confirmation",
+  "Confirmed","Deposit Paid","On Hold","Cancelled"
 ];
 
 const PLANNING_PHASES = [
@@ -20,7 +22,7 @@ const PROD_PHASES = [
 ];
 
 const DISPATCH_PHASES = [
-  "Packaging","Ready to Ship"
+  "Packing List Check","Packaging","Ready to Ship"
 ];
 
 const REPAIR_PHASES = [
@@ -35,7 +37,7 @@ const INTERFACE_PHASES = [
 ];
 
 const WH_PHASES = [
-  "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Ready"
+  "WH-Defected","WH-No_Response","WH-Postponed","WH-Returned","WH-Stock","WH-Ready"
 ];
 
 const DLV_PHASES = [

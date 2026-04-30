@@ -2108,18 +2108,55 @@ async function loadGoals() {
 
 </script>
 
-<div style="padding:24px 16px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:480px; margin:0 auto;">
-  <a href="orders.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Orders</a>
-  <a href="order-review.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Order Review</a>
-  <a href="warehouse.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Warehouse</a>
-  <a href="job-prep.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Job Order Prep</a>
-  <a href="cutlists.html" style="font-size:13px; font-weight:700; color:#27ae60; text-decoration:none; border:2px solid #27ae60; border-radius:20px; padding:6px 20px; background:#eafaf1; display:flex; align-items:center; justify-content:center; text-align:center;">Cutlists</a>
-  <a href="production.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Production</a>
-  <a href="inventory.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Inventory</a>
-  <a href="delivery.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Delivery</a>
-  <a href="customer-service.html" style="font-size:13px; font-weight:700; color:#7A4610; text-decoration:none; border:2px solid #7A4610; border-radius:20px; padding:6px 20px; background:#fef3e2; display:flex; align-items:center; justify-content:center; text-align:center;">Customer Service</a>
-  <a href="databases.html" style="grid-column:1/-1; font-size:13px; font-weight:700; color:#1d4ed8; text-decoration:none; border:2px solid #1d4ed8; border-radius:20px; padding:6px 20px; background:#eff6ff; display:flex; align-items:center; justify-content:center; text-align:center;">🗄 Firebase Databases</a>
-</div>
+<div id="pageNav" style="padding:24px 16px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:480px; margin:0 auto;"></div>
+<script>
+(async function buildNav() {
+  const _KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const _BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const S = 'font-size:13px;font-weight:700;text-decoration:none;border-radius:20px;padding:6px 20px;display:flex;align-items:center;justify-content:center;text-align:center;';
+
+  let groups = [];
+  try {
+    const res  = await fetch(`${_BASE}/phase_groups?key=${_KEY}`);
+    const data = await res.json();
+    groups = (data.documents || []).map(doc => ({
+      id:    doc.name.split('/').pop(),
+      label: doc.fields.label?.stringValue || '',
+      color: doc.fields.color?.stringValue || '#7A4610',
+      order: parseInt(doc.fields.order?.integerValue || 0),
+    })).sort((a, b) => a.order - b.order);
+  } catch(e) {}
+
+  const A = 'font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;';
+
+  const clip = `polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)`;
+
+  const workflowSection = groups.length ? `
+    <div style="grid-column:1/-1; display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+      ${groups.map((g, i) => {
+        const url = g.id.replace(/_/g, '-') + '.html';
+        const hex = g.color || '#7A4610';
+        return `<a href="${url}" style="${A} background:${hex};color:#fff;padding:10px 20px 10px 10px;clip-path:${clip};font-size:12px;font-weight:700;">${g.label}</a>`;
+      }).join('')}
+    </div>` : '';
+
+  document.getElementById('pageNav').innerHTML =
+    `<a href="orders.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#7A4610;border:2px solid #7A4610;background:#fef3e2;">Orders</a>` +
+    workflowSection +
+    `<a href="databases.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#1d4ed8;border:2px solid #1d4ed8;background:#eff6ff;">🗄 Firebase Databases</a>` +
+    `<button onclick="document.getElementById('allPagesPanel').style.display=document.getElementById('allPagesPanel').style.display==='none'?'grid':'none'" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#666;border:2px solid #ccc;background:#f5f5f5;cursor:pointer;">All Pages ▾</button>` +
+    `<div id="allPagesPanel" style="grid-column:1/-1;display:none;grid-template-columns:repeat(3,1fr);gap:8px;">` +
+    [
+      ['orders.html','Orders'],['order-review.html','Order Review'],['planning.html','Planning'],
+      ['warehouse.html','Warehouse'],['production.html','Production'],['delivery.html','Delivery'],
+      ['customer-service.html','Customer Service'],['job-prep.html','Job Prep'],['cutlists.html','Cutlists'],
+      ['inventory.html','Inventory'],['inventory-warehouse.html','WH Stock'],['phases.html','Phase Groups'],
+      ['products.html','Products'],['product-detail.html','Product Detail'],['databases.html','Databases'],
+      ['constants.html','Constants'],['migrate.html','Migrate']
+    ].map(([href,label])=>`<a href="${href}" style="${A} border-radius:10px;padding:8px 6px;font-size:12px;color:#555;border:1.5px solid #ddd;background:#fff;">${label}</a>`).join('') +
+    `</div>`;
+})();
+</script>
 
 </body>
 </html>

@@ -30,9 +30,10 @@
     .page-body { padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
 
     .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 16px;
+      max-width: 640px;
     }
 
     .empty-state, .loading-state {
@@ -83,7 +84,8 @@
       cursor: default;
     }
     .phase-row:hover { background: #faf7f4; }
-    .phase-row:hover .del-btn { opacity: 1; }
+    .phase-row:hover .del-btn,
+    .phase-row:hover .edit-btn { opacity: 1; }
     .phase-row.dragging { opacity: .35; background: #f5f0eb; }
     .phase-row.drag-over { border-top: 2px solid #7A4610; background: #fdf9f6; }
 
@@ -127,6 +129,32 @@
       transition: opacity .15s, background .15s; flex-shrink: 0;
     }
     .del-btn:hover { background: #fee2e2; }
+
+    .edit-btn {
+      opacity: 0;
+      background: none; border: none; cursor: pointer;
+      color: #7A4610; font-size: 13px; line-height: 1;
+      padding: 2px 4px; border-radius: 4px;
+      transition: opacity .15s, background .15s; flex-shrink: 0;
+    }
+    .edit-btn:hover { background: #fef3c7; }
+
+    .group-edit-btn {
+      opacity: 0;
+      background: none; border: none; cursor: pointer;
+      color: #7A4610; font-size: 12px; line-height: 1;
+      padding: 2px 4px; border-radius: 4px;
+      transition: opacity .15s, background .15s; flex-shrink: 0;
+    }
+    .group-edit-btn:hover { background: #fef3c7; }
+    .card-header:hover .group-edit-btn { opacity: 1; }
+
+    .inline-edit-input {
+      border: 1px solid #7A4610; border-radius: 4px;
+      padding: 1px 6px; font-size: inherit; font-family: inherit;
+      color: #333; background: #fff; outline: none;
+      width: 100%; min-width: 80px;
+    }
 
     .empty-phases {
       padding: 12px 14px;
@@ -380,6 +408,7 @@
             <span class="drag-handle" title="Drag to reorder"></span>
             <span class="phase-idx">${i + 1}</span>
             <span class="phase-name">${esc(p)}</span>
+            <button class="edit-btn" onclick="event.stopPropagation(); editPhase('${g.id}',${i})" title="Edit phase name">✎</button>
             <button class="del-btn" onclick="delPhase('${g.id}',${i})" title="Delete phase">×</button>
           </div>`).join('')
       : '<div class="empty-phases">No phases yet</div>';
@@ -395,6 +424,7 @@
         <div class="card-header" onclick="toggleCard('${g.id}')">
           <span class="group-drag-handle" title="Drag to reorder group" onclick="event.stopPropagation()"></span>
           <span class="card-title">${esc(g.label)}</span>
+          <button class="group-edit-btn" onclick="event.stopPropagation(); editGroupName('${g.id}')" title="Edit group name">✎</button>
           <span class="card-count" id="cnt-${g.id}">${g.phases.length}</span>
           <span class="chevron">▼</span>
         </div>
@@ -789,6 +819,87 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  // ── Inline editing ────────────────────────────────────────────────────
+  function editGroupName(gid) {
+    const card = document.getElementById(`card-${gid}`);
+    if (!card) return;
+    const titleEl = card.querySelector('.card-title');
+    if (!titleEl || titleEl.querySelector('input')) return;
+    const g = groups.find(x => x.id === gid);
+    if (!g) return;
+
+    const original = g.label;
+    const input = document.createElement('input');
+    input.className = 'inline-edit-input';
+    input.value = original;
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus(); input.select();
+
+    let committed = false;
+    async function commit() {
+      if (committed) return; committed = true;
+      const newLabel = input.value.trim();
+      if (!newLabel || newLabel === original) { titleEl.textContent = original; return; }
+      g.label = newLabel;
+      titleEl.textContent = newLabel;
+      toast('Saving…', 'saving');
+      try {
+        const res = await fetch(`${FS_BASE}/phase_groups/${gid}?key=${FS_KEY}&updateMask.fieldPaths=label`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { label: { stringValue: newLabel } } })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        toast('Saved', 'ok');
+      } catch (e) {
+        toast('Save failed: ' + e.message, 'err');
+        g.label = original; titleEl.textContent = original;
+      }
+    }
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { committed = true; titleEl.textContent = original; input.removeEventListener('blur', commit); input.blur(); }
+    });
+  }
+
+  function editPhase(gid, idx) {
+    const card = document.getElementById(`card-${gid}`);
+    if (!card) return;
+    const row = card.querySelector(`.phase-row[data-idx="${idx}"]`);
+    if (!row) return;
+    const nameEl = row.querySelector('.phase-name');
+    if (!nameEl || nameEl.querySelector('input')) return;
+    const g = groups.find(x => x.id === gid);
+    if (!g) return;
+
+    const original = g.phases[idx];
+    const input = document.createElement('input');
+    input.className = 'inline-edit-input';
+    input.value = original;
+    nameEl.textContent = '';
+    nameEl.appendChild(input);
+    input.focus(); input.select();
+
+    let committed = false;
+    async function commit() {
+      if (committed) return; committed = true;
+      const newName = input.value.trim();
+      if (!newName || newName === original) { nameEl.textContent = original; return; }
+      g.phases[idx] = newName;
+      nameEl.textContent = newName;
+      await save(g);
+    }
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { committed = true; nameEl.textContent = original; input.removeEventListener('blur', commit); input.blur(); }
+    });
   }
 
   load();
