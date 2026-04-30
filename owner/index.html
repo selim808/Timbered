@@ -1,0 +1,2162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timbered Dashboard</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <style>
+
+    /* ----- RESET ----- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ----- BRAND TOKENS ----- */
+    :root {
+      --brand: #F0AE66; --brand-light: #F4CFA5; --brand-dark: #B86E1A;
+      --brand-deeper: #7A4610; --ink: #1C1A17; --ink-muted: #7A6F65;
+      --surface: #FFFDF9; --surface-2: #FBF5EC;
+      --border: #E8D9C4; --border-strong: #C8AA88;
+      --radius: 12px; --radius-lg: 18px; --header-h: 64px;
+    }
+
+    /* ----- BASE ----- */
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--surface-2); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* ----- SITE HEADER ----- */
+    .site-header {
+      background: var(--brand); border-bottom: 2.5px solid var(--ink);
+      height: var(--header-h); padding: 0 16px;
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; position: sticky; top: 0; z-index: 200;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; justify-content: flex-start; }
+	.header-left img { height: 44px; background: white; border-radius: 4px; padding: 1px; }
+    .header-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+    .header-center .title-main { font-family: 'DM Sans', sans-serif; font-size: 19px; font-weight: 900; font-style: normal; color: var(--ink); letter-spacing: 3px; text-transform: uppercase; line-height: 1.1; white-space: nowrap; }
+    .header-center .title-sub  { font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--brand-deeper); white-space: nowrap; }
+    .header-right { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+    .today-badge  { font-size: 12px; color: var(--brand-deeper); background: rgba(255,255,255,0.45); border: 1px solid var(--brand-dark); border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
+    @media (max-width: 480px) {
+      .today-badge { font-size: 10px; padding: 2px 7px; }
+      .header-center .title-main { font-size: 17px; }
+      .header-center .title-sub  { font-size: 8px; letter-spacing: 2px; }
+      .header-left img { height: 40px; }
+    }
+
+
+    /* ----- DASH BODY ----- */
+    .dash-body { max-width: 1000px; margin: 0 auto; padding: 20px 12px 64px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ----- BANNERS ----- */
+    .parent-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 1.5px solid var(--border-strong); border-left: 4px solid var(--brand-dark); border-radius: var(--radius); padding: 12px 16px; animation: fadeUp 0.3s ease both; }
+    .parent-banner-left { display: flex; align-items: center; gap: 10px; }
+    .parent-banner-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+    .parent-banner-text span   { font-size: 11px; color: var(--ink-muted); }
+    .open-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-dark); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background 0.18s; flex-shrink: 0; }
+    .open-btn:hover { background: var(--brand-deeper); }
+
+    /* ----- SECTION SHELL ----- */
+    .section { background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp 0.4s ease both; }
+    .section:nth-child(2) { animation-delay: 0.05s; }
+    .section:nth-child(3) { animation-delay: 0.10s; }
+    .section:nth-child(4) { animation-delay: 0.15s; }
+    .section:nth-child(5) { animation-delay: 0.20s; }
+    .section:nth-child(6) { animation-delay: 0.25s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ----- COLLAPSIBLE SECTION HEADER ----- */
+    .section-header {
+      background: var(--brand-light); border-bottom: 1.5px solid var(--border-strong);
+      padding: 11px 16px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .section-header:hover { background: #f0c488; }
+    .section-header-left { display: flex; align-items: center; gap: 10px; }
+    .section-num   { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-dark); color: #fff; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section-title { font-family: 'DM Serif Display', serif; font-size: 16px; font-weight: 400; color: var(--ink); }
+
+    /* ----- CHEVRON ----- */
+    .chevron {
+      width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform 0.3s ease;
+    }
+    .chevron svg { display: block; }
+    .section.collapsed .chevron { transform: rotate(-90deg); }
+
+    /* ----- COLLAPSIBLE BODY ----- */
+    .section-body-wrap {
+      display: grid; grid-template-rows: 1fr;
+      transition: grid-template-rows 0.35s ease;
+    }
+    .section.collapsed .section-body-wrap { grid-template-rows: 0fr; }
+    .section-body-inner { overflow: hidden; }
+    .section-body  { padding: 16px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+    /* ----- GOALS TABLE ----- */
+    .goals-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .goals-tbl  { width: 100%; border-collapse: collapse; table-layout: auto; }
+    .goals-tbl th, .goals-tbl td { text-align: center; padding: 8px 14px; border: 1px solid var(--border-strong); white-space: nowrap; font-size: 13px; }
+    @media (max-width: 600px) {
+      .goals-tbl th, .goals-tbl td { padding: 6px 7px; font-size: 11px; }
+      .goals-tbl thead tr.sub-row th { font-size: 10px; letter-spacing: 0; }
+      .goals-tbl thead tr.group-row th { font-size: 11px; }
+    }
+    .goals-tbl thead tr.group-row th { background: var(--brand-dark); color: #fff; font-weight: 600; }
+    .goals-tbl thead tr.group-row th.month-col { background: var(--surface-2); color: var(--ink-muted); }
+    .goals-tbl thead tr.sub-row th { background: var(--surface-2); color: var(--ink-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; }
+    .goals-tbl tbody td { color: var(--ink); }
+    .goals-tbl tbody tr:hover td { background: var(--surface-2); }
+    .goals-tbl tbody td.good  { color: #2a7a3b; font-weight: 500; }
+    .goals-tbl tbody td.bad   { color: #b0341e; font-weight: 500; }
+    .goals-tbl tbody td.empty { color: var(--ink-muted); }
+    .goals-tbl tbody tr.total-row td { background: var(--brand-deeper); color: #fff; font-weight: 600; border-color: var(--brand-deeper); }
+    .goals-tbl tbody tr.total-row:hover td { background: var(--brand-deeper); }
+    .gviz-state { text-align: center; padding: 32px 16px; font-size: 13px; color: var(--ink-muted); }
+    .gviz-state.error { color: #b0341e; }
+
+    /* ----- SHARED HELPERS ----- */
+    .full-width   { width: 100%; }
+    .sect-divider { width: 100%; border: none; border-top: 1.5px dashed var(--border-strong); }
+    .scroll-hint  { font-size: 11px; color: var(--ink-muted); text-align: center; font-style: italic; width: 100%; }
+    .frame-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1.5px solid var(--border); border-radius: var(--radius); }
+    .frame-scroll iframe { display: block; border: none; }
+    .chart-img    { width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chart-img img { display: block; width: 100%; height: auto; }
+
+    /* ================================================================
+       FINANCE / BI DASHBOARD STYLES
+    ================================================================ */
+
+    /* ----- BI labels & typography ----- */
+    .bi-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; font-weight: 700; }
+    .bi-section-title { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1.2px; margin: 16px 0 8px; font-weight: 800; }
+
+    /* ----- BI colors ----- */
+    .bi-good     { color: #27ae60; }
+    .bi-bad      { color: #e74c3c; }
+    .bi-neutral  { color: #2980b9; }
+    .bi-positive { color: #27ae60; border: 1px solid #27ae60; }
+    .bi-negative { color: #c0392b; border: 1px solid #c0392b; }
+
+    /* ----- BI cards ----- */
+    .bi-card {
+        background: #fff; border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    }
+    /* ----- BI header (round selector row) ----- */
+    .bi-header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .bi-header-item { display: flex; flex-direction: column; }
+    .bi-header-val  { font-size: 16px; font-weight: 700; color: #2c3e50; }
+    .bi-header-val-sub { font-size: 12px; color: #888; font-weight: 600; margin-left: 5px; }
+    .bi-select-wrap { grid-column: 1 / -1; }
+
+    /* ----- BI select ----- */
+    .bi-select {
+      width: 100%; padding: 10px 32px 10px 12px; border-radius: 8px;
+      border: 1.5px solid var(--border-strong); font-size: 15px;
+      background: #fff; cursor: pointer; outline: none; font-family: 'DM Sans', sans-serif;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+
+    /* ----- BI KPI grid ----- */
+    .bi-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .bi-kpi-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+    .bi-kpi-card.full { grid-column: 1 / -1; }
+    .bi-kpi       { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .bi-kpi.large { font-size: 26px; }
+
+    /* ----- BI performance bars ----- */
+    .bi-bar-bg { width: 100%; height: 16px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 8px 0; position: relative; }
+    .bi-bar  { height: 100%; border-radius: 10px; transition: width 0.8s ease-in-out; }
+    .bi-cash { background: #2ecc71; }
+    .bi-exp  { background: #e74c3c; }
+    .bi-bar-wrap { position: relative; margin-bottom: 28px; }
+    .bi-value { position: absolute; font-size: 11px; font-weight: 700; color: #555; white-space: nowrap; transition: left 0.8s ease-in-out; }
+    .bi-value.top    { top: -18px; }
+    .bi-value.bottom { bottom: -18px; }
+    .bi-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; font-weight: 700; }
+    .bi-net-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 6px; }
+    .bi-net { display: inline-block; font-size: 12px; font-weight: 700; white-space: nowrap; background: white; padding: 3px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .bi-gap-label { text-align: right; font-size: 13px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #eee; }
+
+    /* ----- BI expense breakdown ----- */
+    .bi-exp-list { list-style: none; }
+    .bi-exp-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .bi-exp-item:last-child { border-bottom: none; }
+    .bi-exp-type-wrap { display: flex; align-items: center; gap: 10px; }
+    .bi-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .bi-exp-name  { font-size: 13px; font-weight: 600; color: #555; }
+    .bi-exp-vals  { font-size: 13px; font-weight: 700; color: #333; }
+    .bi-chart-container { position: relative; height: 200px; width: 100%; margin-top: 16px; }
+
+    /* ----- BI funnel table ----- */
+    .bi-funnel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .bi-funnel-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #999; font-weight: 700; padding: 0 8px 10px 8px; }
+    .bi-funnel-table th:not(:first-child) { text-align: right; }
+    .bi-funnel-table td { padding: 10px 8px; border-top: 1px solid #f0f0f0; font-weight: 600; color: #333; }
+    .bi-funnel-table td:not(:first-child) { text-align: right; }
+    .bi-funnel-table .row-total td { font-weight: 700; color: #2c3e50; }
+    .bi-funnel-stage { display: flex; align-items: center; gap: 8px; }
+    .bi-stage-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .bi-pct-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+    .pct-comp { background: #eafaf1; color: #1e8449; }
+    .pct-proc { background: #eaf4fb; color: #1a5276; }
+    .pct-can  { background: #fdedec; color: #922b21; }
+
+    /* ----- BI distribution bar ----- */
+    .bi-multi-bar { display: flex; width: 100%; height: 22px; background: #f0f0f0; border-radius: 11px; overflow: hidden; margin-top: 10px; }
+    .bi-seg       { height: 100%; transition: width 0.8s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800; }
+    .bi-seg-comp  { background: #2ecc71; }
+    .bi-seg-proc  { background: #2980b9; }
+    .bi-seg-can   { background: #e74c3c; }
+    .bi-dist-labels-wrap { position: relative; height: 20px; margin-top: 8px; overflow: visible; margin-bottom: 12px; }
+    .bi-dist-label-text  { position: absolute; font-size: 10px; color: #999; font-weight: 700; text-transform: uppercase; white-space: nowrap; transform: translateX(-50%); transition: left 0.8s ease-in-out; }
+
+    /* ----- Year toggle buttons ----- */
+    .yr-btn { font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; border:1.5px solid var(--border-strong); background:#fff; color:var(--ink-muted); cursor:pointer; white-space:nowrap; }
+    .yr-btn.active { background:var(--brand-dark); color:#fff; border-color:var(--brand-dark); }
+
+    /* ----- BI responsive ----- */
+    @media (min-width: 600px) {
+      .bi-header-grid   { grid-template-columns: repeat(4, 1fr); }
+      .bi-select-wrap   { grid-column: auto; }
+      .bi-kpi-grid      { grid-template-columns: repeat(3, 1fr); }
+      .bi-kpi-card.full { grid-column: auto; }
+      .bi-kpi.large     { font-size: 22px; }
+    }
+
+  /* order detail popup */
+  .ord-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:600; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+  .ord-overlay.open { display:flex; }
+  .ord-box { background:#fff; border-radius:14px; width:100%; max-width:460px; overflow:hidden; cursor:default; margin:auto; }
+  .ord-header { background:#7A4610; color:#fff; padding:11px 16px; display:flex; align-items:center; gap:8px; }
+  .ord-hid { font-size:13px; font-weight:700; }
+  .ord-hdate { font-size:11px; opacity:.7; margin-left:auto; }
+  .ord-hclose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; line-height:1; margin-left:8px; }
+  .ord-section { padding:9px 16px; border-bottom:1px solid #f0e8e0; }
+  .ord-section:last-child { border-bottom:none; }
+  .ord-lbl { font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; }
+  .ord-val { font-size:12px; color:#333; }
+  .ord-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+  .ord-tbl th { text-align:left; color:#aaa; font-size:10px; font-weight:700; text-transform:uppercase; padding:3px 6px; border-bottom:1px solid #f0e8e0; }
+  .ord-tbl td { padding:5px 6px; border-bottom:1px solid #f8f4f0; vertical-align:top; }
+  .ord-tbl tr:last-child td { border-bottom:none; }
+  .ord-total { display:flex; justify-content:space-between; padding:10px 16px; background:#fef3e2; font-size:13px; font-weight:700; color:#7A4610; }
+
+  /* day-orders popup */
+  .dop-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:500; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+  .dop-overlay.open { display:flex; }
+  .dop-box { background:#fff; border-radius:14px; width:100%; max-width:460px; overflow:hidden; cursor:default; margin:auto; }
+  .dop-header { background:#7A4610; color:#fff; padding:11px 16px; display:flex; align-items:center; gap:8px; }
+  .dop-title { font-size:13px; font-weight:700; flex:1; }
+  .dop-close { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; line-height:1; }
+  .dop-row { display:flex; align-items:center; gap:10px; padding:8px 16px; border-bottom:1px solid #f0e8e0; font-size:12px; }
+  .dop-row:last-child { border-bottom:none; }
+  .dop-id { font-size:10px; color:#aaa; min-width:44px; }
+  .dop-name { flex:1; font-weight:600; color:#333; }
+  .dop-phone { font-size:11px; color:#7A4610; }
+  .dop-val { font-size:12px; font-weight:700; color:#7A4610; white-space:nowrap; }
+  .dop-empty { padding:24px; text-align:center; color:#aaa; font-size:13px; }
+  </style>
+</head>
+<body>
+
+<!-- Order detail popup -->
+<div class="ord-overlay" id="ordOverlay" onclick="closeOrdDetail()">
+  <div class="ord-box" onclick="event.stopPropagation()">
+    <div class="ord-header">
+      <span class="ord-hid" id="ordHId"></span>
+      <span class="ord-hdate" id="ordHDate"></span>
+      <button class="ord-hclose" onclick="closeOrdDetail()">✕</button>
+    </div>
+    <div id="ordBody"></div>
+  </div>
+</div>
+
+<!-- Day orders popup -->
+<div class="dop-overlay" id="dopOverlay" onclick="closeDayOrders()">
+  <div class="dop-box" onclick="event.stopPropagation()">
+    <div class="dop-header">
+      <span class="dop-title" id="dopTitle"></span>
+      <button class="dop-close" onclick="closeDayOrders()">✕</button>
+    </div>
+    <div id="dopBody"></div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     SITE HEADER
+============================================================ -->
+<header class="site-header">
+  <div class="header-left">
+    <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  </div>
+  <div class="header-center">
+    <span class="title-main">Timbered</span>
+    <span class="title-sub">Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span class="today-badge" id="today-date"></span>
+  </div>
+</header>
+
+<div class="dash-body">
+
+  <!-- ============================================================
+       IMPORTANT LINKS (collapsible)
+  ============================================================ -->
+  <div class="section collapsed" id="section-links">
+    <div class="section-header" onclick="toggleSection('section-links')">
+      <div class="section-header-left">
+        <div class="section-num">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <span class="section-title">Important Links</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="padding:10px 12px; flex-direction:column; gap:8px; align-items:stretch;">
+
+          <div class="parent-banner" style="margin:0; width:100%">
+            <div class="parent-banner-left">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              <div class="parent-banner-text">
+                <strong>Google Spreadsheet</strong>
+                <span>All sheets &amp; data sources</span>
+              </div>
+            </div>
+            <a class="open-btn" href="https://docs.google.com/spreadsheets/d/16FRyFmYhnjBXLQNkd4yehiaYfxPC252srClEuEMSlfc/edit" target="_blank">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open
+            </a>
+          </div>
+
+          <div class="parent-banner" style="margin:0; width:100%">
+            <div class="parent-banner-left">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15a4 4 0 0 0 4 4h10a4 4 0 0 0 1.5-7.7A5 5 0 0 0 8.1 8 4 4 0 0 0 3 15z"/></svg>
+              <div class="parent-banner-text">
+                <strong>OneDrive</strong>
+                <span>Drawings &amp; files</span>
+              </div>
+            </div>
+            <a class="open-btn" href="https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0VpUXI2U2NLN0RKT294cEc0ZUhkaHdJQmVPYjktN0J3b2xKRHU3TU1zM3ByOVE%5FZT14UnpPQ2Q&id=2A9C6DEE3673012D%21s27e92b24ec0a4e32a31a46e1e1dd8702&cid=2A9C6DEE3673012D" target="_blank">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open
+            </a>
+          </div>
+
+          <div class="parent-banner" style="margin:0; width:100%">
+            <div class="parent-banner-left">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B86E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h6M7 16h4"/></svg>
+              <div class="parent-banner-text">
+                <strong>AppSheet</strong>
+                <span>Apps &amp; data entry</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+              <a class="open-btn" href="https://www.appsheet.com/start/831bfa0c-8b33-419d-9c73-8d17bd1c42f1?platform=mobile#appName=Timbered-230806548&vss=H4sIAAAAAAAAA63Puw4CIRQE0F8xU_MFtMbCGB-JxkYsEO4a4i5sgFU3hH-X9RELO7VkbuZkSDgbuqyjVCfwXXq_ZtSDIwls-pYEuMDY2ehdLcAEFrJ5hCvvFIVg7HG09Jp8EMjIe_aCIgXw9KXD_7SHwWiy0VSG_IAORMGeQDkP9RJ8lJEZmi7KQ033v5RyziWrnOoC6W0Z98uoMLWTayutnjtd7ErWgfIN8k8vtJIBAAA=&view=Processing%20Orders" target="_blank">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Timbered
+              </a>
+              <a class="open-btn" href="https://www.appsheet.com/start/25809a9d-557f-43a0-8fac-14a212f85519?platform=mobile#appName=Accounting-Entry-548387873-25-08-20&vss=H4sIAAAAAAAAA62POw7CMBBEr4Km9glc8ikQggZEgxEy8UaySOwodoDI8t3Z8BEFHVDujN7TbMLZ0mUddXGC3KX3taAeEklh0zekIBUm3sXWVwpCYaXrRzi7NqNxV5wohsOUorbcZ-S9eJkiBcj0rUj-a5GANeSiLS21g3VwsO1p4HrgOfikkQXqLupjRfd3mM6Zs9IXXSCz5Xk_zQpzx512ZukNy0tdBco3QCWyOpcBAAA=&view=Exp%20Buckets_Detail" target="_blank">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Finance
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       1. GOALS
+  ============================================================ -->
+  <div class="section collapsed" id="section-goals">
+    <div class="section-header" onclick="toggleSection('section-goals')">
+      <div class="section-header-left">
+        <div class="section-num">1</div>
+        <span class="section-title">Goals</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body">
+          <div id="goals-state" class="gviz-state">Loading goals…</div>
+          <div class="goals-wrap" id="goals-wrap" style="display:none;">
+            <table class="goals-tbl">
+              <thead>
+                <tr class="group-row">
+                  <th class="month-col" rowspan="2">Month</th>
+                  <th colspan="2">2026 Sales</th>
+                  <th colspan="2">2026 Marketing</th>
+                </tr>
+                <tr class="sub-row">
+                  <th>Target</th><th>Actual</th>
+                  <th>Target</th><th>Actual</th>
+                </tr>
+              </thead>
+              <tbody id="goals-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       2. FINANCE — BI Dashboard
+  ============================================================ -->
+  <div class="section collapsed" id="section-finance">
+    <div class="section-header" onclick="toggleSection('section-finance')">
+      <div class="section-header-left">
+        <div class="section-num">2</div>
+        <span class="section-title">Finance</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="align-items: stretch;">
+
+          <!-- ---- Round selector + meta ---- -->
+          <div class="bi-card">
+            <div class="bi-header-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+              <div class="bi-select-wrap bi-header-item" style="grid-column: 1 / -1;">
+                <label class="bi-label">Round</label>
+                <select id="roundSelect" class="bi-select"><option>Loading...</option></select>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Start date</label>
+                <div id="roundStart" class="bi-header-val">--</div>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Duration</label>
+                <div id="roundDuration" class="bi-header-val">--</div>
+              </div>
+              <div class="bi-header-item">
+                <label class="bi-label">Orders/Mon</label>
+                <div class="bi-header-val">
+                  <span id="ordersPerMonthNo">--</span>
+                  <span id="ordersPerMonthVal" class="bi-header-val-sub">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- KPI cards ---- -->
+          <div class="bi-kpi-grid">
+            <div class="bi-kpi-card full" style="text-align:center; font-size:13px;">
+              <div class="bi-label">Net cash flow</div>
+              <div id="kpiNet" class="bi-kpi large">--</div>
+              <div id="kpiNetPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
+            </div>
+            <div class="bi-kpi-card">
+              <div class="bi-label">Total cash in</div>
+              <div id="kpiCash" class="bi-kpi">--</div>
+              <div id="kpiCashPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
+            </div>
+            <div class="bi-kpi-card">
+              <div class="bi-label">Total expenses</div>
+              <div id="kpiExp" class="bi-kpi">--</div>
+              <div id="kpiExpPerMon" style="font-size:12px; margin-top:3px; color:#888;">--</div>
+            </div>
+          </div>
+
+          <!-- ---- Performance vs ceiling ---- -->
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">CashIn - Expenses - Orders</div>
+          <div class="bi-card">
+            <div class="bi-row"><span>Cash in</span></div>
+            <div class="bi-bar-wrap">
+              <div class="bi-bar-bg"><div id="cashBar" class="bi-bar bi-cash" style="width:0%"></div></div>
+              <div id="cashVal" class="bi-value top"></div>
+            </div>
+            <div class="bi-net-row" style="margin-top:20px;">
+              <span style="font-size:13px;font-weight:700;">Expenses</span>
+              <span id="netVal" class="bi-net">--</span>
+            </div>
+            <div class="bi-bar-wrap">
+              <div class="bi-bar-bg"><div id="expBar" class="bi-bar bi-exp" style="width:0%"></div></div>
+              <div id="expVal" class="bi-value bottom"></div>
+            </div>
+            <div class="bi-row" style="margin-top:10px;">
+              <span>Orders ceiling</span>
+              <span id="ceilingVal" class="bi-neutral">--</span>
+            </div>
+            <div class="bi-gap-label">Gap to ceiling: <b id="gapVal">--</b></div>
+          </div>
+
+          <!-- ---- Expense breakdown ---- -->
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Expense breakdown</div>
+          <div class="bi-card">
+            <ul class="bi-exp-list">
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#e67e22"></div><span class="bi-exp-name">COGS</span></div>
+                <div id="vCogsRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#3498db"></div><span class="bi-exp-name">Marketing</span></div>
+                <div id="vMrkRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#9b59b6"></div><span class="bi-exp-name">Fixed</span></div>
+                <div id="vFixRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#f1c40f"></div><span class="bi-exp-name">Logistics</span></div>
+                <div id="vLogRow" class="bi-exp-vals">--</div>
+              </li>
+              <li class="bi-exp-item">
+                <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#95a5a6"></div><span class="bi-exp-name">Others</span></div>
+                <div id="vOthRow" class="bi-exp-vals">--</div>
+              </li>
+            </ul>
+            <div class="bi-chart-container">
+              <canvas id="expenseChart" role="img" aria-label="Doughnut chart of expense breakdown by category"></canvas>
+            </div>
+          </div>
+
+          <!-- ---- Cash In vs Completed ---- -->
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Cash In vs Completed</div>
+          <div class="bi-card">
+            <table class="bi-funnel-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th style="text-align:right;">Cash In</th>
+                  <th style="text-align:right;">Completed</th>
+                  <th style="text-align:right;">Difference</th>
+                  <th style="text-align:right;">Partial Dlv</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Value</td>
+                  <td id="ciCashVal" style="text-align:right;">--</td>
+                  <td id="ciCompVal" style="text-align:right;">--</td>
+                  <td id="ciDiffVal" style="text-align:right;font-weight:700;">--</td>
+                  <td id="ciPartialVal" style="text-align:right;font-weight:700;color:#2980b9;">--</td>
+                </tr>
+                <tr>
+                  <td>No.</td>
+                  <td id="ciCashNo" style="text-align:right;">--</td>
+                  <td id="ciCompNo" style="text-align:right;">--</td>
+                  <td id="ciDiffNo" style="text-align:right;font-weight:700;">--</td>
+                  <td style="text-align:right;color:#ccc;">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ---- Orders funnel ---- -->
+          <div class="bi-section-title" style="text-align:center; font-size:13px;">Orders funnel</div>
+          <div class="bi-card">
+            <table class="bi-funnel-table">
+              <thead>
+                <tr>
+                  <th>Stage</th><th>Value</th><th>No.</th><th>% value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-total">
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#34495e"></div>Total</div></td>
+                  <td id="fTotalVal">--</td><td id="fTotalNo">--</td><td><span class="bi-pct-badge" style="background:#f0f0f0; color:#555;">100%</span></td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2ecc71"></div>Completed</div></td>
+                  <td id="fCompVal" class="bi-good">--</td>
+                  <td id="fCompNo"  class="bi-good">--</td>
+                  <td><span id="fCompPct" class="bi-pct-badge pct-comp">--</span></td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#2980b9"></div>Processing</div></td>
+                  <td id="fProcVal" class="bi-neutral">--</td>
+                  <td id="fProcNo"  class="bi-neutral">--</td>
+                  <td><span id="fProcPct" class="bi-pct-badge pct-proc">--</span></td>
+                </tr>
+                <tr>
+                  <td><div class="bi-funnel-stage"><div class="bi-stage-dot" style="background:#e74c3c"></div>Cancelled</div></td>
+                  <td id="fCanVal" class="bi-bad">--</td>
+                  <td id="fCanNo"  class="bi-bad">--</td>
+                  <td><span id="fCanPct" class="bi-pct-badge pct-can">--</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="bi-multi-bar" style="margin-top:14px;">
+              <div id="segComp" class="bi-seg bi-seg-comp" style="width:0%"></div>
+              <div id="segProc" class="bi-seg bi-seg-proc" style="width:0%"></div>
+              <div id="segCan"  class="bi-seg bi-seg-can"  style="width:0%"></div>
+            </div>
+            <div class="bi-dist-labels-wrap">
+              <span id="lblComp" class="bi-dist-label-text">Completed</span>
+              <span id="lblProc" class="bi-dist-label-text">Processing</span>
+              <span id="lblCan"  class="bi-dist-label-text">Cancelled</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       3. PRODUCTION
+  ============================================================ -->
+  <div class="section collapsed" id="section-production">
+    <div class="section-header" onclick="toggleSection('section-production')">
+      <div class="section-header-left">
+        <div class="section-num">3</div>
+        <span class="section-title">Production</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body">
+          <div id="prod-state" class="gviz-state">Loading…</div>
+          <div class="bi-kpi-grid" style="width:100%; grid-template-columns: repeat(2, 1fr);">
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Processing Orders</div>
+              <div id="prodOrdersNo" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Total Items</div>
+              <div id="prodItemsNo" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Total WIP Value</div>
+              <div id="prodTotalWip" class="bi-kpi">--</div>
+            </div>
+            <div class="bi-kpi-card" style="text-align:center;">
+              <div class="bi-label">Processing Value</div>
+              <div id="prodProcessingVal" class="bi-kpi">--</div>
+            </div>
+          </div>
+          <div id="prodMismatchMsg" style="display:none; color:#e74c3c; font-size:13px; font-weight:700; text-align:center; width:100%;">Kanban ≠ Processing → check</div>
+          <div style="width:100%; padding: 0 4px; padding-bottom: 28px;">
+            <div class="bi-multi-bar">
+              <div id="prodSegFab" class="bi-seg" style="width:0%; background:#2980b9;"></div>
+              <div id="prodSegDlv" class="bi-seg" style="width:0%; background:#27ae60;"></div>
+            </div>
+            <div class="bi-dist-labels-wrap">
+              <span id="prodLblFab" class="bi-dist-label-text">Fabrication</span>
+              <span id="prodLblDlv" class="bi-dist-label-text">Delivery</span>
+            </div>
+          </div>
+          <div style="width:100%; height:360px;">
+            <canvas id="productionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       4. WEEKLY / MONTHLY PERFORMANCE
+  ============================================================ -->
+  <div class="section collapsed" id="section-performance">
+    <div class="section-header" onclick="toggleSection('section-performance')">
+      <div class="section-header-left">
+        <div class="section-num">4</div>
+        <span class="section-title">Weekly Performance</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="padding:12px;">
+          <div id="perf-state" class="gviz-state">Loading…</div>
+          <div style="margin-bottom:8px;">
+            <label class="bi-label">Week</label>
+            <select id="weekPickerSel" class="bi-select" style="width:100%;"></select>
+          </div>
+          <div id="currentWeekBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Completed</div>
+              <div class="bi-kpi bi-good" id="cwCompleted" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Cancelled</div>
+              <div class="bi-kpi bi-bad" id="cwCancelled" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Created</div>
+              <div class="bi-kpi" id="cwCreated" style="font-size:18px; color:#2563EB;">—</div>
+            </div>
+          </div>
+          <div class="bi-card" style="padding:10px 12px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <table class="bi-funnel-table" style="width:100%; border-collapse:collapse;" id="weekDailyTable">
+              <thead><tr id="weekDailyHead"></tr></thead>
+              <tbody>
+                <tr id="weekDailyRowComp"></tr>
+                <tr id="weekDailyRowCanc"></tr>
+                <tr id="weekDailyRowCrea"></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
+            <div>
+              <div class="bi-label">Year</div>
+              <div id="weekYearBtns" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
+            </div>
+            <div>
+              <label class="bi-label">Start</label>
+              <select id="weekStart" class="bi-select"></select>
+            </div>
+            <div>
+              <label class="bi-label">End</label>
+              <select id="weekEnd" class="bi-select"></select>
+            </div>
+          </div>
+          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <div id="weeklyChartWrap" style="height:320px;">
+              <canvas id="weeklyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       5. MONTHLY PERFORMANCE
+  ============================================================ -->
+  <div class="section collapsed" id="section-monthly">
+    <div class="section-header" onclick="toggleSection('section-monthly')">
+      <div class="section-header-left">
+        <div class="section-num">5</div>
+        <span class="section-title">Monthly Performance</span>
+      </div>
+      <div class="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 5 7 10 12 5"/></svg>
+      </div>
+    </div>
+    <div class="section-body-wrap">
+      <div class="section-body-inner">
+        <div class="section-body" style="padding:12px;">
+          <div id="mperf-state" class="gviz-state">Loading…</div>
+          <div style="margin-bottom:8px;">
+            <label class="bi-label">Month</label>
+            <select id="monthPickerSel" class="bi-select" style="width:100%;"></select>
+          </div>
+          <div id="currentMonthBanner" class="bi-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; padding:12px 16px; margin-bottom:8px;"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Completed</div>
+              <div class="bi-kpi bi-good" id="cmCompleted" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Cancelled</div>
+              <div class="bi-kpi bi-bad" id="cmCancelled" style="font-size:18px;">—</div>
+            </div>
+            <div class="bi-card" style="padding:10px 12px; text-align:center;">
+              <div class="bi-label">Created</div>
+              <div class="bi-kpi" id="cmCreated" style="font-size:18px; color:#2563EB;">—</div>
+            </div>
+          </div>
+          <div class="bi-card" style="padding:10px 12px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <table class="bi-funnel-table" style="width:100%; border-collapse:collapse;" id="monthWeeklyTable">
+              <thead><tr id="monthWeeklyHead"></tr></thead>
+              <tbody>
+                <tr id="monthWeeklyRowComp"></tr>
+                <tr id="monthWeeklyRowCanc"></tr>
+                <tr id="monthWeeklyRowCrea"></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; align-items:start; margin-bottom:12px;">
+            <div>
+              <div class="bi-label">Year</div>
+              <div id="monthYearBtns" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
+            </div>
+            <div>
+              <label class="bi-label">Start</label>
+              <select id="monthStart" class="bi-select"></select>
+            </div>
+            <div>
+              <label class="bi-label">End</label>
+              <select id="monthEnd" class="bi-select"></select>
+            </div>
+          </div>
+          <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+            <div id="monthlyChartWrap" style="height:320px;">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+  // ================================================================
+  // HEADER — date + nav drawer
+  // ================================================================
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  });
+
+  function closeNav() {}
+
+  // ================================================================
+  // COLLAPSIBLE SECTIONS
+  // ================================================================
+  function toggleSection(id) {
+    const sec = document.getElementById(id);
+    const wasCollapsed = sec.classList.contains('collapsed');
+    sec.classList.toggle('collapsed');
+    // if Finance was collapsed and is now opening, resize chart
+    if (id === 'section-finance' && wasCollapsed && expenseChart) {
+      setTimeout(() => expenseChart.resize(), 350);
+    }
+  }
+
+  function navJump(id) {
+    closeNav();
+    const sec = document.getElementById(id);
+    if (sec.classList.contains('collapsed')) toggleSection(id);
+    setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
+
+  // ================================================================
+  // GOALS — hardcoded targets + live actuals
+  // ================================================================
+
+  // Edit targets here. salesAct/mktAct for past months are fixed;
+  // current month actuals are overridden at runtime by WC + Meta APIs.
+  const GOALS_DATA = [
+    { month: 'Jan',  salesTgt: 200000,    salesAct: 120710,  mktTgt: 20000,   mktAct: 17635 },
+    { month: 'Feb',  salesTgt: 300000,    salesAct: 385642,  mktTgt: 30000,   mktAct: 94029 },
+    { month: 'Mar',  salesTgt: 400000,    salesAct: 249270,  mktTgt: 40000,   mktAct: 25414 },
+    { month: 'Apr',  salesTgt: 500000,    salesAct: null,    mktTgt: 50000,   mktAct: null  },
+    { month: 'May',  salesTgt: 600000,    salesAct: null,    mktTgt: 60000,   mktAct: null  },
+    { month: 'Jun',  salesTgt: 700000,    salesAct: null,    mktTgt: 70000,   mktAct: null  },
+    { month: 'Jul',  salesTgt: 900000,    salesAct: null,    mktTgt: 90000,   mktAct: null  },
+    { month: 'Aug',  salesTgt: 1100000,   salesAct: null,    mktTgt: 110000,  mktAct: null  },
+    { month: 'Sep',  salesTgt: 1300000,   salesAct: null,    mktTgt: 130000,  mktAct: null  },
+    { month: 'Oct',  salesTgt: 1500000,   salesAct: null,    mktTgt: 150000,  mktAct: null  },
+    { month: 'Nov',  salesTgt: 2500000,   salesAct: null,    mktTgt: 250000,  mktAct: null  },
+    { month: 'Dec',  salesTgt: 5000000,   salesAct: null,    mktTgt: 500000,  mktAct: null  },
+  ];
+
+  function fmtNum(val) {
+    if (val === '' || val === null || val === undefined) return '';
+    const n = Number(String(val).replace(/,/g, ''));
+    if (isNaN(n) || n === 0) return '';
+    return Math.round(n).toLocaleString('en-GB');
+  }
+  function toNum(val) {
+    if (val === '' || val === null || val === undefined) return null;
+    const n = Number(String(val).replace(/,/g, ''));
+    return isNaN(n) ? null : n;
+  }
+  function salesClass(actual, target) {
+    const a = toNum(actual), t = toNum(target);
+    if (a === null) return 'empty';
+    if (t === null) return '';
+    return a >= t ? 'good' : 'bad';
+  }
+  function mktClass(actual, target) {
+    const a = toNum(actual), t = toNum(target);
+    if (a === null) return 'empty';
+    if (t === null) return '';
+    return a > t ? 'bad' : 'good';
+  }
+
+  // Fetch current-month FB/Meta Ads spend
+  const META_TOKEN    = "EAARVufZCVWrcBQuTSOsCTusrq1PuUvAVFY4sIZBjEXvIQnSo3EgejGzFuxFhVVcn9v6UqfZBhQcyhvXbvJHLCGE6GEDxINYp6qyXnkLyVYBcp3SME8yXoZAcXOqz9nU7ZCeQhy0zvN09XxWHZBnqu8D9mQZAW4aYuFd55xf9ZBiIfhb1aRoPFktZCpi0dUhEadgZDZD";
+  const META_ACCOUNTS = ["act_1588955761747812", "act_766832262542894"]; // known accounts — always included
+
+  async function fetchAccountSpend(accountId, timeRange) {
+    let spend = 0;
+    let nextUrl = `https://graph.facebook.com/v24.0/${accountId}/insights`
+                + `?level=ad&fields=spend`
+                + `&time_range=${encodeURIComponent(timeRange)}`
+                + `&limit=500`
+                + `&access_token=${META_TOKEN}`;
+    while (nextUrl) {
+      const res  = await fetch(nextUrl);
+      const json = await res.json();
+      if (json.error) { console.warn(`Meta [${accountId}]:`, json.error.message); return 0; }
+      (json.data || []).forEach(d => { spend += parseFloat(d.spend) || 0; });
+      nextUrl = json.paging && json.paging.next ? json.paging.next : null;
+    }
+    console.log(`Meta [${accountId}]: ${spend}`);
+    return spend;
+  }
+
+  async function fetchMetaMonthSpend() {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day   = String(now.getDate()).padStart(2, '0');
+    const timeRange = JSON.stringify({ since: `${year}-${month}-01`, until: `${year}-${month}-${day}` });
+
+    // Fetch spend for all known accounts in parallel
+    const spends = await Promise.all(META_ACCOUNTS.map(id => fetchAccountSpend(id, timeRange)));
+    const total = spends.reduce((a, b) => a + b, 0);
+    console.log(`Meta total (pre-tax): ${total}, after 1.14: ${Math.round(total * 1.14)}`);
+    return Math.round(total * 1.14);
+  }
+
+  // Fetch current-month actual sales from WooCommerce
+  async function fetchMonthActual() {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const after  = `${year}-${month}-01T00:00:00`;
+    const before = `${year}-${month}-31T23:59:59`;
+    const base = "https://timberedgroup.com/wp-json/wc/v3/orders"
+               + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+               + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
+               + "&per_page=100"
+               + `&after=${after}&before=${before}`;
+
+    let total = 0;
+    for (const status of ['pending', 'processing', 'on-hold', 'completed']) {
+      const first = await fetch(base + `&status=${status}&page=1`);
+      const pages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+      const rows  = await first.json();
+      const rest  = pages > 1
+        ? await Promise.all(Array.from({ length: pages - 1 }, (_, i) =>
+            fetch(base + `&status=${status}&page=${i + 2}`).then(r => r.json())))
+        : [];
+      [rows, ...rest].flat().forEach(o => { total += parseFloat(o.total) || 0; });
+    }
+    return Math.round(total);
+  }
+
+async function loadGoals() {
+    const stateEl = document.getElementById('goals-state');
+    const wrapEl  = document.getElementById('goals-wrap');
+    const tbody   = document.getElementById('goals-tbody');
+    try {
+      const curMonthIdx = new Date().getMonth(); // 0-based
+      const [wcActual, metaSpend] = await Promise.all([
+        fetchMonthActual(),
+        fetchMetaMonthSpend()
+      ]);
+
+      let totalSalesTgt = 0, totalSalesAct = 0, totalMktTgt = 0, totalMktAct = 0;
+
+      GOALS_DATA.forEach((r, idx) => {
+        // Override current month actuals with live data
+        if (idx === curMonthIdx) {
+          r = { ...r, salesAct: wcActual, mktAct: metaSpend };
+        }
+        totalSalesTgt += r.salesTgt || 0;
+        totalSalesAct += r.salesAct || 0;
+        totalMktTgt   += r.mktTgt   || 0;
+        totalMktAct   += r.mktAct   || 0;
+
+        const tr = document.createElement('tr');
+        const tdMonth    = document.createElement('td'); tdMonth.textContent    = r.month;              tr.appendChild(tdMonth);
+        const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt);   tr.appendChild(tdSalesTgt);
+        const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct);   tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
+        const tdMktTgt   = document.createElement('td'); tdMktTgt.textContent   = fmtNum(r.mktTgt);     tr.appendChild(tdMktTgt);
+        const tdMktAct   = document.createElement('td'); tdMktAct.textContent   = fmtNum(r.mktAct);     tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
+        tbody.appendChild(tr);
+      });
+
+      // Total row
+      const trTotal = document.createElement('tr');
+      trTotal.classList.add('total-row');
+      [
+        'Total',
+        fmtNum(totalSalesTgt),
+        fmtNum(totalSalesAct),
+        fmtNum(totalMktTgt),
+        fmtNum(totalMktAct)
+      ].forEach(v => { const td = document.createElement('td'); td.textContent = v; trTotal.appendChild(td); });
+      tbody.appendChild(trTotal);
+
+      stateEl.style.display = 'none';
+      wrapEl.style.display  = 'block';
+    } catch (err) {
+      stateEl.textContent = 'Could not load Goals — ' + err.message;
+      stateEl.classList.add('error');
+    }
+  }
+
+  // ================================================================
+  // FINANCE BI DASHBOARD
+  // ================================================================
+
+  // ----------------------------------------------------------------
+  // CONFIG
+  // ----------------------------------------------------------------
+  const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMW1mnfPkLCMGGaDyZUaRAi01r0Q52piA-hEM1kmCtofN33suDWuXrIclDjd9QHhTDWdp7mMdbUoQqKkv54AElRF3GtjjAAAwNLDR-wnYcewLTAPNVZsamcbv4yhA7YMZDXaIa2cdeaufdB3DoYvIymy0F7_yteRiQJfqK3pAyp93I-9-MjdyM0XxAPQ813x42mNReqe71eVTYcSOqs3AW2dfiTdNiG_RwAUlLwsr5rd5K-p7CFWfD8iUcSe-vv5MOwnq66CzCmduARPdq8i9zQC8lj4_w&lib=MiVgYZ6q0MjaY4yXi_lTLrZ4HneKZwPqi";
+
+  const COLORS = {
+      positive : "#27ae60",
+      negative : "#e74c3c",
+      neutral  : "#2980b9",
+      cogs     : "#e67e22",
+      marketing: "#3498db",
+      fixed    : "#9b59b6",
+      logistics: "#f1c40f",
+      others   : "#95a5a6"
+  };
+
+  // ----------------------------------------------------------------
+  // STATE
+  // ----------------------------------------------------------------
+  let businessData = [];
+  let expenseChart = null;
+  Chart.register(ChartDataLabels);
+
+  // ----------------------------------------------------------------
+  // DATA FETCH
+  // ----------------------------------------------------------------
+  async function fetchBiData() {
+      try {
+          const res    = await fetch(API_URL);
+          businessData = await res.json();
+          setupDashboard();
+      } catch(e) {
+          document.getElementById("roundSelect").innerHTML = "<option>Error loading</option>";
+      }
+  }
+
+  // ----------------------------------------------------------------
+  // SETUP — populate round selector
+  // ----------------------------------------------------------------
+  function setupDashboard() {
+      const sel = document.getElementById("roundSelect");
+      sel.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "__all__";
+      allOpt.text  = "All Rounds";
+      sel.appendChild(allOpt);
+      businessData.forEach(d => {
+          const o = document.createElement("option");
+          o.value = d.Round;
+          o.text  = d.Round;
+          sel.appendChild(o);
+      });
+      sel.value = businessData[businessData.length - 1].Round;
+      sel.addEventListener("change", render);
+      render();
+  }
+
+  // ----------------------------------------------------------------
+  // HELPERS
+  // ----------------------------------------------------------------
+  function fmt(n) { return Math.round(n).toLocaleString(); }
+
+  function setBarLabel(id, val, pct) {
+      const el      = document.getElementById(id);
+      el.innerText  = fmt(val) + " (" + Math.round(pct) + "%)";
+      el.style.left = Math.min(pct, 80) + "%";
+  }
+
+  // ----------------------------------------------------------------
+  // AGGREGATE — sum all rounds into a single virtual row
+  // ----------------------------------------------------------------
+  function aggregateAll() {
+      const sum = key => businessData.reduce((acc, d) => acc + (d[key] || 0), 0);
+      const cashIn   = sum('CashIn_Value');
+      const cashInNo = sum('CashIn_No');
+      const compVal  = sum('Completed_Value');
+      const compNo   = sum('Completed_No');
+      const totalExp = sum('Expenses') || 1;
+      const cogsVal  = sum('COGS_Value');
+      const mrkVal   = sum('MRK_Value');
+      const fixVal   = sum('FixedCost_Value');
+      const logVal   = sum('Logistics_Value');
+      const othVal   = sum('Others_Value');
+      return {
+          Round: 'All',
+          Start_Date:          businessData[0]?.Start_Date || null,
+          Duration:            sum('Duration'),
+          Total_Orders_No:     sum('Total_Orders_No'),
+          Total_Orders_Value:  sum('Total_Orders_Value'),
+          CashIn_Value:        cashIn,
+          CashIn_No:           cashInNo,
+          Expenses:            totalExp,
+          Orders_Ceiling:      sum('Orders_Ceiling'),
+          Ceiling_Gap:         cashIn - sum('Orders_Ceiling'),
+          Processing_Value:    sum('Processing_Value'),
+          Processing_No:       sum('Processing_No'),
+          Completed_Value:     compVal,
+          Completed_No:        compNo,
+          Cash_Minus_Com_Value: cashIn - compVal,
+          Cash_Minus_Com_No:   cashInNo - compNo,
+          Cancelled_Value:     sum('Cancelled_Value'),
+          Cancelled_No:        sum('Cancelled_No'),
+          COGS_Value:          cogsVal, COGS_Percent:     cogsVal / totalExp,
+          MRK_Value:           mrkVal,  MRK_Percent:      mrkVal  / totalExp,
+          FixedCost_Value:     fixVal,  FixedCost_Percent: fixVal / totalExp,
+          Logistics_Value:     logVal,  Logistics_Percent: logVal / totalExp,
+          Others_Value:        othVal,  Others_Percent:   othVal  / totalExp,
+      };
+  }
+
+  // ----------------------------------------------------------------
+  // RENDER — main update, called on every round change
+  // ----------------------------------------------------------------
+  function render() {
+      const selVal = document.getElementById("roundSelect").value;
+      const d = selVal === "__all__" ? aggregateAll() : businessData.find(x => x.Round == selVal);
+      if (!d) return;
+
+      // -- Header --
+      const startDate = d.Start_Date || "N/A";
+      document.getElementById("roundStart").innerText = startDate !== "N/A"
+          ? new Date(startDate).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+          : "N/A";
+
+      const dur = Math.round(d.Duration || 0);
+      document.getElementById("roundDuration").innerText = dur + " m";
+
+      const opmNo  = dur > 0 ? Math.round((d.Total_Orders_No    || 0) / dur) : 0;
+      const opmVal = dur > 0 ? Math.round((d.Total_Orders_Value || 0) / dur) : 0;
+      document.getElementById("ordersPerMonthNo").innerText  = opmNo.toLocaleString();
+      document.getElementById("ordersPerMonthVal").innerText = "(" + fmt(opmVal) + ")";
+
+      // -- KPI cards --
+      const rawDur   = d.Duration || 1;
+      const cashIn   = d.CashIn_Value   || 0;
+      const exp      = d.Expenses       || 0;
+      const ceil     = d.Orders_Ceiling || 0;
+      const net      = cashIn - exp;
+
+      document.getElementById("kpiCash").innerText = fmt(cashIn);
+      document.getElementById("kpiExp").innerText  = fmt(exp);
+
+      const cashPerMon = cashIn / rawDur;
+      const expPerMon  = exp    / rawDur;
+      document.getElementById("kpiCashPerMon").innerText = "+" + Math.round(cashPerMon / 1000) + "K/mon";
+      document.getElementById("kpiExpPerMon").innerText  = "+" + Math.round(expPerMon  / 1000) + "K/mon";
+
+      const nKpi     = document.getElementById("kpiNet");
+      nKpi.innerText = fmt(net);
+      nKpi.className = "bi-kpi large " + (net < 0 ? "bi-bad" : "bi-good");
+      const netPerMon    = net / rawDur;
+      const netPerMonEl  = document.getElementById("kpiNetPerMon");
+      const kVal         = Math.round(netPerMon / 1000);
+      netPerMonEl.innerText   = (kVal >= 0 ? "+" : "") + kVal + "K/mon";
+      netPerMonEl.style.color = netPerMon >= 0 ? COLORS.positive : COLORS.negative;
+
+      // -- Performance bars --
+      const max  = Math.max(cashIn, exp, ceil) || 1;
+      const cPct = (cashIn / max) * 100;
+      const ePct = (exp    / max) * 100;
+
+      document.getElementById("cashBar").style.width = cPct + "%";
+      document.getElementById("expBar").style.width  = ePct + "%";
+      setBarLabel("cashVal", cashIn, cPct);
+      setBarLabel("expVal",  exp,    ePct);
+
+      const nBadge     = document.getElementById("netVal");
+      nBadge.innerText = "Net: " + fmt(net);
+      nBadge.className = "bi-net " + (net < 0 ? "bi-negative" : "bi-positive");
+
+      // -- Ceiling & gap --
+      document.getElementById("ceilingVal").innerText = fmt(ceil);
+
+      const gap         = d.Ceiling_Gap || 0;
+      const gapEl       = document.getElementById("gapVal");
+      gapEl.innerText   = fmt(gap);
+      gapEl.style.color = gap >= 0 ? COLORS.positive : COLORS.negative;
+
+      // -- Production: sync processing value + order count --
+      const procValEl = document.getElementById("prodProcessingVal");
+      if (procValEl) { procValEl.innerText = fmt(d.Processing_Value || 0); checkWipMatch(); }
+      const procNoEl = document.getElementById("prodOrdersNo");
+      if (procNoEl) procNoEl.innerText = Math.round(d.Processing_No || 0);
+
+      // -- Cash In vs Completed --
+      document.getElementById("ciCashVal").innerText = fmt(d.CashIn_Value   || 0);
+      document.getElementById("ciCompVal").innerText = fmt(d.Completed_Value || 0);
+      const diffVal   = d.Cash_Minus_Com_Value || 0;
+      const diffValEl = document.getElementById("ciDiffVal");
+      diffValEl.innerText        = (diffVal >= 0 ? "+" : "") + fmt(diffVal);
+      diffValEl.style.color      = diffVal >= 0 ? COLORS.neutral : COLORS.negative;
+
+      const diffNo   = d.Cash_Minus_Com_No || 0;
+      document.getElementById("ciCashNo").innerText = Math.round(d.CashIn_No    || 0);
+      document.getElementById("ciCompNo").innerText = Math.round(d.Completed_No || 0);
+      const diffNoEl = document.getElementById("ciDiffNo");
+      diffNoEl.innerText        = (diffNo >= 0 ? "+" : "") + Math.round(diffNo);
+      diffNoEl.style.color      = diffNo >= 0 ? COLORS.neutral : COLORS.negative;
+
+      // -- Funnel table --
+      const totalV = (d.Completed_Value  || 0)
+                   + (d.Processing_Value || 0)
+                   + (d.Cancelled_Value  || 0) || 1;
+
+      const cPV = (d.Completed_Value  || 0) / totalV;
+      const pPV = (d.Processing_Value || 0) / totalV;
+      const aPV = (d.Cancelled_Value  || 0) / totalV;
+
+      document.getElementById("fTotalVal").innerText = fmt(d.Total_Orders_Value || 0);
+      document.getElementById("fTotalNo").innerText  = Math.round(d.Total_Orders_No || 0);
+      document.getElementById("fCompVal").innerText  = fmt(d.Completed_Value  || 0);
+      document.getElementById("fCompNo").innerText   = Math.round(d.Completed_No  || 0);
+      document.getElementById("fCompPct").innerText  = Math.round(cPV * 100) + "%";
+      document.getElementById("fProcVal").innerText  = fmt(d.Processing_Value || 0);
+      document.getElementById("fProcNo").innerText   = Math.round(d.Processing_No || 0);
+      document.getElementById("fProcPct").innerText  = Math.round(pPV * 100) + "%";
+      document.getElementById("fCanVal").innerText   = fmt(d.Cancelled_Value  || 0);
+      document.getElementById("fCanNo").innerText    = Math.round(d.Cancelled_No  || 0);
+      document.getElementById("fCanPct").innerText   = Math.round(aPV * 100) + "%";
+
+      // -- Distribution bar --
+      const cP = Math.round(cPV * 100);
+      const pP = Math.round(pPV * 100);
+      const aP = Math.round(aPV * 100);
+
+      document.getElementById("segComp").style.width = cP + "%";
+      document.getElementById("segProc").style.width = pP + "%";
+      document.getElementById("segCan").style.width  = (100 - cP - pP) + "%";
+      document.getElementById("segComp").innerText   = cP > 12 ? cP + "%" : "";
+      document.getElementById("segProc").innerText   = pP > 12 ? pP + "%" : "";
+      document.getElementById("segCan").innerText    = aP > 12 ? aP + "%" : "";
+
+      document.getElementById("lblComp").style.left    = (cP / 2) + "%";
+      document.getElementById("lblProc").style.left    = (cP + pP / 2) + "%";
+      document.getElementById("lblCan").style.left     = (cP + pP + aP / 2) + "%";
+      document.getElementById("lblComp").style.opacity = cP > 8 ? 1 : 0;
+      document.getElementById("lblProc").style.opacity = pP > 8 ? 1 : 0;
+      document.getElementById("lblCan").style.opacity  = aP > 8 ? 1 : 0;
+
+      // -- Expense breakdown --
+      const eD = {
+          cogs : { val: d.COGS_Value        || 0, pct: Math.round((d.COGS_Percent        || 0) * 100) },
+          mrk  : { val: d.MRK_Value         || 0, pct: Math.round((d.MRK_Percent         || 0) * 100) },
+          fix  : { val: d.FixedCost_Value   || 0, pct: Math.round((d.FixedCost_Percent   || 0) * 100) },
+          log  : { val: d.Logistics_Value   || 0, pct: Math.round((d.Logistics_Percent   || 0) * 100) },
+          oth  : { val: d.Others_Value      || 0, pct: Math.round((d.Others_Percent      || 0) * 100) }
+      };
+
+      document.getElementById("vCogsRow").innerText = eD.cogs.pct + "% (" + fmt(eD.cogs.val) + ")";
+      document.getElementById("vMrkRow").innerText  = eD.mrk.pct  + "% (" + fmt(eD.mrk.val)  + ")";
+      document.getElementById("vFixRow").innerText  = eD.fix.pct  + "% (" + fmt(eD.fix.val)  + ")";
+      document.getElementById("vLogRow").innerText  = eD.log.pct  + "% (" + fmt(eD.log.val)  + ")";
+      document.getElementById("vOthRow").innerText  = eD.oth.pct  + "% (" + fmt(eD.oth.val)  + ")";
+
+      updatePieChart(eD);
+  }
+
+  // ----------------------------------------------------------------
+  // PIE CHART — create on first run, update on subsequent rounds
+  // ----------------------------------------------------------------
+  function updatePieChart(eD) {
+      const ctx  = document.getElementById('expenseChart').getContext('2d');
+      const vals = [eD.cogs.val, eD.mrk.val, eD.fix.val, eD.log.val, eD.oth.val];
+
+      if (expenseChart) {
+          expenseChart.data.datasets[0].data = vals;
+          expenseChart.update();
+          return;
+      }
+
+      expenseChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+              labels  : ['COGS', 'Marketing', 'Fixed', 'Logistics', 'Others'],
+              datasets: [{
+                  data           : vals,
+                  backgroundColor: [COLORS.cogs, COLORS.marketing, COLORS.fixed, COLORS.logistics, COLORS.others],
+                  borderWidth    : 2
+              }]
+          },
+          options: {
+              responsive         : true,
+              maintainAspectRatio: false,
+              cutout             : '58%',
+              plugins: {
+                  legend: { display: false },
+                  datalabels: {
+                      color    : '#fff',
+                      font     : { weight: 'bold', size: 11 },
+                      formatter: (v, ctx) => {
+                          const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                          return v > 0 ? Math.round(v * 100 / sum) + "%" : '';
+                      }
+                  }
+              }
+          }
+      });
+  }
+
+  // ================================================================
+  // PRODUCTION — mismatch check
+  // ================================================================
+  function checkWipMatch() {
+      const wipEl  = document.getElementById("prodTotalWip");
+      const procEl = document.getElementById("prodProcessingVal");
+      const msgEl  = document.getElementById("prodMismatchMsg");
+      if (!wipEl || !procEl || !msgEl) return;
+      const wip  = parseInt(wipEl.innerText.replace(/,/g, ""));
+      const proc = parseInt(procEl.innerText.replace(/,/g, ""));
+      if (isNaN(wip) || isNaN(proc)) return;
+      msgEl.style.display = wip !== proc ? "block" : "none";
+  }
+
+  // ================================================================
+  // PRODUCTION — WIP Breakdown chart
+  // ================================================================
+  const PROD_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMX42x3UF750oImkO1L4VzlPR7IdfBDchfunY_l7lSAct2YUF3vdALKQMktqwT6W9--oNMyqTUZLOltI4iJaVWHfW-4G5NQNfLnk3lC4EvIAZxHgM-ED5q2ms4-CCpwBONJYGLkrUtsJhvyCLjmEoJK-EptanA0jaYJ7udgV3TVWaeKqvqdl-DEdlW4p2o4gTBCf-t__dl6N_wJJRVAOFisC3-blsjEUKosfPewTMS5dCgy4Lzjgw6l8cQX0I7pDQdhfmQeovA1q1C2XemPcg4Je5b_mjg&lib=MGmF2JFxrWed-6EV_EKU_rUeDcafZ4rz6";
+
+  async function loadProcessingItemCount() {
+      const base = "https://timberedgroup.com/wp-json/wc/v3/orders"
+                 + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
+                 + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
+                 + "&status=processing&per_page=100";
+      let page = 1, totalItems = 0;
+      while (true) {
+          const res   = await fetch(base + "&page=" + page);
+          const batch = await res.json();
+          if (!batch.length) break;
+          batch.forEach(o => { (o.line_items || []).forEach(i => { totalItems += i.quantity || 1; }); });
+          if (batch.length < 100) break;
+          page++;
+      }
+      const el = document.getElementById("prodItemsNo");
+      if (el) el.innerText = totalItems;
+  }
+
+  const PROD_GREEN = ["WH-Ready", "DLV-Bosta", "DLV-Private", "Delivered Partially"];
+  const PROD_RED   = ["WH-Defected", "WH-No_Response", "WH-Postponed", "WH-Returned",
+                      "Not Received in WH", "Not available in WH",
+                      "DLV-Bareed-Cairo", "DLV-Bareed-Tanta"];
+
+  async function loadProductionChart() {
+      try {
+          const res  = await fetch(PROD_API_URL);
+          const data = await res.json();
+          document.getElementById("prod-state").style.display = "none";
+          const totalWip = data.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          document.getElementById("prodTotalWip").innerText = fmt(totalWip);
+
+          const splitIdx = data.findIndex(d => d.Phases === "Rdy for ship");
+          const fabData  = splitIdx >= 0 ? data.slice(0, splitIdx + 1) : [];
+          const dlvData  = splitIdx >= 0 ? data.slice(splitIdx + 1)    : data;
+          const fabVal   = fabData.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          const dlvVal   = dlvData.reduce((s, d) => s + (d["WIP Value"] || 0), 0);
+          const fabPct   = totalWip > 0 ? Math.round(fabVal / totalWip * 100) : 0;
+          const dlvPct   = totalWip > 0 ? Math.round(dlvVal / totalWip * 100) : 0;
+          document.getElementById("prodSegFab").style.width   = fabPct + "%";
+          document.getElementById("prodSegDlv").style.width   = dlvPct + "%";
+          document.getElementById("prodSegFab").innerText     = fabPct > 8 ? fabPct + "% (" + Math.round(fabVal / 1000) + "K)" : "";
+          document.getElementById("prodSegDlv").innerText     = dlvPct > 8 ? dlvPct + "% (" + Math.round(dlvVal / 1000) + "K)" : "";
+          document.getElementById("prodLblFab").style.left    = (fabPct / 2) + "%";
+          document.getElementById("prodLblDlv").style.left    = (fabPct + dlvPct / 2) + "%";
+          document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
+          document.getElementById("prodLblDlv").style.opacity = dlvPct > 8 ? 1 : 0;
+
+          const partialEntry = data.find(d => d.Phases === "Delivered Partially");
+          const partialEl = document.getElementById("ciPartialVal");
+          if (partialEl) partialEl.innerText = fmt(partialEntry ? (partialEntry["WIP Value"] || 0) : 0);
+
+          checkWipMatch();
+          const filtered = data.filter(d => (d["WIP Value"] || 0) > 0);
+          const labels = filtered.map(d => d.Phases);
+          const values = filtered.map(d => d["WIP Value"]);
+          const colors = filtered.map(d =>
+              PROD_GREEN.includes(d.Phases) ? "#27ae60" :
+              PROD_RED.includes(d.Phases)   ? "#e74c3c" : "#3498db"
+          );
+
+          const ctx = document.getElementById("productionChart").getContext("2d");
+          new Chart(ctx, {
+              type: "bar",
+              data: {
+                  labels,
+                  datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                      legend: { display: false },
+                      title: { display: true, text: "WIP Breakdown", font: { size: 14, weight: "bold" } },
+                      datalabels: {
+                          anchor: "end", align: "top",
+                          color: (c) => colors[c.dataIndex],
+                          font: { weight: "bold", size: 10 },
+                          formatter: v => v > 0 ? Math.round(v / 1000) + "K" : ""
+                      }
+                  },
+                  scales: {
+                      x: { ticks: { maxRotation: 90, font: { size: 9 } }, grid: { display: false } },
+                      y: { ticks: { callback: v => v / 1000 + "K" }, grid: { color: "#f0f0f0" } }
+                  }
+              }
+          });
+      } catch(e) {
+          const s = document.getElementById("prod-state");
+          s.textContent = "Could not load Production — " + e.message;
+          s.classList.add("error");
+      }
+  }
+
+  // ================================================================
+  // WEEKLY PERFORMANCE CHART
+  // ================================================================
+  const WC_BASE = "https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de&orderby=date&order=desc&per_page=100";
+
+  function normalizeOrder(o) {
+      return {
+          id:                 o.id,
+          Customer:           [o.billing?.first_name, o.billing?.last_name].filter(Boolean).join(' ') || '—',
+          Phone:              o.billing?.phone || '',
+          Status:             o.status,
+          Order_Value:        parseFloat(o.total) || 0,
+          Created_Date:       o.date_created   || '',
+          Completed_Date:     o.date_completed || '',
+          Last_Modified_Date: o.date_modified  || '',
+          _billing:           o.billing || {},
+          _items:             o.line_items || [],
+          _note:              o.customer_note || ''
+      };
+  }
+
+  async function fetchAllOrders() {
+      // Fetch page 1 to get total pages from header
+      const first     = await fetch(WC_BASE + '&page=1');
+      const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
+      const firstRows  = await first.json();
+
+      // Fetch remaining pages in parallel
+      const rest = totalPages > 1
+          ? await Promise.all(
+              Array.from({ length: totalPages - 1 }, (_, i) =>
+                  fetch(WC_BASE + '&page=' + (i + 2)).then(r => r.json())
+              )
+            )
+          : [];
+
+      const all = [firstRows, ...rest].flat().map(normalizeOrder);
+      return all;
+  }
+
+  async function loadWeeklyChart() {
+      try {
+          const data = await getAllOrdersCached();
+          document.getElementById('perf-state').style.display = 'none';
+
+          const localDs  = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          const today    = new Date();
+          const todayStr = localDs(today);
+          const curSun   = new Date(today); curSun.setDate(today.getDate() - today.getDay()); curSun.setHours(0,0,0,0);
+          const curKey   = localDs(curSun);
+
+          // Build map of all week Sundays from data
+          const weekStarts = new Map();
+          data.forEach(o => {
+              const ds = (o.Completed_Date || o.Created_Date || o.Last_Modified_Date || '').slice(0,10);
+              if (!ds) return;
+              const d = new Date(ds); d.setHours(0,0,0,0);
+              const sun = new Date(d); sun.setDate(d.getDate() - d.getDay());
+              const key = localDs(sun);
+              if (!weekStarts.has(key)) weekStarts.set(key, sun);
+          });
+          weekStarts.set(curKey, curSun);
+
+          const sortedWeeks = [...weekStarts.entries()].sort((a,b) => b[0].localeCompare(a[0]));
+
+          // Populate week picker
+          const sel = document.getElementById('weekPickerSel');
+          sel.innerHTML = '';
+          sortedWeeks.forEach(([key, sun]) => {
+              const jan1  = new Date(sun.getFullYear(), 0, 1);
+              const wNo   = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+              const sat   = new Date(sun); sat.setDate(sun.getDate() + 6);
+              const fmtS  = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+              sel.appendChild(new Option('W' + String(wNo).padStart(2,'0') + '  ' + fmtS(sun) + ' – ' + fmtS(sat), key));
+          });
+          sel.value = curKey;
+
+          // -- Render banner + cards + table for selected week --
+          function renderWeekBlock(sunKey) {
+              const sun    = new Date(sunKey); sun.setHours(0,0,0,0);
+              const sat    = new Date(sun); sat.setDate(sun.getDate() + 6);
+              const jan1   = new Date(sun.getFullYear(), 0, 1);
+              const weekNo = Math.ceil(((sun - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+              const fmtD   = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+              const isCurWeek = sunKey === curKey;
+
+              // Banner
+              const banner = document.getElementById('currentWeekBanner');
+              const dayNum = today.getDay() + 1;
+              banner.innerHTML = `
+                <div><span class="bi-label">Week</span><div class="bi-header-val">W${String(weekNo).padStart(2,'0')}</div></div>
+                <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(sun)}</div></div>
+                <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(sat)}</div></div>
+                ${isCurWeek ? `<div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(today)} <span style="font-size:12px;color:#888;">(${dayNum}/7)</span></div></div>` : ''}`;
+
+              // Daily table
+              const days = [];
+              for (let i = 0; i < 7; i++) { const d = new Date(sun); d.setDate(sun.getDate() + i); days.push(d); }
+
+              const head    = document.getElementById('weekDailyHead');
+              const rowComp = document.getElementById('weekDailyRowComp');
+              const rowCanc = document.getElementById('weekDailyRowCanc');
+              const rowCrea = document.getElementById('weekDailyRowCrea');
+
+              const thStyle    = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
+              const tdStyle    = 'text-align:center; font-size:12px; padding:3px 6px;';
+              const labelStyle = 'text-align:left; font-size:11px; font-weight:600; color:#888; padding:3px 6px; white-space:nowrap;';
+
+              head.innerHTML = `<th style="${labelStyle}"></th>`;
+              days.forEach(d => {
+                  const isToday = isCurWeek && localDs(d) === todayStr;
+                  const lbl = d.toLocaleDateString('en-GB', { weekday: 'short' });
+                  head.innerHTML += `<th style="${thStyle}${isToday ? 'color:var(--brand-dark);font-weight:700;' : ''}">${isToday ? `<span style="display:inline-block;background:#fef3e2;border-radius:4px;padding:1px 5px;">${lbl}</span>` : lbl}</th>`;
+              });
+
+              function dayTotal(d, filterFn) {
+                  const ds = localDs(d);
+                  return data.filter(o => filterFn(o, ds)).reduce((s, o) => s + (o.Order_Value || 0), 0);
+              }
+              const rows = [
+                  { el: rowComp, label: 'Completed', color: COLORS.positive, fn: (o,ds) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)===ds },
+                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative, fn: (o,ds) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)===ds },
+                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,  fn: (o,ds) => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)===ds },
+              ];
+              rows.forEach(({ el, label, color, fn }) => {
+                  el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
+                  days.forEach(d => {
+                      const val = dayTotal(d, fn);
+                      const ds  = localDs(d);
+                      const isToday = isCurWeek && ds === todayStr;
+                      const dayLbl  = d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' });
+                      const clickable = val > 0 ? `cursor:pointer;text-decoration:underline dotted #aaa;` : '';
+                      const onclick   = val > 0 ? `onclick="showDayOrders(event, '${label}', '${ds}', '${dayLbl}', '${color}')"` : '';
+                      el.innerHTML += `<td style="${tdStyle} color:${val>0?'#333':'#ccc'}; ${isToday?'font-weight:700;':''} ${clickable}" ${onclick}>${val>0?Math.round(val/1000)+'K':'—'}</td>`;
+                  });
+              });
+
+              // KPI cards
+              const sunStr = localDs(sun);
+              const satStr = localDs(sat);
+              const totalComp = data.filter(o => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=sunStr && o.Completed_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCanc = data.filter(o => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=sunStr && o.Last_Modified_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCrea = data.filter(o => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)>=sunStr && o.Created_Date.slice(0,10)<=satStr).reduce((s,o)=>s+(o.Order_Value||0),0);
+              document.getElementById('cwCompleted').innerText = fmt(totalComp);
+              document.getElementById('cwCancelled').innerText = fmt(totalCanc);
+              document.getElementById('cwCreated').innerText   = fmt(totalCrea);
+          }
+
+          sel.addEventListener('change', () => renderWeekBlock(sel.value));
+          renderWeekBlock(curKey);
+
+          window._weekData = data;
+          const _filterFns = {
+              Completed: (o,ds) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)===ds,
+              Cancelled: (o,ds) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)===ds,
+              Created:   (o,ds) => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)===ds,
+          };
+          window._weekFilterFns = _filterFns;
+
+          function getWeekLabel(dateStr) {
+              if (!dateStr) return null;
+              const d = new Date(dateStr);
+              if (isNaN(d)) return null;
+              const sun = new Date(d);
+              sun.setDate(d.getDate() - d.getDay()); // back to Sunday
+              const year   = sun.getFullYear();
+              const jan1   = new Date(year, 0, 1);
+              const diff   = (sun - jan1) / 86400000;
+              const weekNo = Math.floor((diff + jan1.getDay()) / 7) + 1;
+              return String(year).slice(-2) + 'W' + String(weekNo).padStart(2, '0');
+          }
+
+          const weekMap = {};
+          const years   = new Set();
+
+          function ensure(lbl) {
+              if (!weekMap[lbl]) weekMap[lbl] = { created: 0, completed: 0, cancelled: 0 };
+          }
+
+          data.forEach(o => {
+              // Created — group by Created_Date, only completed/cancelled/processing
+              if (['completed','cancelled','processing'].includes(o.Status)) {
+                  const cLbl = getWeekLabel(o.Created_Date);
+                  if (cLbl) {
+                      years.add(parseInt('20' + cLbl.slice(0, 2)));
+                      ensure(cLbl);
+                      weekMap[cLbl].created += o.Order_Value || 0;
+                  }
+              }
+              // Completed — group by Completed_Date, completed only
+              if (o.Status === 'completed' && o.Completed_Date) {
+                  const pLbl = getWeekLabel(o.Completed_Date);
+                  if (pLbl) {
+                      years.add(parseInt('20' + pLbl.slice(0, 2)));
+                      ensure(pLbl);
+                      weekMap[pLbl].completed += o.Order_Value || 0;
+                  }
+              }
+              // Cancelled — group by Last_Modified_Date, cancelled only
+              if (o.Status === 'cancelled' && o.Last_Modified_Date) {
+                  const mLbl = getWeekLabel(o.Last_Modified_Date);
+                  if (mLbl) {
+                      years.add(parseInt('20' + mLbl.slice(0, 2)));
+                      ensure(mLbl);
+                      weekMap[mLbl].cancelled += o.Order_Value || 0;
+                  }
+              }
+          });
+
+          // Only include weeks that have at least one non-zero value
+          const allLabels = Object.keys(weekMap)
+              .filter(l => weekMap[l].created > 0 || weekMap[l].completed > 0 || weekMap[l].cancelled > 0)
+              .sort();
+
+          // Populate year toggle buttons
+          const btnWrap  = document.getElementById('weekYearBtns');
+          const curYear  = String(new Date().getFullYear()).slice(-2);
+          const allYears = [...new Set(allLabels.map(l => l.slice(0, 2)))].sort().reverse();
+          let selectedYears = new Set([curYear]);
+
+          function buildYearBtns() {
+              btnWrap.innerHTML = '';
+              // All button
+              const allBtn = document.createElement('button');
+              allBtn.textContent = 'All';
+              allBtn.className   = 'yr-btn' + (selectedYears.size === allYears.length ? ' active' : '');
+              allBtn.onclick = () => {
+                  if (selectedYears.size === allYears.length) {
+                      selectedYears = new Set([curYear]);
+                  } else {
+                      selectedYears = new Set(allYears);
+                  }
+                  buildYearBtns();
+                  refreshStartEnd();
+              };
+              btnWrap.appendChild(allBtn);
+              allYears.forEach(yr => {
+                  const btn = document.createElement('button');
+                  btn.textContent = '20' + yr;
+                  btn.className   = 'yr-btn' + (selectedYears.has(yr) ? ' active' : '');
+                  btn.onclick = () => {
+                      if (selectedYears.has(yr)) {
+                          if (selectedYears.size > 1) selectedYears.delete(yr);
+                      } else {
+                          selectedYears.add(yr);
+                      }
+                      buildYearBtns();
+                      refreshStartEnd();
+                  };
+                  btnWrap.appendChild(btn);
+              });
+          }
+
+          // Populate start/end filtered by selected years
+          const startSel = document.getElementById('weekStart');
+          const endSel   = document.getElementById('weekEnd');
+
+          function refreshStartEnd() {
+              const filtered = allLabels.filter(l => selectedYears.has(l.slice(0, 2)));
+              startSel.innerHTML = '';
+              endSel.innerHTML   = '';
+              filtered.forEach(l => {
+                  startSel.appendChild(new Option(l, l));
+                  endSel.appendChild(new Option(l, l));
+              });
+              if (filtered.length) {
+                  startSel.value = filtered[0];
+                  endSel.value   = filtered[filtered.length - 1];
+              }
+              renderWeekly();
+          }
+
+          const ctx = document.getElementById('weeklyChart').getContext('2d');
+          let weeklyChart = null;
+
+          function renderWeekly() {
+              const s = startSel.value;
+              const e = endSel.value;
+              const filtered  = allLabels.filter(l => l >= s && l <= e);
+              const dCreated   = filtered.map(l => weekMap[l]?.created   || 0);
+              const dCompleted = filtered.map(l => weekMap[l]?.completed || 0);
+              const dCancelled = filtered.map(l => weekMap[l]?.cancelled || 0);
+              const yMax = Math.ceil((Math.max(...dCreated, ...dCompleted, ...dCancelled) + 20000) / 10000) * 10000;
+
+              const wrap = document.getElementById('weeklyChartWrap');
+              wrap.style.minWidth = Math.max(filtered.length * 22, 300) + 'px';
+
+              if (weeklyChart) {
+                  weeklyChart.data.labels = filtered;
+                  weeklyChart.data.datasets[0].data = dCreated;
+                  weeklyChart.data.datasets[1].data = dCompleted;
+                  weeklyChart.data.datasets[2].data = dCancelled;
+                  weeklyChart.options.scales.y.max  = yMax;
+                  weeklyChart.update();
+                  return;
+              }
+
+              weeklyChart = new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                      labels: filtered,
+                      datasets: [
+                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db' },
+                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60' },
+                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c' }
+                      ]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                          legend: { display: true, position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 20 } },
+                          title : { display: true, text: 'Weekly', font: { size: 14, weight: 'bold' } },
+                          datalabels: {
+                              anchor   : 'end',
+                              align    : 'top',
+                              rotation : -90,
+                              font     : { size: 8, weight: 'bold' },
+                              color    : (c) => ['#3498db','#27ae60','#e74c3c'][c.datasetIndex],
+                              formatter: (v) => v > 0 ? Math.round(v / 1000) : ''
+                          }
+                      },
+                      scales: {
+                          x: { ticks: { maxRotation: 90, minRotation: 90, font: { size: 8 } }, grid: { display: false } },
+                          y: { max: yMax, ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
+                      }
+                  }
+              });
+          }
+
+          startSel.addEventListener('change', renderWeekly);
+          endSel.addEventListener('change', renderWeekly);
+          buildYearBtns();
+          refreshStartEnd();
+      } catch(e) {
+          const s = document.getElementById('perf-state');
+          s.textContent = 'Could not load Weekly Performance — ' + e.message;
+          s.classList.add('error');
+      }
+  }
+
+  // ================================================================
+  // MONTHLY PERFORMANCE CHART
+  // ================================================================
+  let _allOrdersCache = null;
+  async function getAllOrdersCached() {
+      if (!_allOrdersCache) _allOrdersCache = await fetchAllOrders();
+      return _allOrdersCache;
+  }
+
+  async function loadMonthlyChart() {
+      try {
+          const data = await getAllOrdersCached();
+          document.getElementById('mperf-state').style.display = 'none';
+
+          const today    = new Date();
+          const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+          const curMonthKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+
+          // Build map of all months from data
+          const monthStarts = new Map();
+          data.forEach(o => {
+              const ds = (o.Completed_Date || o.Created_Date || o.Last_Modified_Date || '').slice(0,7); // YYYY-MM
+              if (!ds) return;
+              if (!monthStarts.has(ds)) monthStarts.set(ds, ds);
+          });
+          monthStarts.set(curMonthKey, curMonthKey);
+
+          const sortedMonths = [...monthStarts.keys()].sort((a,b) => b.localeCompare(a));
+
+          // Populate month picker
+          const sel = document.getElementById('monthPickerSel');
+          sel.innerHTML = '';
+          sortedMonths.forEach(key => {
+              const d = new Date(key + '-01');
+              const lbl = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+              sel.appendChild(new Option(lbl, key));
+          });
+          sel.value = curMonthKey;
+
+          // Render banner + cards + weekly breakdown table for selected month
+          function renderMonthBlock(monthKey) {
+              const [yr, mo]  = monthKey.split('-').map(Number);
+              const firstDay  = new Date(yr, mo - 1, 1);
+              const lastDay   = new Date(yr, mo, 0);
+              const fmtD      = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+              const isCurMonth = monthKey === curMonthKey;
+
+              // Banner
+              const banner = document.getElementById('currentMonthBanner');
+              banner.innerHTML = `
+                <div><span class="bi-label">Month</span><div class="bi-header-val">${firstDay.toLocaleDateString('en-GB', { month:'long', year:'numeric' })}</div></div>
+                <div><span class="bi-label">Start</span><div class="bi-header-val">${fmtD(firstDay)}</div></div>
+                <div><span class="bi-label">End</span><div class="bi-header-val">${fmtD(lastDay)}</div></div>
+                ${isCurMonth ? `<div><span class="bi-label">Today</span><div class="bi-header-val">${fmtD(today)} <span style="font-size:12px;color:#888;">(${today.getDate()}/${lastDay.getDate()})</span></div></div>` : ''}`;
+
+              // Build weeks within the month (Sun–Sat)
+              const weeks = [];
+              let cur = new Date(firstDay);
+              cur.setDate(cur.getDate() - cur.getDay()); // back to Sunday
+              while (cur <= lastDay) {
+                  const wStart = new Date(Math.max(cur, firstDay));
+                  const wEnd   = new Date(cur); wEnd.setDate(cur.getDate() + 6);
+                  const wEndCapped = new Date(Math.min(wEnd, lastDay));
+                  weeks.push({ start: wStart, end: wEndCapped });
+                  cur.setDate(cur.getDate() + 7);
+              }
+
+              const head    = document.getElementById('monthWeeklyHead');
+              const rowComp = document.getElementById('monthWeeklyRowComp');
+              const rowCanc = document.getElementById('monthWeeklyRowCanc');
+              const rowCrea = document.getElementById('monthWeeklyRowCrea');
+
+              const thStyle    = 'text-align:center; font-size:11px; font-weight:600; padding:4px 6px; color:#888; border-bottom:1px solid var(--border-light);';
+              const tdStyle    = 'text-align:center; font-size:12px; padding:3px 6px;';
+              const labelStyle = 'text-align:left; font-size:11px; font-weight:600; color:#888; padding:3px 6px; white-space:nowrap;';
+
+              head.innerHTML = `<th style="${labelStyle}"></th>`;
+              weeks.forEach((w, i) => {
+                  head.innerHTML += `<th style="${thStyle}">W${i+1}<br><span style="font-size:9px;font-weight:400;">${fmtD(w.start)}–${fmtD(w.end)}</span></th>`;
+              });
+
+              const localDs = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+
+              function weekTotal(w, filterFn) {
+                  const s = localDs(w.start), e = localDs(w.end);
+                  return data.filter(o => filterFn(o, s, e)).reduce((sum, o) => sum + (o.Order_Value || 0), 0);
+              }
+
+              const rows = [
+                  { el: rowComp, label: 'Completed', color: COLORS.positive, fn: (o,s,e) => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=s && o.Completed_Date.slice(0,10)<=e },
+                  { el: rowCanc, label: 'Cancelled',  color: COLORS.negative, fn: (o,s,e) => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=s && o.Last_Modified_Date.slice(0,10)<=e },
+                  { el: rowCrea, label: 'Created',    color: COLORS.neutral,  fn: (o,s,e) => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)>=s && o.Created_Date.slice(0,10)<=e },
+              ];
+              rows.forEach(({ el, label, color, fn }) => {
+                  el.innerHTML = `<td style="${labelStyle} color:${color};">${label}</td>`;
+                  weeks.forEach(w => {
+                      const val = weekTotal(w, fn);
+                      el.innerHTML += `<td style="${tdStyle} color:${val>0?'#333':'#ccc'};">${val>0?Math.round(val/1000)+'K':'—'}</td>`;
+                  });
+              });
+
+              // KPI cards
+              const mStart = monthKey + '-01';
+              const mEnd   = monthKey + '-' + String(lastDay.getDate()).padStart(2,'0');
+              const totalComp = data.filter(o => o.Status==='completed' && o.Completed_Date && o.Completed_Date.slice(0,10)>=mStart && o.Completed_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCanc = data.filter(o => o.Status==='cancelled' && o.Last_Modified_Date && o.Last_Modified_Date.slice(0,10)>=mStart && o.Last_Modified_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              const totalCrea = data.filter(o => ['completed','cancelled','processing'].includes(o.Status) && o.Created_Date && o.Created_Date.slice(0,10)>=mStart && o.Created_Date.slice(0,10)<=mEnd).reduce((s,o)=>s+(o.Order_Value||0),0);
+              document.getElementById('cmCompleted').innerText = fmt(totalComp);
+              document.getElementById('cmCancelled').innerText = fmt(totalCanc);
+              document.getElementById('cmCreated').innerText   = fmt(totalCrea);
+          }
+
+          sel.addEventListener('change', () => renderMonthBlock(sel.value));
+          renderMonthBlock(curMonthKey);
+
+          // Build monthly chart data
+          function getMonthLabel(dateStr) {
+              if (!dateStr) return null;
+              return dateStr.slice(0, 7); // YYYY-MM
+          }
+
+          const monthMap = {};
+          const years    = new Set();
+
+          function ensureM(lbl) {
+              if (!monthMap[lbl]) monthMap[lbl] = { created: 0, completed: 0, cancelled: 0 };
+          }
+
+          data.forEach(o => {
+              if (['completed','cancelled','processing'].includes(o.Status)) {
+                  const lbl = getMonthLabel(o.Created_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].created += o.Order_Value || 0; }
+              }
+              if (o.Status === 'completed' && o.Completed_Date) {
+                  const lbl = getMonthLabel(o.Completed_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].completed += o.Order_Value || 0; }
+              }
+              if (o.Status === 'cancelled' && o.Last_Modified_Date) {
+                  const lbl = getMonthLabel(o.Last_Modified_Date);
+                  if (lbl) { years.add(parseInt(lbl.slice(0,4))); ensureM(lbl); monthMap[lbl].cancelled += o.Order_Value || 0; }
+              }
+          });
+
+          const allMonthLabels = Object.keys(monthMap)
+              .filter(l => monthMap[l].created > 0 || monthMap[l].completed > 0 || monthMap[l].cancelled > 0)
+              .sort();
+
+          // Year buttons
+          const btnWrap  = document.getElementById('monthYearBtns');
+          const curYearN = new Date().getFullYear();
+          const allYears = [...new Set(allMonthLabels.map(l => l.slice(0,4)))].sort().reverse();
+          let selectedYearsM = new Set([String(curYearN)]);
+
+          function buildMonthYearBtns() {
+              btnWrap.innerHTML = '';
+              const allBtn = document.createElement('button');
+              allBtn.textContent = 'All';
+              allBtn.className   = 'yr-btn' + (selectedYearsM.size === allYears.length ? ' active' : '');
+              allBtn.onclick = () => {
+                  selectedYearsM = selectedYearsM.size === allYears.length ? new Set([String(curYearN)]) : new Set(allYears);
+                  buildMonthYearBtns(); refreshMonthStartEnd();
+              };
+              btnWrap.appendChild(allBtn);
+              allYears.forEach(yr => {
+                  const btn = document.createElement('button');
+                  btn.textContent = yr;
+                  btn.className   = 'yr-btn' + (selectedYearsM.has(yr) ? ' active' : '');
+                  btn.onclick = () => {
+                      if (selectedYearsM.has(yr)) { if (selectedYearsM.size > 1) selectedYearsM.delete(yr); }
+                      else selectedYearsM.add(yr);
+                      buildMonthYearBtns(); refreshMonthStartEnd();
+                  };
+                  btnWrap.appendChild(btn);
+              });
+          }
+
+          const mStartSel = document.getElementById('monthStart');
+          const mEndSel   = document.getElementById('monthEnd');
+
+          function refreshMonthStartEnd() {
+              const filtered = allMonthLabels.filter(l => selectedYearsM.has(l.slice(0,4)));
+              mStartSel.innerHTML = '';
+              mEndSel.innerHTML   = '';
+              filtered.forEach(l => {
+                  const d = new Date(l + '-01');
+                  const lbl = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+                  mStartSel.appendChild(new Option(lbl, l));
+                  mEndSel.appendChild(new Option(lbl, l));
+              });
+              if (filtered.length) {
+                  mStartSel.value = filtered[0];
+                  mEndSel.value   = filtered[filtered.length - 1];
+              }
+              renderMonthly();
+          }
+
+          const mCtx = document.getElementById('monthlyChart').getContext('2d');
+          let monthlyChart = null;
+
+          function renderMonthly() {
+              const s = mStartSel.value;
+              const e = mEndSel.value;
+              const filtered   = allMonthLabels.filter(l => l >= s && l <= e);
+              const dCreated   = filtered.map(l => monthMap[l]?.created   || 0);
+              const dCompleted = filtered.map(l => monthMap[l]?.completed || 0);
+              const dCancelled = filtered.map(l => monthMap[l]?.cancelled || 0);
+              const yMax = Math.ceil((Math.max(...dCreated, ...dCompleted, ...dCancelled) + 20000) / 10000) * 10000;
+
+              const labels = filtered.map(l => {
+                  const d = new Date(l + '-01');
+                  return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+              });
+
+              const wrap = document.getElementById('monthlyChartWrap');
+              wrap.style.minWidth = Math.max(filtered.length * 40, 300) + 'px';
+
+              if (monthlyChart) {
+                  monthlyChart.data.labels = labels;
+                  monthlyChart.data.datasets[0].data = dCreated;
+                  monthlyChart.data.datasets[1].data = dCompleted;
+                  monthlyChart.data.datasets[2].data = dCancelled;
+                  monthlyChart.options.scales.y.max  = yMax;
+                  monthlyChart.update();
+                  return;
+              }
+
+              monthlyChart = new Chart(mCtx, {
+                  type: 'bar',
+                  data: {
+                      labels,
+                      datasets: [
+                          { label: 'Created',   data: dCreated,   backgroundColor: '#3498db' },
+                          { label: 'Completed', data: dCompleted, backgroundColor: '#27ae60' },
+                          { label: 'Cancelled', data: dCancelled, backgroundColor: '#e74c3c' }
+                      ]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                          legend: { display: true, position: 'top', labels: { boxWidth: 12, boxHeight: 12, padding: 20 } },
+                          title : { display: true, text: 'Monthly', font: { size: 14, weight: 'bold' } },
+                          datalabels: {
+                              anchor   : 'end',
+                              align    : 'top',
+                              rotation : -90,
+                              font     : { size: 8, weight: 'bold' },
+                              color    : (c) => ['#3498db','#27ae60','#e74c3c'][c.datasetIndex],
+                              formatter: (v) => v > 0 ? Math.round(v / 1000) : ''
+                          }
+                      },
+                      scales: {
+                          x: { ticks: { maxRotation: 45, font: { size: 9 } }, grid: { display: false } },
+                          y: { max: yMax, ticks: { callback: v => v / 1000 + 'K' }, grid: { color: '#f0f0f0' } }
+                      }
+                  }
+              });
+          }
+
+          mStartSel.addEventListener('change', renderMonthly);
+          mEndSel.addEventListener('change', renderMonthly);
+          buildMonthYearBtns();
+          refreshMonthStartEnd();
+      } catch(e) {
+          const s = document.getElementById('mperf-state');
+          s.textContent = 'Could not load Monthly Performance — ' + e.message;
+          s.classList.add('error');
+      }
+  }
+
+  // ================================================================
+  // INIT
+  // ================================================================
+  loadGoals();
+  fetchBiData();
+  loadProductionChart();
+  loadWeeklyChart();
+  loadMonthlyChart();
+  loadProcessingItemCount();
+
+  function showDayOrders(e, label, ds, dayLbl, color) {
+    e.stopPropagation();
+    const data = window._weekData || [];
+    const fn   = (window._weekFilterFns || {})[label];
+    if (!fn) return;
+    const orders = data.filter(o => fn(o, ds)).sort((a,b) => (b.Order_Value||0) - (a.Order_Value||0));
+    window._dopOrders = orders;
+    document.getElementById('dopTitle').innerHTML =
+      `<span style="color:#fef3e2">${label}</span> &nbsp;·&nbsp; ${dayLbl}`;
+    const fmt = n => Math.round(n).toLocaleString();
+    document.getElementById('dopBody').innerHTML = orders.length
+      ? orders.map((o, i) => `
+          <div class="dop-row" style="cursor:pointer;" onclick="showOrdDetail(${i})">
+            <span class="dop-id">#${o.id}</span>
+            <span class="dop-name">${o.Customer}</span>
+            ${o.Phone ? `<a class="dop-phone" href="tel:${o.Phone}" onclick="event.stopPropagation()">${o.Phone}</a>` : ''}
+            <span class="dop-val">${fmt(o.Order_Value)} EGP</span>
+          </div>`).join('')
+      : '<div class="dop-empty">No orders</div>';
+    document.getElementById('dopOverlay').classList.add('open');
+  }
+  function closeDayOrders() {
+    document.getElementById('dopOverlay').classList.remove('open');
+  }
+
+  function showOrdDetail(idx) {
+    const o = (window._dopOrders || [])[idx];
+    if (!o) return;
+    const b    = o._billing || {};
+    const date = (o.Created_Date || '').replace('T',' ').slice(0,16);
+    const addr = [b.address_1, b.address_2, b.city].filter(Boolean).join(', ');
+    const fmt  = n => Math.round(n).toLocaleString();
+    const itemsHtml = (o._items || []).map((item, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${item.name}</td>
+        <td style="text-align:center">×${item.quantity}</td>
+        <td style="text-align:right;color:#7A4610;font-weight:600">${fmt(parseFloat(item.total||0))} EGP</td>
+      </tr>`).join('');
+    document.getElementById('ordHId').textContent   = `#${o.id}`;
+    document.getElementById('ordHDate').textContent = date;
+    document.getElementById('ordBody').innerHTML = `
+      <div class="ord-section">
+        <div class="ord-lbl">Customer</div>
+        <div class="ord-val" style="font-weight:700">${o.Customer}</div>
+        ${b.phone ? `<div class="ord-val" style="margin-top:3px"><a href="tel:${b.phone}" style="color:#7A4610">${b.phone}</a></div>` : ''}
+        ${addr    ? `<div class="ord-val" style="margin-top:3px;color:#888">${addr} <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}" target="_blank" onclick="event.stopPropagation()" title="Open in Google Maps" style="margin-left:4px;text-decoration:none;vertical-align:middle;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#e74c3c"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></a></div>` : ''}
+      </div>
+      <div class="ord-section">
+        <div class="ord-lbl">Status</div>
+        <div class="ord-val">${o.Status}</div>
+      </div>
+      <div class="ord-section">
+        <div class="ord-lbl">Items</div>
+        <table class="ord-tbl">
+          <thead><tr><th>#</th><th>Product</th><th>Qty</th><th>Price</th></tr></thead>
+          <tbody>${itemsHtml || '<tr><td colspan="4" style="color:#aaa;padding:8px">No items</td></tr>'}</tbody>
+        </table>
+      </div>
+      ${o._note ? `<div class="ord-section"><div class="ord-lbl">Note</div><div class="ord-val">${o._note}</div></div>` : ''}
+      <div class="ord-total"><span>Total</span><span>${fmt(o.Order_Value)} EGP</span></div>`;
+    document.getElementById('ordOverlay').classList.add('open');
+  }
+  function closeOrdDetail() {
+    document.getElementById('ordOverlay').classList.remove('open');
+  }
+
+</script>
+
+<div id="pageNav" style="padding:24px 16px 12px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:480px; margin:0 auto;"></div>
+<script>
+(async function buildNav() {
+  const _KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const _BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const S = 'font-size:13px;font-weight:700;text-decoration:none;border-radius:20px;padding:6px 20px;display:flex;align-items:center;justify-content:center;text-align:center;';
+
+  let groups = [];
+  try {
+    const res  = await fetch(`${_BASE}/phase_groups?key=${_KEY}`);
+    const data = await res.json();
+    groups = (data.documents || []).map(doc => ({
+      id:    doc.name.split('/').pop(),
+      label: doc.fields.label?.stringValue || '',
+      color: doc.fields.color?.stringValue || '#7A4610',
+      order: parseInt(doc.fields.order?.integerValue || 0),
+    })).sort((a, b) => a.order - b.order);
+  } catch(e) {}
+
+  const A = 'font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;';
+
+  const clip = `polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)`;
+
+  const workflowSection = groups.length ? `
+    <div style="grid-column:1/-1; display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+      ${groups.map((g, i) => {
+        const url = g.id.replace(/_/g, '-') + '.html';
+        const hex = g.color || '#7A4610';
+        return `<a href="${url}" style="${A} background:${hex};color:#fff;padding:10px 20px 10px 10px;clip-path:${clip};font-size:12px;font-weight:700;">${g.label}</a>`;
+      }).join('')}
+    </div>` : '';
+
+  document.getElementById('pageNav').innerHTML =
+    `<a href="orders.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#7A4610;border:2px solid #7A4610;background:#fef3e2;">Orders</a>` +
+    workflowSection +
+    `<a href="databases.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#1d4ed8;border:2px solid #1d4ed8;background:#eff6ff;">🗄 Firebase Databases</a>` +
+    `<button onclick="document.getElementById('allPagesPanel').style.display=document.getElementById('allPagesPanel').style.display==='none'?'grid':'none'" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#666;border:2px solid #ccc;background:#f5f5f5;cursor:pointer;">All Pages ▾</button>` +
+    `<div id="allPagesPanel" style="grid-column:1/-1;display:none;grid-template-columns:repeat(3,1fr);gap:8px;">` +
+    [
+      ['orders.html','Orders'],['order-review.html','Order Review'],['planning.html','Planning'],
+      ['warehouse.html','Warehouse'],['production.html','Production'],['delivery.html','Delivery'],
+      ['customer-service.html','Customer Service'],['job-prep.html','Job Prep'],['cutlists.html','Cutlists'],
+      ['inventory.html','Inventory'],['inventory-warehouse.html','WH Stock'],['phases.html','Phase Groups'],
+      ['products.html','Products'],['product-detail.html','Product Detail'],['databases.html','Databases'],
+      ['constants.html','Constants'],['migrate.html','Migrate']
+    ].map(([href,label])=>`<a href="${href}" style="${A} border-radius:10px;padding:8px 6px;font-size:12px;color:#555;border:1.5px solid #ddd;background:#fff;">${label}</a>`).join('') +
+    `</div>`;
+})();
+</script>
+
+</body>
+</html>

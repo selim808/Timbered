@@ -1,0 +1,1453 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production — Timbered</title>
+  <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
+  <script src="../phase-loader.js"></script>
+  <script src="../phase-utils.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; }
+    .site-header img { height: 26px; display: block; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; flex: 1; }
+    .back { font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+    .sub-nav { display: flex; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; overflow-x: auto; }
+    .sub-nav::-webkit-scrollbar { display: none; }
+    .sub-nav-btn { font-size: 12px; font-weight: 700; padding: 10px 16px; border: none; background: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; }
+    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 7px; font-weight: 600; margin-left: 4px; }
+
+    .state-msg { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+
+    /* ── KANBAN ── */
+    .kanban-outer { height: calc(100vh - 103px); overflow: hidden; display: flex; flex-direction: column; }
+    .kanban-scroll { display: flex; gap: 10px; padding: 12px; overflow-x: auto; height: 100%; align-items: flex-start; }
+    .kanban-scroll::-webkit-scrollbar { height: 6px; }
+    .kanban-scroll::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 3px; }
+
+    .k-col { background: #ece5de; border-radius: 10px; width: 210px; flex-shrink: 0; display: flex; flex-direction: column; height: calc(100vh - 127px); }
+    .k-col-hdr { font-size: 10px; font-weight: 800; color: #7A4610; padding: 10px 10px 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .k-col-count { font-size: 10px; background: #7A4610; color: #fff; border-radius: 10px; padding: 1px 7px; font-weight: 700; }
+    .k-col-body { flex: 1; overflow-y: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+    .k-col-body::-webkit-scrollbar { width: 3px; }
+    .k-col-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
+    .k-col-empty { font-size: 11px; color: #bbb; padding: 10px; text-align: center; }
+
+    /* Drag and drop */
+    .prod-card[draggable] { cursor: grab; }
+    .prod-card.dragging { opacity: 0.4; }
+    .k-col-body.drag-over { background: #f5ede4; border-radius: 6px; }
+    .drop-indicator { height: 3px; background: #7A4610; border-radius: 2px; margin: 0 4px; pointer-events: none; }
+
+    /* Production card */
+    /* Production card — collapsible */
+    .prod-card { background: #fff; border-radius: 8px; border: 1px solid #e8ddd4; overflow: hidden; }
+    .prod-card.expanded { display: flex; flex-direction: column; max-height: calc(100vh - 160px); }
+    .prod-card.expanded .pc-body { flex: 1; overflow-y: auto; }
+    .prod-card.expanded .pc-body::-webkit-scrollbar { width: 3px; }
+    .prod-card.expanded .pc-body::-webkit-scrollbar-thumb { background: #d5c9be; border-radius: 2px; }
+    .prod-card.expanded .pc-actions { flex-shrink: 0; }
+    .pc-summary { display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; user-select: none; }
+    .pc-summary:hover { background: #fdf8f4; }
+    .pc-summary-main { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; flex-wrap: wrap; }
+    .pc-jo-ref { font-size: 12px; font-weight: 800; color: #7A4610; flex-shrink: 0; }
+    .pc-summary-meta { font-size: 10px; color: #aaa; flex-shrink: 0; }
+    .pc-split-badge { font-size: 9px; font-weight: 800; background: #3498db; color: #fff; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+    .pc-chev { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
+
+    .pc-body { display: none; border-top: 1px solid #f5f0eb; padding: 8px 10px; }
+    .pc-items { margin-bottom: 8px; }
+    .pc-item-wrap { border-bottom: 1px solid #f5f0eb; }
+    .pc-item-wrap:last-child { border-bottom: none; }
+    .pc-item-row { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+    .pc-item-clickable { cursor: pointer; }
+    .pc-item-clickable:hover { background: #fdf8f4; }
+    .pc-item-name { flex: 1; font-size: 10px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pc-item-chev { font-size: 9px; color: #bbb; flex-shrink: 0; transition: transform 0.15s; }
+    .pc-item-body { display: none; background: #fdf8f4; border-radius: 5px; padding: 6px 8px; margin: 2px 0 4px; }
+    .pc-mto-block { margin-bottom: 4px; }
+    .pc-mto-hdr { margin-bottom: 3px; }
+    .pc-mts-block { margin-top: 4px; padding-top: 4px; border-top: 1px solid #e8ddd4; }
+    .pc-order-row { display: flex; align-items: center; gap: 6px; padding: 2px 0 2px 8px; font-size: 10px; color: #666; }
+    .pc-order-id { font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .pc-order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pc-order-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+    .pc-dwg-link { font-size: 9px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 3px; padding: 1px 4px; text-decoration: none; flex-shrink: 0; line-height: 1.4; }
+    .pc-dwg-link:hover { background: #7A4610; color: #fff; }
+    .pc-chip { font-size: 10px; border-radius: 5px; padding: 2px 6px; font-weight: 600; flex-shrink: 0; }
+    .pc-chip-mto { background: #fef3e2; color: #7A4610; }
+    .pc-chip-mts { background: #eafaf1; color: #27ae60; }
+    .pc-chip-total { background: #333; color: #fff; }
+
+    .pc-actions { display: flex; gap: 4px; }
+    .pc-btn { font-size: 10px; font-weight: 700; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .pc-btn-split { background: #f5f0eb; color: #555; border: 1px solid #e8ddd4; }
+    .pc-btn-split:hover { background: #e8ddd4; }
+    .pc-phase-select { flex: 1; font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border: none; border-radius: 6px; padding: 5px 6px; cursor: pointer; outline: none; min-width: 0; }
+    .pc-phase-select:disabled { background: #ccc; cursor: not-allowed; }
+    .pc-btn-merge { background: #f5f0eb; color: #7A4610; border: 1.5px solid #7A4610; }
+    .pc-btn-merge:hover { background: #7A4610; color: #fff; }
+
+    /* Queue JO card */
+    .q-jo-card { background: #fff; border-radius: 8px; padding: 10px; border: 1.5px solid #e8ddd4; }
+    .q-jo-ref { font-size: 13px; font-weight: 800; color: #7A4610; margin-bottom: 2px; }
+    .q-jo-meta { font-size: 10px; color: #aaa; margin-bottom: 8px; }
+    .q-jo-items { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+    .q-jo-item-row { font-size: 10px; color: #555; display: flex; align-items: center; gap: 5px; }
+    .q-jo-item-dot { width: 5px; height: 5px; border-radius: 50%; background: #7A4610; flex-shrink: 0; }
+    .q-jo-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .q-jo-item-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+    .start-btn { width: 100%; background: #7A4610; color: #fff; border: none; border-radius: 6px; padding: 7px; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .start-btn:hover { background: #5a3209; }
+    .start-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .dispatch-btn { width: 100%; background: #0f766e; color: #fff; border: none; border-radius: 6px; padding: 7px; font-size: 11px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .dispatch-btn:hover { background: #0d5c57; }
+    .dispatch-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ── JO STATUS tab ── */
+    .wrap { padding: 10px 10px 80px; max-width: 860px; margin: 0 auto; }
+    .jo-status-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 10px; padding: 12px 14px; }
+    .jos-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .jos-ref { font-size: 14px; font-weight: 800; color: #7A4610; }
+    .jos-date { font-size: 11px; color: #aaa; flex: 1; }
+    .jos-status { font-size: 10px; font-weight: 700; border-radius: 10px; padding: 2px 9px; flex-shrink: 0; }
+    .jos-status-active { background: #fef3e2; color: #c97d3a; }
+    .jos-status-done  { background: #eafaf1; color: #27ae60; }
+    .jos-status-queue { background: #f0f0f0; color: #999; }
+
+    .jos-cards { display: flex; flex-direction: column; gap: 5px; }
+    .jos-card-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 3px 0; }
+    .jos-card-name { flex: 1; color: #333; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .jos-card-qty { color: #aaa; flex-shrink: 0; font-size: 10px; }
+    .jos-phase-badge { font-size: 9px; font-weight: 700; border-radius: 4px; padding: 2px 7px; flex-shrink: 0; white-space: nowrap; }
+    .phase-queue    { background: #f0f0f0; color: #999; }
+    .phase-active   { background: #fef3e2; color: #7A4610; }
+    .phase-ready    { background: #eafaf1; color: #27ae60; }
+    .phase-shipped  { background: #e8f4fd; color: #2980b9; }
+
+    /* ── SHIPMENTS tab ── */
+    .ship-bar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 8px 12px; position: sticky; top: 103px; z-index: 90; display: flex; align-items: center; gap: 8px; }
+    .ship-bar-info { font-size: 12px; color: #555; flex: 1; }
+    .ship-create-btn { font-size: 12px; font-weight: 700; background: #27ae60; color: #fff; border: none; border-radius: 20px; padding: 6px 14px; cursor: pointer; white-space: nowrap; }
+    .ship-create-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .ship-create-btn:hover:not(:disabled) { background: #1e8449; }
+
+    .ready-card { background: #fff; border: 1.5px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+    .ready-card.selected { border-color: #27ae60; background: #f0fff4; }
+    .ready-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #ddd; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+    .ready-card.selected .ready-check { background: #27ae60; border-color: #27ae60; }
+    .ready-thumb { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; border: 1px solid #e8ddd4; flex-shrink: 0; }
+    .ready-thumb-ph { width: 36px; height: 36px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+    .ready-info { flex: 1; min-width: 0; }
+    .ready-name { font-size: 12px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ready-meta { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .ready-qty { font-size: 16px; font-weight: 800; color: #333; flex-shrink: 0; }
+
+    .shp-hist-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .shp-hist-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; user-select: none; }
+    .shp-hist-top:hover { background: #fdf8f4; }
+    .shp-ref { font-size: 13px; font-weight: 800; color: #2980b9; flex-shrink: 0; }
+    .shp-date { font-size: 11px; color: #aaa; flex: 1; }
+    .shp-count { font-size: 11px; color: #555; flex-shrink: 0; }
+    .shp-pdf-btn { font-size: 11px; font-weight: 700; color: #2980b9; border: 1.5px solid #2980b9; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
+    .shp-pdf-btn:hover { background: #2980b9; color: #fff; }
+    .shp-edit-btn { font-size: 11px; font-weight: 700; color: #27ae60; border: 1.5px solid #27ae60; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
+    .shp-edit-btn:hover { background: #27ae60; color: #fff; }
+    .shp-del-btn { font-size: 11px; font-weight: 700; color: #e74c3c; border: 1.5px solid #e74c3c; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
+    .shp-del-btn:hover { background: #e74c3c; color: #fff; }
+    .shp-body { display: none; border-top: 1px solid #f5f0eb; padding: 6px 12px; }
+    .shp-hist-card.open .shp-body { display: block; }
+    .shp-item-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f5f0eb; font-size: 11px; }
+    .shp-item-row:last-child { border-bottom: none; }
+    .shp-item-name { flex: 1; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .shp-item-jo { color: #7A4610; font-weight: 700; flex-shrink: 0; }
+    .shp-item-qty { font-weight: 700; color: #333; flex-shrink: 0; }
+
+    .section-lbl { font-size: 11px; font-weight: 700; color: #555; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .jo-reset-btn { font-size: 10px; font-weight: 700; color: #e74c3c; border: 1.5px solid #e74c3c; border-radius: 20px; padding: 2px 9px; background: none; cursor: pointer; flex-shrink: 0; }
+    .jo-reset-btn:hover { background: #e74c3c; color: #fff; }
+    .merge-option { border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+    .merge-option:hover { border-color: #7A4610; background: #fdf8f4; }
+    .merge-option.selected { border-color: #7A4610; background: #fef3e2; }
+    .merge-opt-ref { font-size: 12px; font-weight: 800; color: #7A4610; }
+    .merge-opt-phase { font-size: 10px; font-weight: 700; background: #fef3e2; color: #7A4610; border-radius: 4px; padding: 1px 6px; text-align: center; align-self: center; }
+    .merge-opt-items { font-size: 10px; color: #888; grid-column: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .merge-opt-qty { font-size: 13px; font-weight: 800; color: #333; text-align: right; align-self: end; }
+
+    /* ── SPLIT MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 12px; width: 100%; max-width: 340px; padding: 20px; }
+    .modal-title { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; }
+    .modal-sub { font-size: 11px; color: #aaa; margin-bottom: 16px; line-height: 1.4; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-label { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 4px; display: block; }
+    .modal-input { width: 100%; font-size: 20px; font-weight: 700; color: #333; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 8px 12px; outline: none; text-align: center; }
+    .modal-input:focus { border-color: #7A4610; }
+    .modal-input[readonly] { background: #f5f0eb; color: #aaa; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .modal-cancel  { flex: 1; background: #f5f0eb; color: #555; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .modal-confirm { flex: 1; background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .modal-confirm:hover { background: #5a3209; }
+    .modal-confirm:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Product image popup */
+    .img-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:900; align-items:center; justify-content:center; }
+    .img-overlay.open { display:flex; }
+    .img-overlay img { max-width:92vw; max-height:88vh; border-radius:10px; object-fit:contain; }
+    .img-overlay-close { position:absolute; top:16px; right:20px; background:none; border:none; color:#fff; font-size:28px; cursor:pointer; line-height:1; }
+    .pc-img-btn { background:none; border:none; cursor:pointer; padding:0 2px; line-height:1; flex-shrink:0; }
+    .pc-img-btn svg { display:block; }
+
+    /* Order detail popup */
+    .ord-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:800; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+    .ord-overlay.open { display:flex; }
+    .ord-box { background:#fff; border-radius:14px; width:100%; max-width:460px; overflow:hidden; cursor:default; margin:auto; }
+    .ord-header { background:#7A4610; color:#fff; padding:11px 16px; display:flex; align-items:center; gap:8px; }
+    .ord-hid { font-size:13px; font-weight:700; }
+    .ord-hdate { font-size:11px; opacity:.7; margin-left:auto; }
+    .ord-hclose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; line-height:1; margin-left:8px; }
+    .ord-section { padding:9px 16px; border-bottom:1px solid #f0e8e0; }
+    .ord-section:last-child { border-bottom:none; }
+    .ord-lbl { font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; }
+    .ord-val { font-size:12px; color:#333; }
+    .ord-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+    .ord-tbl th { text-align:left; color:#aaa; font-size:10px; font-weight:700; text-transform:uppercase; padding:3px 6px; border-bottom:1px solid #f0e8e0; }
+    .ord-tbl td { padding:5px 6px; border-bottom:1px solid #f8f4f0; vertical-align:top; }
+    .ord-tbl tr:last-child td { border-bottom:none; }
+    .ord-total { display:flex; justify-content:space-between; padding:10px 16px; background:#fef3e2; font-size:13px; font-weight:700; color:#7A4610; }
+    .ord-loading { padding:30px; text-align:center; color:#aaa; font-size:13px; }
+  </style>
+</head>
+<body>
+
+<!-- Product image popup -->
+<div class="img-overlay" id="imgOverlay" onclick="closeImgPopup()">
+  <button class="img-overlay-close" onclick="closeImgPopup()">✕</button>
+  <img id="imgPopupSrc" src="" alt="">
+</div>
+
+<!-- Order detail popup -->
+<div class="ord-overlay" id="ordOverlay" onclick="closeOrderDetail()">
+  <div class="ord-box" onclick="event.stopPropagation()">
+    <div class="ord-header">
+      <span class="ord-hid" id="ordHId"></span>
+      <span class="ord-hdate" id="ordHDate"></span>
+      <button class="ord-hclose" onclick="closeOrderDetail()">✕</button>
+    </div>
+    <div id="ordBody"></div>
+  </div>
+</div>
+
+<header class="site-header">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <span class="title">Production</span>
+  <a href="../index.html" class="back">← Back</a>
+</header>
+
+<nav class="sub-nav">
+  <button class="sub-nav-btn active" id="tabProduction" onclick="switchTab('production')">Production <span class="badge" id="prodBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabRepair" onclick="switchTab('repair')">Repair <span class="badge" id="repairBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabDispatch" onclick="switchTab('dispatch')">Dispatch <span class="badge" id="dispatchBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabStatus" onclick="switchTab('status')">JO Status <span class="badge" id="statusBadge">—</span></button>
+  <button class="sub-nav-btn" id="tabShip" onclick="switchTab('ship')">Shipments <span class="badge" id="shipBadge">—</span></button>
+</nav>
+
+<div id="stateMsg" class="state-msg">Loading…</div>
+
+<div id="kanbanWrap" class="kanban-outer" style="display:none">
+  <div class="kanban-scroll" id="kanbanScroll"></div>
+</div>
+
+<div id="statusWrap" class="wrap" style="display:none"></div>
+<div id="shipWrap" style="display:none"></div>
+
+<!-- Split Modal -->
+<div class="modal-overlay" id="splitModal" onclick="if(event.target===this)closeSplit()">
+  <div class="modal-box" style="max-width:420px;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-title">Split Card</div>
+    <div class="modal-sub" id="splitSub"></div>
+    <div id="splitItemsBody" style="flex:1;overflow-y:auto;margin-bottom:12px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeSplit()">Cancel</button>
+      <button class="modal-confirm" id="splitConfirmBtn" onclick="confirmSplit()">Split</button>
+    </div>
+  </div>
+</div>
+
+<!-- Merge Modal -->
+<div class="modal-overlay" id="mergeModal" onclick="if(event.target===this)closeMerge()">
+  <div class="modal-box" style="max-width:400px;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-title">Merge Card</div>
+    <div class="modal-sub" id="mergeSub"></div>
+    <div id="mergeBody" style="flex:1;overflow-y:auto;margin-bottom:12px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeMerge()">Cancel</button>
+      <button class="modal-confirm" id="mergeConfirmBtn" onclick="confirmMerge()" disabled>Merge</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Firestore REST helpers ────────────────────────────────────────────
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+  const WC_CREDS = 'consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de';
+  const WC_BASE  = 'https://timberedgroup.com/wp-json/wc/v3';
+
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (v instanceof Date) return { timestampValue: v.toISOString() };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') { const f={}; Object.entries(v).forEach(([k,x])=>f[k]=toFsVal(x)); return { mapValue:{fields:f} }; }
+    return { stringValue: String(v) };
+  }
+  function fromFsVal(v) {
+    if (!v) return null;
+    if ('nullValue' in v) return null;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('integerValue' in v) return parseInt(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('stringValue' in v) return v.stringValue;
+    if ('timestampValue' in v) return new Date(v.timestampValue);
+    if ('arrayValue' in v) return (v.arrayValue.values||[]).map(fromFsVal);
+    if ('mapValue' in v) { const o={}; Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>o[k]=fromFsVal(x)); return o; }
+    return null;
+  }
+  function fromFsDoc(doc) {
+    const o={}; Object.entries(doc.fields||{}).forEach(([k,v])=>o[k]=fromFsVal(v));
+    o._id = doc.name.split('/').pop(); return o;
+  }
+  function toFsFields(obj) { const f={}; Object.entries(obj).forEach(([k,v])=>f[k]=toFsVal(v)); return {fields:f}; }
+
+  async function fsQuery(col) {
+    const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ structuredQuery:{ from:[{collectionId:col}], orderBy:[{field:{fieldPath:'created_at'},direction:'DESCENDING'}] } })
+    });
+    const rows = await res.json();
+    return rows.filter(r=>r.document).map(r=>fromFsDoc(r.document));
+  }
+  async function fsAdd(col, data) {
+    const res = await fetch(`${FS_BASE}/${col}?key=${FS_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(toFsFields(data))
+    });
+    return fromFsDoc(await res.json());
+  }
+  async function fsUpdate(col, id, data) {
+    const mask = Object.keys(data).map(k=>`updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+    await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}&${mask}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(toFsFields(data))
+    });
+  }
+  async function fsDelete(col, id) {
+    await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}`, { method:'DELETE' });
+  }
+
+  // ── Constants (phase arrays loaded from Firebase via phase-loader.js) ────
+  const DRAWING_URLS = {19486:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19483:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21se667bee636cb460ba0f3a152f1e2ba42&parId=2A9C6DEE3673012D%21sc3131289dbd5409797171d1800ab7add&o=OneUp',19347:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s818e86f6c590441e933250535f10f9bf&parId=2A9C6DEE3673012D%21s303bd289bc6a4c58af64d853850b1659&o=OneUp',19319:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s11f4ee4077f9408f8672955d47352368&parId=2A9C6DEE3673012D%21se829bfeb210f4bf99b709b41c7147dba&o=OneUp',19203:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s73bc51da28a54ccca357e12db3909729&parId=2A9C6DEE3673012D%21s36aa306d783d48cab45c4ba3589d5d6e&o=OneUp',18920:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sc850e1e2622d4e999f1831d4c2d1b3b6&parId=2A9C6DEE3673012D%21s2d994fb792b14f91bda5dceaf9e969b1&o=OneUp',18785:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s997fa2c5b237473ba4f052e2e09f8a4f&parId=2A9C6DEE3673012D%21sf6c7c496c9824026ac3095a75472a008&o=OneUp',17541:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21sac94237473ef4edd8f79303bc950e0f9&parId=2A9C6DEE3673012D%21s8b5fa6d448ef4beaa20b19b71b4a83d6&o=OneUp',17485:'https://onedrive.live.com/?redeem=aHR0cHM6Ly8xZHJ2Lm1zL2YvYy8yYTljNmRlZTM2NzMwMTJkL0lnQ1RKSUdzNEl4V1NZREk4UTFhWWJqNkFWTWhPVlc2aUVtRExEYThQS0ZuOTlV&cid=2A9C6DEE3673012D&sb=name&sd=1&id=2A9C6DEE3673012D%21s66c06f8cca954c8aa5390d2d49b692cb&parId=2A9C6DEE3673012D%21s102e7725335e4164acd2c7b912531671&o=OneUp'};
+
+  // ── State ────────────────────────────────────────────────────────────
+  let _jos       = [];
+  let _cards     = [];
+  let _shipments = [];
+  let _startedJoIds = new Set();
+  let _wcReleasedOrders = [];
+  let _splitCard = null;
+  let _selectedCardIds = new Set();
+  let _currentTab = 'production';
+  let _dragCardId = null;
+  let _dwgMap = { ...DRAWING_URLS }; // product_id → dwg_url, seeded with hardcoded fallbacks
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts instanceof Date ? ts : new Date(ts);
+    return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' });
+  }
+  function nextPhase(phase) {
+    const idx = PROD_PHASES.indexOf(phase);
+    return idx >= 0 && idx < PROD_PHASES.length - 1 ? PROD_PHASES[idx + 1] : null;
+  }
+  function phaseClass(phase) {
+    if (!phase) return 'phase-queue';
+    if (phase === 'Ready to Ship') return 'phase-ready';
+    if (phase === 'Shipped') return 'phase-shipped';
+    return 'phase-active';
+  }
+  function currentKanbanPhases() {
+    if (_currentTab === 'repair')   return REPAIR_PHASES;
+    if (_currentTab === 'dispatch') return DISPATCH_PHASES;
+    return PROD_PHASES;
+  }
+  function groupPhasesForCard(card) {
+    if (REPAIR_PHASES.includes(card.phase))   return REPAIR_PHASES;
+    if (DISPATCH_PHASES.includes(card.phase)) return DISPATCH_PHASES;
+    return PROD_PHASES;
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────
+  function switchTab(tab) {
+    _currentTab = tab;
+    const isKanban = ['production','repair','dispatch'].includes(tab);
+    ['production','repair','dispatch','status','ship'].forEach(t => {
+      document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))?.classList.toggle('active', t === tab);
+    });
+    document.getElementById('kanbanWrap').style.display = isKanban ? 'flex' : 'none';
+    document.getElementById('statusWrap').style.display = tab === 'status' ? 'block' : 'none';
+    document.getElementById('shipWrap').style.display   = tab === 'ship'   ? 'block' : 'none';
+    document.getElementById('stateMsg').style.display   = 'none';
+    if (isKanban)         renderKanban();
+    if (tab === 'status') renderStatus();
+    if (tab === 'ship')   renderShip();
+  }
+
+  // ── Load ─────────────────────────────────────────────────────────────
+  async function load() {
+    await window.phasesLoaded;
+    document.getElementById('stateMsg').textContent = 'Loading…';
+    document.getElementById('stateMsg').style.display = 'block';
+    try {
+      [_jos, _cards, _shipments] = await Promise.all([
+        fsQuery('job_orders'),
+        fsQuery('production_cards'),
+        fsQuery('shipments'),
+        loadPhasesFS()
+      ]);
+      _startedJoIds = new Set(_cards.map(c => c.jo_id).filter(Boolean));
+
+      // Fetch WC orders with JO released items not already tracked by a production card
+      try {
+        const activeOrderIds = new Set(_cards.flatMap(c =>
+          (c.items||[]).flatMap(it => (it.mto_orders||[]).map(o => String(o.order_id)))
+        ));
+        let page = 1, allWC = [];
+        while (true) {
+          const r = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=processing&per_page=100&page=${page}`);
+          const b = await r.json();
+          if (!b.length) break;
+          allWC = allWC.concat(b);
+          if (b.length < 100) break;
+          page++;
+        }
+        _wcReleasedOrders = allWC.filter(o =>
+          !activeOrderIds.has(String(o.id)) &&
+          o.line_items.some(i => (_phasesFS[`${o.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released')
+        );
+      } catch(_) { _wcReleasedOrders = []; }
+
+      // Fetch tg_drawing_url for all product IDs in current cards
+      const allProductIds = [...new Set(
+        _cards.flatMap(c => (c.items || []).map(i => i.product_id)).filter(Boolean)
+      )];
+      if (allProductIds.length) {
+        try {
+          const res   = await fetch(`${WC_BASE}/products?${WC_CREDS}&include=${allProductIds.join(',')}&per_page=100`);
+          const prods = await res.json();
+          prods.forEach(p => {
+            const dwg = (p.meta_data || []).find(m => m.key === 'tg_drawing_url')?.value || '';
+            if (dwg) _dwgMap[p.id] = dwg;
+          });
+        } catch(_) {}
+      }
+
+      document.getElementById('statusBadge').textContent   = _jos.length;
+      document.getElementById('shipBadge').textContent     = _shipments.length;
+      const ac = _cards.filter(c => !c.shipped);
+      document.getElementById('prodBadge').textContent     = ac.filter(c => PROD_PHASES.includes(c.phase)).length;
+      document.getElementById('repairBadge').textContent   = ac.filter(c => REPAIR_PHASES.includes(c.phase)).length;
+      document.getElementById('dispatchBadge').textContent = ac.filter(c => DISPATCH_PHASES.includes(c.phase)).length;
+      document.getElementById('stateMsg').style.display    = 'none';
+      document.getElementById('kanbanWrap').style.display  = 'flex';
+      renderKanban();
+    } catch(e) {
+      document.getElementById('stateMsg').textContent = 'Error loading: ' + e.message;
+    }
+  }
+
+  // ── KANBAN ───────────────────────────────────────────────────────────
+  // ── Product image popup ──────────────────────────────────────────────
+  function openImgPopup(src) {
+    document.getElementById('imgPopupSrc').src = src;
+    document.getElementById('imgOverlay').classList.add('open');
+  }
+  function closeImgPopup() {
+    document.getElementById('imgOverlay').classList.remove('open');
+    document.getElementById('imgPopupSrc').src = '';
+  }
+
+  // ── Order detail popup ───────────────────────────────────────────────
+  async function openOrderDetail(orderId) {
+    document.getElementById('ordHId').textContent  = `#${orderId}`;
+    document.getElementById('ordHDate').textContent = '';
+    document.getElementById('ordBody').innerHTML   = '<div class="ord-loading">Loading…</div>';
+    document.getElementById('ordOverlay').classList.add('open');
+    try {
+      const res = await fetch(`${WC_BASE}/orders/${orderId}?${WC_CREDS}`);
+      const o   = await res.json();
+      const b   = o.billing || {};
+      const date = (o.date_created || '').replace('T', ' ').slice(0, 16);
+      const addr = [b.address_1, b.address_2, b.city].filter(Boolean).join(', ');
+      const fmt  = n => Math.round(parseFloat(n || 0)).toLocaleString();
+      const itemsHtml = (o.line_items || []).map((item, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${item.name}</td>
+          <td style="text-align:center">×${item.quantity}</td>
+        </tr>`).join('');
+      document.getElementById('ordHDate').textContent = date;
+      document.getElementById('ordBody').innerHTML = `
+        <div class="ord-section">
+          <div class="ord-lbl">Customer</div>
+          <div class="ord-val" style="font-weight:700">${b.first_name || ''} ${b.last_name || ''}</div>
+          ${b.phone ? `<div class="ord-val" style="margin-top:3px"><a href="tel:${b.phone}" style="color:#7A4610">${b.phone}</a></div>` : ''}
+          ${addr    ? `<div class="ord-val" style="margin-top:3px;color:#888">${addr}</div>` : ''}
+        </div>
+        <div class="ord-section">
+          <div class="ord-lbl">Status</div>
+          <div class="ord-val">${o.status || '—'}</div>
+        </div>
+        <div class="ord-section">
+          <div class="ord-lbl">Items</div>
+          <table class="ord-tbl">
+            <thead><tr><th>#</th><th>Product</th><th>Qty</th></tr></thead>
+            <tbody>${itemsHtml || '<tr><td colspan="3" style="color:#aaa;padding:8px">No items</td></tr>'}</tbody>
+          </table>
+        </div>
+        ${o.customer_note ? `<div class="ord-section"><div class="ord-lbl">Note</div><div class="ord-val">${o.customer_note}</div></div>` : ''}`;
+    } catch(e) {
+      document.getElementById('ordBody').innerHTML = `<div class="ord-loading">Error loading order</div>`;
+    }
+  }
+  function closeOrderDetail() {
+    document.getElementById('ordOverlay').classList.remove('open');
+  }
+
+  // ── Drag & Drop ──────────────────────────────────────────────────────
+  function dragAfterElement(col, y) {
+    const cards = [...col.querySelectorAll('.prod-card:not(.dragging)')];
+    return cards.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      return offset < 0 && offset > closest.offset ? { offset, el: child } : closest;
+    }, { offset: -Infinity }).el;
+  }
+
+  function initDrag() {
+    document.querySelectorAll('.prod-card[data-card-id]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        _dragCardId = el.dataset.cardId;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => el.classList.add('dragging'), 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        document.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        document.querySelectorAll('.k-col-body.drag-over').forEach(x => x.classList.remove('drag-over'));
+      });
+    });
+
+    document.querySelectorAll('.k-col-body[data-phase]').forEach(col => {
+      col.addEventListener('dragover', e => {
+        e.preventDefault();
+        col.classList.add('drag-over');
+        col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        const after = dragAfterElement(col, e.clientY);
+        const ind = document.createElement('div');
+        ind.className = 'drop-indicator';
+        after ? col.insertBefore(ind, after) : col.appendChild(ind);
+      });
+      col.addEventListener('dragleave', e => {
+        if (!col.contains(e.relatedTarget)) {
+          col.classList.remove('drag-over');
+          col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        }
+      });
+      col.addEventListener('drop', async e => {
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        col.querySelectorAll('.drop-indicator').forEach(x => x.remove());
+        if (!_dragCardId) return;
+
+        const card = _cards.find(c => c._id === _dragCardId);
+        if (!card) return;
+        const newPhase = col.dataset.phase;
+
+        // Compute sort_order: midpoint between neighbours
+        const after = dragAfterElement(col, e.clientY);
+        const afterId = after?.dataset.cardId;
+        const colCards = _cards
+          .filter(c => c.phase === newPhase && !c.shipped && c._id !== _dragCardId)
+          .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
+        const afterIdx = afterId ? colCards.findIndex(c => c._id === afterId) : colCards.length;
+        const prev = afterIdx > 0 ? (colCards[afterIdx - 1].sort_order ?? Date.parse(colCards[afterIdx - 1].created_at) ?? 0) : 0;
+        const next = afterIdx < colCards.length ? (colCards[afterIdx].sort_order ?? Date.parse(colCards[afterIdx].created_at) ?? 0) : prev + 2000;
+        const newOrder = prev === 0 && afterIdx === 0 ? (next - 1000) : (prev + next) / 2;
+
+        const updates = { sort_order: newOrder };
+        if (card.phase !== newPhase) updates.phase = newPhase;
+
+        try {
+          await fsUpdate('production_cards', card._id, updates);
+          Object.assign(card, updates);
+          renderKanban();
+          if (_currentTab === 'status') renderStatus();
+        } catch(e) { alert('Error moving card: ' + e.message); }
+        _dragCardId = null;
+      });
+    });
+  }
+
+  function renderKanban() {
+    const scroll   = document.getElementById('kanbanScroll');
+    const phases   = currentKanbanPhases();
+    const queueJos = _currentTab === 'production'
+      ? _jos.filter(jo => !_startedJoIds.has(jo._id))
+      : [];
+    const wcReleased = _currentTab === 'production' ? _wcReleasedOrders : [];
+    let html = '';
+
+    // Phase columns
+    phases.forEach(phase => {
+      const activeCards = _cards
+        .filter(c => c.phase === phase && !c.shipped)
+        .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
+      const colId = 'col_' + phase.replace(/[^a-z0-9]/gi, '_');
+      const isJoReleased = phase === 'JO released';
+      const colCount = isJoReleased ? queueJos.length + wcReleased.length + activeCards.length : activeCards.length;
+      html += `<div class="k-col">
+        <div class="k-col-hdr">${phase} <span class="k-col-count">${colCount}</span></div>
+        <div class="k-col-body" id="${colId}" data-phase="${phase}">`;
+
+      // Pending JOs at the top of "JO released" column
+      if (isJoReleased) {
+        if (!queueJos.length && !wcReleased.length && !activeCards.length) {
+          html += `<div class="k-col-empty">Empty</div>`;
+        }
+        queueJos.forEach(jo => {
+          const items = jo.items || [];
+          const itemRows = items.slice(0, 4).map(it => {
+            const n = it.name || it.product_name || '—';
+            const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
+            return `<div class="q-jo-item-row">
+              <div class="q-jo-item-dot"></div>
+              <span class="q-jo-item-name">${n}</span>
+              <span class="q-jo-item-qty">×${q}</span>
+            </div>`;
+          }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
+          html += `<div class="q-jo-card">
+            <div class="q-jo-ref">${jo.ref || '—'}</div>
+            <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
+            <div class="q-jo-items">${itemRows}</div>
+          </div>`;
+        });
+        wcReleased.forEach(order => {
+          const relItems = order.line_items.filter(i => (_phasesFS[`${order.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
+          const b = order.billing;
+          const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
+          const itemRows = relItems.slice(0, 4).map(it =>
+            `<div class="q-jo-item-row">
+              <div class="q-jo-item-dot"></div>
+              <span class="q-jo-item-name">${it.name}</span>
+              <span class="q-jo-item-qty">×${it.quantity}</span>
+            </div>`
+          ).join('') + (relItems.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${relItems.length-4} more</div>` : '');
+          html += `<div class="q-jo-card">
+            <div class="q-jo-ref">#${order.id} · ${customer}</div>
+            <div class="q-jo-meta">${relItems.length} product${relItems.length!==1?'s':''}</div>
+            <div class="q-jo-items">${itemRows}</div>
+          </div>`;
+        });
+      } else if (!activeCards.length) {
+        html += `<div class="k-col-empty">Empty</div>`;
+      }
+
+      html += activeCards.map(card => cardHTML(card)).join('');
+      html += '</div></div>';
+    });
+
+    scroll.innerHTML = html;
+  }
+
+  function cardHTML(card) {
+    const items    = card.items || [];
+    const totalQty = items.reduce((s, i) => s + (i.total_qty || 0), 0);
+    // Show split label (letter) only when siblings exist in _cards
+    const splitGroup = card.split_group || card._id;
+    const hasSiblings = _cards.some(c => c._id !== card._id &&
+      (c.split_group === splitGroup || c._id === splitGroup));
+    const splitLabel = (card.split_label && hasSiblings) ? card.split_label : '';
+
+    const itemRows = items.map((it, idx) => {
+      const mto    = it.mto_qty || 0;
+      const mts    = it.mts_qty || 0;
+      const iid    = `${card._id}-item-${idx}`;
+      const dwgUrl = it.dwg_url || _dwgMap[it.product_id] || '';
+      // Deduplicate by order_id — keep first occurrence only
+      const ordersMap = {};
+      (it.mto_orders || []).forEach(o => {
+        if (!ordersMap[o.order_id]) ordersMap[o.order_id] = { ...o };
+      });
+      const orders = Object.values(ordersMap);
+
+      const orderRows = orders.map(o =>
+        `<div class="pc-order-row">
+          <span class="pc-order-id" style="cursor:pointer;text-decoration:underline dotted;" onclick="event.stopPropagation();openOrderDetail(${o.order_id})">#${o.order_id}</span>
+          <span class="pc-order-name">${o.customer || ''}</span>
+          <span class="pc-order-qty">×${o.qty}</span>
+        </div>`
+      ).join('');
+
+      const imgSrc = it.product_image || it.image || '';
+      const expandBody = `
+        <div class="pc-item-body" id="${iid}" style="display:none">
+          ${mto ? `<div class="pc-mto-block">
+            <div class="pc-mto-hdr"><span class="pc-chip pc-chip-mto" style="font-size:9px;">×${mto} MTO</span></div>
+            ${orderRows}
+          </div>` : ''}
+          ${mts ? `<div class="pc-mts-block"><span class="pc-chip pc-chip-mts" style="font-size:9px;">×${mts} MTS</span></div>` : ''}
+          ${imgSrc ? `<div style="margin-top:6px;">
+            <button class="pc-img-btn" onclick="event.stopPropagation();openImgPopup('${imgSrc}')" title="View image">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A4610" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </button>
+          </div>` : ''}
+        </div>`;
+
+      return `<div class="pc-item-wrap">
+        <div class="pc-item-row pc-item-clickable" onclick="toggleItem('${iid}')">
+          <span class="pc-chip pc-chip-total" style="font-size:9px;flex-shrink:0;">×${it.total_qty}</span>
+          <span class="pc-item-name" style="flex:1;min-width:0;">${it.product_name}</span>
+          ${dwgUrl ? `<a class="pc-dwg-link" href="${dwgUrl}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : ''}
+          <span class="pc-item-chev" id="${iid}-chev">▾</span>
+        </div>
+        ${expandBody}
+      </div>`;
+    }).join('');
+
+    const groupPhases = groupPhasesForCard(card);
+    const isLastProdPhase = card.phase === 'Inspection';
+    const otherPhases = [
+      ...groupPhases.filter(p => p !== card.phase),
+      ...(isLastProdPhase ? DISPATCH_PHASES : [])
+    ];
+    const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
+
+    return `<div class="prod-card" id="pcard-${card._id}" data-card-id="${card._id}">
+      <div class="pc-summary" onclick="toggleCard('${card._id}')">
+        <div class="pc-summary-main">
+          <span class="pc-jo-ref">${card.jo_ref || '—'}</span>
+          <span class="pc-summary-meta">${items.length} prod · ×${totalQty}</span>
+          ${splitLabel ? `<span class="pc-split-badge">${splitLabel}</span>` : ''}
+        </div>
+        <span class="pc-chev">▾</span>
+      </div>
+      <div class="pc-body" id="pcbody-${card._id}" style="display:none">
+        <div class="pc-items">${itemRows}</div>
+      </div>
+    </div>`;
+  }
+
+  function toggleCard(cardId) {
+    const card = document.getElementById(`pcard-${cardId}`);
+    if (!card) return;
+    const open = card.classList.toggle('expanded');
+    const body = document.getElementById(`pcbody-${cardId}`);
+    if (body) body.style.display = open ? 'block' : 'none';
+    const chev = card.querySelector('.pc-chev');
+    if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  function toggleItem(iid) {
+    const body = document.getElementById(iid);
+    const chev = document.getElementById(`${iid}-chev`);
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+  }
+
+  // ── Start Production — ONE card per JO ───────────────────────────────
+  async function startProduction(joId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    const jo = _jos.find(j => j._id === joId);
+    if (!jo) return;
+    try {
+      const items = (jo.items || []).map(item => ({
+        product_id:   item.product_id || 0,
+        product_name: item.name || item.product_name || '',
+        product_image:item.image || item.product_image || '',
+        mto_qty:      item.mto_qty ?? (item.mto?.qty ?? 0),
+        mts_qty:      item.mts_qty ?? (item.mts?.qty ?? 0),
+        total_qty:    (item.mto_qty ?? item.mto?.qty ?? 0) + (item.mts_qty ?? item.mts?.qty ?? 0),
+        mto_orders:   item.mto_orders ?? (item.mto?.orders ?? []),
+        dwg_url:      item.dwg_url || ''
+      }));
+      const newCard = await fsAdd('production_cards', {
+        jo_ref:      jo.ref || '—',
+        jo_id:       joId,
+        items,
+        phase:       'Cutting',
+        split_index: 1,
+        split_total: 1,
+        split_group: null,
+        shipped:     false,
+        created_at:  new Date().toISOString()
+      });
+      _cards.push(newCard);
+      _startedJoIds.add(joId);
+      // Sync item phases to Cutting in Firestore so other pages stay in sync
+      items.forEach(it => (it.mto_orders||[]).forEach(o =>
+        (o._lineItemIds||[]).forEach(lid => {
+          writePhaseFS(o.order_id, lid, it.product_id, 'Cutting');
+        })
+      ));
+      renderKanban();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '▶ Start Production';
+    }
+  }
+
+  async function startProductionFromWC(orderId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    const order = _wcReleasedOrders.find(o => o.id === orderId);
+    if (!order) return;
+    try {
+      const b = order.billing;
+      const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
+      const relItems = order.line_items.filter(i => (_phasesFS[`${orderId}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
+      const items = relItems.map(it => ({
+        product_id:    it.product_id,
+        product_name:  it.name,
+        product_image: it.image?.src || '',
+        mto_qty:       it.quantity,
+        mts_qty:       0,
+        total_qty:     it.quantity,
+        mto_orders:    [{ order_id: orderId, customer, qty: it.quantity, _lineItemIds: [it.id] }],
+        dwg_url:       ''
+      }));
+      const newCard = await fsAdd('production_cards', {
+        jo_ref:      `#${orderId}`,
+        jo_id:       null,
+        items,
+        phase:       'Cutting',
+        split_index: 1,
+        split_total: 1,
+        split_group: null,
+        shipped:     false,
+        created_at:  new Date().toISOString()
+      });
+      _cards.push(newCard);
+      // Update Firestore phases to Cutting so other pages stay in sync
+      relItems.forEach(it => {
+        writePhaseFS(orderId, it.id, it.product_id, 'Cutting');
+      });
+      _wcReleasedOrders = _wcReleasedOrders.filter(o => o.id !== orderId);
+      renderKanban();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '▶ Start Production';
+    }
+  }
+
+  // ── Move card ────────────────────────────────────────────────────────
+  async function moveCard(cardId, newPhase, el) {
+    if (!newPhase) return;
+    el.disabled = true;
+    const card = _cards.find(c => c._id === cardId);
+    if (!card) return;
+    try {
+      await fsUpdate('production_cards', cardId, { phase: newPhase });
+      card.phase = newPhase;
+      renderKanban();
+      if (_currentTab === 'status') renderStatus();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      el.disabled = false;
+      if (el.tagName === 'SELECT') el.value = '';
+    }
+  }
+
+  // ── Dispatch card to Packaging ───────────────────────────────────────
+  async function dispatchCard(cardId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Dispatching…';
+    const card = _cards.find(c => c._id === cardId);
+    if (!card) return;
+    try {
+      await fsUpdate('production_cards', cardId, { phase: 'Packaging' });
+      card.phase = 'Packaging';
+      renderKanban();
+      if (_currentTab === 'status') renderStatus();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '▶ Dispatch to Packaging';
+    }
+  }
+
+  // ── Split ────────────────────────────────────────────────────────────
+  function openSplit(cardId) {
+    _splitCard = _cards.find(c => c._id === cardId);
+    if (!_splitCard) return;
+    const items = _splitCard.items || [];
+    document.getElementById('splitSub').textContent =
+      `${_splitCard.jo_ref} · Enter qty to move to new batch (0 = keep all here)`;
+
+    const rows = items.map((it, idx) => {
+      const mto = it.mto_qty || 0;
+      const mts = it.mts_qty || 0;
+      const mtoRow = mto > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding-left:8px;">
+          <span class="pc-chip pc-chip-mto" style="font-size:9px;flex-shrink:0;">MTO ×${mto}</span>
+          <span style="font-size:10px;color:#aaa;flex-shrink:0;">→ move</span>
+          <input type="number" min="0" max="${mto}" value="0"
+            id="split-mto-${idx}"
+            style="width:54px;font-size:13px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
+            oninput="validateSplitInputs()"
+            onfocus="this.style.borderColor='#7A4610'" onblur="this.style.borderColor='#e8ddd4'">
+        </div>` : `<input type="hidden" id="split-mto-${idx}" value="0">`;
+      const mtsRow = mts > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding-left:8px;">
+          <span class="pc-chip pc-chip-mts" style="font-size:9px;flex-shrink:0;">MTS ×${mts}</span>
+          <span style="font-size:10px;color:#aaa;flex-shrink:0;">→ move</span>
+          <input type="number" min="0" max="${mts}" value="0"
+            id="split-mts-${idx}"
+            style="width:54px;font-size:13px;font-weight:700;border:1.5px solid #e8ddd4;border-radius:6px;padding:3px 6px;text-align:center;outline:none;"
+            oninput="validateSplitInputs()"
+            onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e8ddd4'">
+        </div>` : `<input type="hidden" id="split-mts-${idx}" value="0">`;
+      return `<div style="padding:8px 0;border-bottom:1px solid #f5f0eb;">
+        <div style="font-size:11px;font-weight:700;color:#333;margin-bottom:2px;">${it.product_name}</div>
+        ${mtoRow}${mtsRow}
+      </div>`;
+    }).join('');
+
+    document.getElementById('splitItemsBody').innerHTML = rows || '<div style="color:#aaa;font-size:12px;padding:12px 0;">No items</div>';
+    document.getElementById('splitConfirmBtn').disabled = true;
+    document.getElementById('splitModal').classList.add('open');
+  }
+
+  function validateSplitInputs() {
+    if (!_splitCard) return;
+    const items = _splitCard.items || [];
+    let anyMoved = false, valid = true;
+    items.forEach((it, idx) => {
+      const mtoInp = document.getElementById(`split-mto-${idx}`);
+      const mtsInp = document.getElementById(`split-mts-${idx}`);
+      const mtoV = parseInt(mtoInp?.value) || 0;
+      const mtsV = parseInt(mtsInp?.value) || 0;
+      if (mtoV > (it.mto_qty||0)) { if(mtoInp) mtoInp.style.borderColor='#e74c3c'; valid=false; }
+      else { if(mtoInp) mtoInp.style.borderColor='#e8ddd4'; }
+      if (mtsV > (it.mts_qty||0)) { if(mtsInp) mtsInp.style.borderColor='#e74c3c'; valid=false; }
+      else { if(mtsInp) mtsInp.style.borderColor='#e8ddd4'; }
+      if (mtoV > 0 || mtsV > 0) anyMoved = true;
+    });
+    document.getElementById('splitConfirmBtn').disabled = !anyMoved || !valid;
+  }
+
+  function closeSplit() {
+    document.getElementById('splitModal').classList.remove('open');
+    _splitCard = null;
+  }
+
+  // ── Merge ────────────────────────────────────────────────────────────
+  let _mergeCard   = null;
+  let _mergeTarget = null;
+
+  function openMerge(cardId) {
+    _mergeCard   = _cards.find(c => c._id === cardId);
+    _mergeTarget = null;
+    if (!_mergeCard) return;
+
+    const siblings = _cards.filter(c =>
+      c._id !== cardId && c.jo_id === _mergeCard.jo_id && !c.shipped
+    );
+
+    document.getElementById('mergeSub').textContent =
+      `${_mergeCard.jo_ref} · Select a card to merge into this one`;
+
+    if (!siblings.length) {
+      document.getElementById('mergeBody').innerHTML =
+        '<div style="font-size:12px;color:#aaa;padding:12px 0;">No other cards for this JO</div>';
+      document.getElementById('mergeConfirmBtn').disabled = true;
+    } else {
+      const rows = siblings.map(c => {
+        const items = c.items || [];
+        const qty   = items.reduce((s,i)=>s+(i.total_qty||0),0);
+        const names = items.map(i=>i.product_name).join(', ');
+        const splitLbl = c.split_label ? ` · ${c.split_label}` : '';
+        return `<div class="merge-option" id="mopt-${c._id}" onclick="selectMerge('${c._id}')">
+          <div class="merge-opt-ref">${c.jo_ref}${splitLbl}</div>
+          <div class="merge-opt-phase">${c.phase}</div>
+          <div class="merge-opt-items">${names}</div>
+          <div class="merge-opt-qty">×${qty}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('mergeBody').innerHTML = rows;
+      document.getElementById('mergeConfirmBtn').disabled = true;
+    }
+    document.getElementById('mergeModal').classList.add('open');
+  }
+
+  function selectMerge(targetId) {
+    _mergeTarget = _cards.find(c => c._id === targetId);
+    document.querySelectorAll('.merge-option').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`mopt-${targetId}`)?.classList.add('selected');
+    document.getElementById('mergeConfirmBtn').disabled = false;
+  }
+
+  function closeMerge() {
+    document.getElementById('mergeModal').classList.remove('open');
+    _mergeCard = _mergeTarget = null;
+  }
+
+  async function confirmMerge() {
+    if (!_mergeCard || !_mergeTarget) return;
+    const btn = document.getElementById('mergeConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Merging…';
+
+    try {
+      // Combine items: same product_id → add quantities
+      const merged = [...(_mergeCard.items || [])];
+      (_mergeTarget.items || []).forEach(tItem => {
+        const existing = merged.find(m => m.product_id === tItem.product_id);
+        if (existing) {
+          existing.mto_qty    = (existing.mto_qty || 0) + (tItem.mto_qty || 0);
+          existing.mts_qty    = (existing.mts_qty || 0) + (tItem.mts_qty || 0);
+          existing.total_qty  = existing.mto_qty + existing.mts_qty;
+          existing.mto_orders = [...(existing.mto_orders||[]), ...(tItem.mto_orders||[])];
+        } else {
+          merged.push({ ...tItem });
+        }
+      });
+
+      // Surviving card takes the earlier letter
+      const aLabel = _mergeCard.split_label || 'Z';
+      const bLabel = _mergeTarget.split_label || 'Z';
+      const winLabel = aLabel < bLabel ? aLabel : bLabel;
+      await fsUpdate('production_cards', _mergeCard._id, { items: merged, split_label: winLabel });
+      _mergeCard.items = merged;
+      _mergeCard.split_label = winLabel;
+
+      // Delete the target card
+      await fsDelete('production_cards', _mergeTarget._id);
+      _cards = _cards.filter(c => c._id !== _mergeTarget._id);
+
+      closeMerge();
+      renderKanban();
+      if (_currentTab === 'status') renderStatus();
+    } catch(e) {
+      alert('Error merging: ' + e.message);
+    }
+    btn.disabled = false; btn.textContent = 'Merge';
+  }
+
+  async function confirmSplit() {
+    if (!_splitCard) return;
+    const card  = _splitCard;
+    const items = card.items || [];
+
+    // Build new-batch items — distribute MTO order qty by greedy allocation
+    const newItems  = [];
+    const keepItems = [];
+    items.forEach((it, idx) => {
+      const mtoMove = Math.min(parseInt(document.getElementById(`split-mto-${idx}`)?.value) || 0, it.mto_qty || 0);
+      const mtsMove = Math.min(parseInt(document.getElementById(`split-mts-${idx}`)?.value) || 0, it.mts_qty || 0);
+      const mtoKeep  = (it.mto_qty || 0) - mtoMove;
+      const mtsKeep  = (it.mts_qty || 0) - mtsMove;
+      const totalMove = mtoMove + mtsMove;
+      const totalKeep = mtoKeep + mtsKeep;
+
+      // Distribute mtoMove across orders greedily (preserves order lineage)
+      const moveOrders = [], keepOrders = [];
+      let remaining = mtoMove;
+      (it.mto_orders || []).forEach(o => {
+        const take = Math.min(o.qty || 0, remaining);
+        remaining -= take;
+        if (take > 0)           moveOrders.push({ ...o, qty: take });
+        if ((o.qty || 0) > take) keepOrders.push({ ...o, qty: (o.qty || 0) - take });
+      });
+
+      if (totalMove > 0) newItems.push({ ...it, mto_qty: mtoMove, mts_qty: mtsMove, total_qty: totalMove, mto_orders: moveOrders });
+      if (totalKeep > 0) keepItems.push({ ...it, mto_qty: mtoKeep, mts_qty: mtsKeep, total_qty: totalKeep, mto_orders: keepOrders });
+    });
+
+    if (!newItems.length) { alert('No items selected to move'); return; }
+
+    const btn = document.getElementById('splitConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Splitting…';
+
+    try {
+      const splitGroup = card.split_group || card._id;
+
+      // Determine letter labels
+      const groupCards = _cards.filter(c =>
+        c._id === splitGroup || c.split_group === splitGroup);
+      const usedLabels = groupCards.map(c => c.split_label).filter(Boolean);
+
+      // Assign 'A' to original card if first split
+      let origLabel = card.split_label;
+      if (!origLabel) {
+        origLabel = 'A';
+        usedLabels.push('A');
+      }
+      // Next unused letter for new card
+      let code = 65; // 'A'
+      while (usedLabels.includes(String.fromCharCode(code))) code++;
+      const newLabel = String.fromCharCode(code);
+
+      // Update original card with remaining items + label
+      await fsUpdate('production_cards', card._id, {
+        items: keepItems, split_group: splitGroup, split_label: origLabel
+      });
+      card.items = keepItems;
+      card.split_group = splitGroup;
+      card.split_label = origLabel;
+
+      // Create new card for moved items
+      const newCard = await fsAdd('production_cards', {
+        jo_ref: card.jo_ref, jo_id: card.jo_id,
+        items: newItems,
+        phase: card.phase,
+        split_group: splitGroup, split_label: newLabel,
+        shipped: false, created_at: new Date().toISOString()
+      });
+      _cards.push(newCard);
+
+      closeSplit();
+      renderKanban();
+    } catch(e) {
+      alert('Error splitting: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Split';
+  }
+
+  // ── JO STATUS ────────────────────────────────────────────────────────
+  function renderStatus() {
+    const wrap = document.getElementById('statusWrap');
+    if (!_jos.length) {
+      wrap.innerHTML = '<div class="state-msg">No job orders found</div>';
+      return;
+    }
+    const html = _jos.map(jo => {
+      const joCards = _cards.filter(c => c.jo_id === jo._id)
+        .sort((a, b) => (a.split_label || '').localeCompare(b.split_label || ''));
+      const started   = joCards.length > 0;
+      const allShipped = started && joCards.every(c => c.shipped);
+      const statusKey  = !started ? 'queue' : allShipped ? 'done' : 'active';
+      const statusLabel = { queue:'In Queue', done:'Fully Shipped', active:'In Production' }[statusKey];
+      const statusCls   = { queue:'jos-status-queue', done:'jos-status-done', active:'jos-status-active' }[statusKey];
+
+      let cardsHtml = '';
+      if (!started) {
+        cardsHtml = `<div style="font-size:11px;color:#bbb;">Not started yet</div>`;
+      } else {
+        cardsHtml = joCards.map(card => {
+          const phaseLabel = card.shipped ? 'Shipped' : card.phase;
+          const pCls  = card.shipped ? 'phase-shipped' : phaseClass(card.phase);
+          const splitGroup = card.split_group || card._id;
+          const hasSiblings = joCards.some(c => c._id !== card._id &&
+            (c.split_group === splitGroup || c._id === splitGroup));
+          const split = (card.split_label && hasSiblings)
+            ? `<span class="pc-split-badge" style="margin-right:4px;">${card.split_label}</span>`
+            : '';
+          const shpRef = card.shipped && card.shipment_ref
+            ? `<span style="font-size:9px;color:#2980b9;margin-left:4px;">${card.shipment_ref}</span>` : '';
+          const cardItems = (card.items || []);
+          const totalQty  = cardItems.reduce((s,i)=>s+(i.total_qty||0),0);
+          const itemNames = cardItems.map(i=>i.product_name).join(', ');
+          return `<div class="jos-card-row" style="flex-wrap:wrap;gap:4px;">
+            <span class="jos-card-name" title="${itemNames}" style="flex-basis:100%;margin-bottom:2px;">${split}${cardItems.length} product${cardItems.length!==1?'s':''}: ${itemNames}</span>
+            <span class="jos-card-qty">×${totalQty} units</span>
+            <span class="jos-phase-badge ${pCls}">${phaseLabel}</span>${shpRef}
+          </div>`;
+        }).join('');
+      }
+
+      const resetBtn = started && !allShipped
+        ? `<button class="jo-reset-btn" onclick="resetToQueue('${jo._id}',this)">↩ Reset</button>`
+        : '';
+      return `<div class="jo-status-card">
+        <div class="jos-header">
+          <span class="jos-ref">${jo.ref || '—'}</span>
+          <span class="jos-date">${fmtDate(jo.created_at)}</span>
+          <span class="jos-status ${statusCls}">${statusLabel}</span>
+          ${resetBtn}
+        </div>
+        <div class="jos-cards">${cardsHtml}</div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = html;
+  }
+
+  // ── Reset JO to Queue ────────────────────────────────────────────────
+  async function resetToQueue(joId, btn) {
+    if (!confirm('Reset this JO to Queue? All production cards will be deleted.')) return;
+    btn.disabled = true;
+    btn.textContent = '…';
+    const joCards = _cards.filter(c => c.jo_id === joId);
+    try {
+      await Promise.all(joCards.map(c => fsDelete('production_cards', c._id)));
+      _cards = _cards.filter(c => c.jo_id !== joId);
+      _startedJoIds.delete(joId);
+      renderStatus();
+      if (['production','repair','dispatch'].includes(_currentTab)) renderKanban();
+    } catch(e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '↩ Reset';
+    }
+  }
+
+  // ── SHIPMENTS ────────────────────────────────────────────────────────
+  function renderShip() {
+    const readyCards = _cards.filter(c => c.phase === 'Ready to Ship' && !c.shipped);
+    _selectedCardIds = new Set();
+
+    let html = `<div class="ship-bar">
+      <span class="ship-bar-info" id="shipBarInfo">${readyCards.length} card${readyCards.length!==1?'s':''} ready · 0 selected</span>
+      <button class="ship-create-btn" id="createShipBtn" onclick="createShipment()" disabled>Create Shipment</button>
+    </div>
+    <div class="wrap" style="padding-top:10px;">`;
+
+    if (readyCards.length) {
+      html += `<div class="section-lbl">Ready to Ship — select items</div>`;
+      readyCards.forEach(card => {
+        const cardItems = card.items || [];
+        const totalQty  = cardItems.reduce((s,i)=>s+(i.total_qty||0),0);
+        const splitLabel = card.split_total > 1 ? ` · ${card.split_index}/${card.split_total}` : '';
+        const itemSummary = cardItems.map(i=>i.product_name).join(', ');
+        html += `<div class="ready-card" id="rcard-${card._id}" onclick="toggleSelect('${card._id}')">
+          <div class="ready-check" id="rcheck-${card._id}"></div>
+          <div class="ready-info">
+            <div class="ready-name">${card.jo_ref}${splitLabel}</div>
+            <div class="ready-meta">${cardItems.length} product${cardItems.length!==1?'s':''} · ${itemSummary}</div>
+          </div>
+          <div class="ready-qty">${totalQty}</div>
+        </div>`;
+      });
+    } else {
+      html += `<div class="state-msg" style="padding:40px 20px;">No items ready to ship</div>`;
+    }
+
+    if (_shipments.length) {
+      html += `<div class="section-lbl">Shipment History</div>`;
+      _shipments.forEach(shp => {
+        const items = shp.items || [];
+        const totalShpQty = items.reduce((s,i)=>s+(i.total_qty||0),0);
+        const itemsHtml = items.map(it =>
+          `<div class="shp-item-row">
+            <span class="shp-item-name">${it.product_name || '—'}</span>
+            <span class="shp-item-jo">${it.jo_ref || ''}${(it.split_total||1)>1?` ${it.split_index}/${it.split_total}`:''}</span>
+            <span class="shp-item-qty">×${it.total_qty || 0}</span>
+          </div>`
+        ).join('');
+        html += `<div class="shp-hist-card" id="shp-${shp._id}">
+          <div class="shp-hist-top" onclick="this.closest('.shp-hist-card').classList.toggle('open')">
+            <span class="shp-ref">${shp.ref || '—'}</span>
+            <span class="shp-date">${fmtDate(shp.created_at)}</span>
+            <span class="shp-count">${items.length} item${items.length!==1?'s':''} · ×${totalShpQty}</span>
+            <button class="shp-pdf-btn" onclick="event.stopPropagation();exportShipmentPDF('${shp._id}')">PDF</button>
+            <button class="shp-edit-btn" onclick="event.stopPropagation();editShipment('${shp._id}')">Edit</button>
+            <button class="shp-del-btn" onclick="event.stopPropagation();deleteShipment('${shp._id}','${(shp.ref||'').replace(/'/g,"\\'")}')">Delete</button>
+          </div>
+          <div class="shp-body">${itemsHtml}</div>
+        </div>`;
+      });
+    }
+
+    html += '</div>';
+    document.getElementById('shipWrap').innerHTML = html;
+  }
+
+  function toggleSelect(cardId) {
+    if (_selectedCardIds.has(cardId)) _selectedCardIds.delete(cardId);
+    else _selectedCardIds.add(cardId);
+    const card  = document.getElementById(`rcard-${cardId}`);
+    const check = document.getElementById(`rcheck-${cardId}`);
+    const sel   = _selectedCardIds.has(cardId);
+    card?.classList.toggle('selected', sel);
+    if (check) check.textContent = sel ? '✓' : '';
+    const n = _selectedCardIds.size;
+    const readyCards = _cards.filter(c => c.phase === 'Ready to Ship' && !c.shipped);
+    const info = document.getElementById('shipBarInfo');
+    if (info) info.textContent = `${readyCards.length} card${readyCards.length!==1?'s':''} ready · ${n} selected`;
+    const btn = document.getElementById('createShipBtn');
+    if (btn) btn.disabled = n === 0;
+  }
+
+  async function createShipment() {
+    if (!_selectedCardIds.size) return;
+    const btn = document.getElementById('createShipBtn');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    const selected = _cards.filter(c => _selectedCardIds.has(c._id));
+    const nextNum  = String(_shipments.length + 1).padStart(3, '0');
+    const ref      = `SHP_${nextNum}`;
+
+    // Flatten: each card → one row per product item
+    const items = selected.flatMap(c =>
+      (c.items || []).map(it => ({
+        card_id:       c._id,
+        jo_ref:        c.jo_ref,
+        jo_id:         c.jo_id,
+        split_index:   c.split_index || 1,
+        split_total:   c.split_total || 1,
+        product_id:    it.product_id,
+        product_name:  it.product_name,
+        product_image: it.product_image || '',
+        mto_qty:       it.mto_qty || 0,
+        mts_qty:       it.mts_qty || 0,
+        total_qty:     it.total_qty || 0,
+        mto_orders:    it.mto_orders || []
+      }))
+    );
+
+    try {
+      const shp = await fsAdd('shipments', { ref, items, created_at: new Date().toISOString() });
+      _shipments.unshift(shp);
+      document.getElementById('shipBadge').textContent = _shipments.length;
+
+      await Promise.all(selected.map(c =>
+        fsUpdate('production_cards', c._id, { shipped: true, shipment_ref: ref, phase: 'Sent to WH' })
+      ));
+      selected.forEach(c => { c.shipped = true; c.shipment_ref = ref; c.phase = 'Sent to WH'; });
+
+      // Update WC order line items so they appear in warehouse Receiving tab
+      await wcSetPhaseForCards(selected, 'Sent to WH');
+
+      renderShip();
+      if (_currentTab === 'status') renderStatus();
+    } catch(e) {
+      alert('Error creating shipment: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'Create Shipment';
+    }
+  }
+
+  async function wcSetPhaseForCards(cards, phase) {
+    const writes = [];
+    cards.forEach(c => (c.items || []).forEach(it =>
+      (it.mto_orders || []).forEach(o =>
+        (o._lineItemIds || []).forEach(lid => {
+          writes.push(writePhaseFS(o.order_id, lid, it.product_id, phase));
+        })
+      )
+    ));
+    await Promise.all(writes);
+  }
+
+  async function editShipment(shipId) {
+    const shp = _shipments.find(s => s._id === shipId);
+    if (!shp) return;
+    const newRef = window.prompt('Rename shipment:', shp.ref || '');
+    if (newRef === null || newRef === shp.ref) return;
+    try {
+      await fsUpdate('shipments', shipId, { ref: newRef });
+      shp.ref = newRef;
+      renderShip();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function deleteShipment(shipId, ref) {
+    if (!confirm(`Delete shipment "${ref}"? This cannot be undone.`)) return;
+    try {
+      await fsDelete('shipments', shipId);
+      _shipments = _shipments.filter(s => s._id !== shipId);
+      document.getElementById('shipBadge').textContent = _shipments.length;
+      renderShip();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // ── PDF Export ───────────────────────────────────────────────────────
+  function exportShipmentPDF(shipId) {
+    const w = window.open('', '_blank');
+    if (w) w.document.write('<html><body>Generating packing list…</body></html>');
+    const shp = _shipments.find(s => s._id === shipId);
+    if (!shp) { if (w) w.close(); return; }
+
+    const items = shp.items || [];
+    const totalQty = items.reduce((s, i) => s + (i.total_qty || 0), 0);
+
+    const rows = items.map((it, idx) => {
+      const mtoOrders = (it.mto_orders || []).map(o =>
+        `#${o.order_id} ${o.customer || ''} ×${o.qty}`
+      ).join(', ');
+      const splitCell = (it.split_total || 1) > 1 ? `${it.split_index}/${it.split_total}` : '—';
+      return `<tr>
+        <td>${idx + 1}</td>
+        <td style="font-weight:600;">${it.product_name || '—'}</td>
+        <td style="color:#7A4610;font-weight:700;">${it.jo_ref || '—'}</td>
+        <td>${it.mto_qty ? `×${it.mto_qty}${mtoOrders ? '<br><small style="color:#999;font-size:10px;">'+mtoOrders+'</small>' : ''}` : '—'}</td>
+        <td>${it.mts_qty ? `×${it.mts_qty}` : '—'}</td>
+        <td style="text-align:center;">${splitCell}</td>
+        <td style="font-weight:800;text-align:center;font-size:15px;">${it.total_qty || 0}</td>
+      </tr>`;
+    }).join('');
+
+    const dateStr = new Date(shp.created_at instanceof Date ? shp.created_at : shp.created_at)
+      .toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' });
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${shp.ref} — Packing List</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; color: #333; }
+      h1 { font-size: 22px; color: #7A4610; margin: 0 0 4px; }
+      .meta { font-size: 12px; color: #aaa; margin-bottom: 24px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { background: #7A4610; color: #fff; padding: 9px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+      td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+      tr:last-child td { border-bottom: none; }
+      .total-row td { background: #f5f0eb; font-weight: 800; font-size: 15px; padding: 10px; border-top: 2px solid #7A4610; }
+      @media print { body { margin: 10mm; } }
+    </style></head><body>
+    <h1>Packing List — ${shp.ref}</h1>
+    <div class="meta">Date: ${dateStr} &nbsp;·&nbsp; ${items.length} item${items.length!==1?'s':''} &nbsp;·&nbsp; ${totalQty} units total</div>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Product</th><th>JO Ref</th><th>MTO</th><th>MTS</th><th>Split</th><th>Qty</th>
+      </tr></thead>
+      <tbody>
+        ${rows}
+        <tr class="total-row">
+          <td colspan="6" style="text-align:right;">TOTAL</td>
+          <td style="text-align:center;">${totalQty}</td>
+        </tr>
+      </tbody>
+    </table>
+    <script>window.onload = () => window.print();<\/script>
+    </body></html>`;
+
+    if (w) { w.document.write(html); w.document.close(); }
+    else {
+      const a = document.createElement('a');
+      a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+      a.download = `${shp.ref}-packing-list.html`;
+      a.click();
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migrate Stock → Firebase</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; margin: 0; padding: 20px; }
+    h2 { color: #7A4610; margin-bottom: 16px; }
+    button { background: #7A4610; color: #fff; border: none; border-radius: 8px; padding: 12px 28px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #log { margin-top: 16px; background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; padding: 12px 16px; font-size: 12px; line-height: 1.8; max-height: 60vh; overflow-y: auto; white-space: pre-wrap; }
+    .ok  { color: #27ae60; }
+    .err { color: #e74c3c; }
+    .info { color: #7A4610; font-weight: 700; }
+  </style>
+</head>
+<body>
+<h2>Migrate Stock → warehouse (Firebase)</h2>
+<p style="font-size:13px;color:#888;">Writes all products to the <strong>warehouse</strong> Firestore collection in one batch. Safe to re-run — existing docs are overwritten.</p>
+<button id="btn" onclick="run()">Run Migration</button>
+<div id="log"></div>
+
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  const PRODUCTS = [
+    { id: 19487, name: 'Timbered strength ladder half',       stock: 0,  defected: 0 },
+    { id: 19486, name: 'Timbered strength ladder -long',      stock: 0,  defected: 0 },
+    { id: 19483, name: 'Timbered Strength Ladder',            stock: 0,  defected: 0 },
+    { id: 19347, name: 'Kids activity station',               stock: 0,  defected: 0 },
+    { id: 19319, name: 'Prayer Rug Holder',                   stock: 1,  defected: 0 },
+    { id: 19203, name: 'Prayer Mat Organizer',                stock: 7,  defected: 1 },
+    { id: 18999, name: 'Pikler Slider',                       stock: 0,  defected: 0 },
+    { id: 18920, name: 'StepLine Wall Shelf',                 stock: 0,  defected: 0 },
+    { id: 18906, name: 'PureForm Spine Corrector',            stock: 0,  defected: 0 },
+    { id: 18847, name: 'Creative Corner Bundle',              stock: 0,  defected: 0 },
+    { id: 18785, name: 'Timbered Sensory Table',              stock: 0,  defected: 0 },
+    { id: 17541, name: 'BabyEase Highchair',                  stock: 1,  defected: 0 },
+    { id: 17485, name: 'White Arc Table',                     stock: 1,  defected: 1 },
+    { id: 17477, name: 'Arcadia Charm Table',                 stock: 0,  defected: 0 },
+    { id: 17478, name: 'Minimalist Timber Duo',               stock: 0,  defected: 0 },
+    { id: 17481, name: 'Warm Arc Centerpiece',                stock: 0,  defected: 0 },
+    { id: 17475, name: 'Midday Elegance Table',               stock: 0,  defected: 0 },
+    { id: 17416, name: 'SmoothLine Stand',                    stock: 0,  defected: 0 },
+    { id: 17408, name: 'PureTone Table',                      stock: 0,  defected: 0 },
+    { id: 17402, name: 'Scandi Breeze Nightstand',            stock: 0,  defected: 0 },
+    { id: 17397, name: 'White Balance Drawer Stand',          stock: 0,  defected: 0 },
+    { id: 17389, name: 'Simple Serenity Table',               stock: 0,  defected: 0 },
+    { id: 17381, name: 'Toy storage hub',                     stock: 2,  defected: 0 },
+    { id: 17377, name: 'MiniCar Garage',                      stock: 3,  defected: 2 },
+    { id: 17175, name: 'The Woodline Stand',                  stock: 1,  defected: 2 },
+    { id: 17176, name: 'The Angular Hanger',                  stock: 0,  defected: 2 },
+    { id: 17177, name: 'The Rail Rack',                       stock: 0,  defected: 1 },
+    { id: 17179, name: 'Little Genius Table',                 stock: 0,  defected: 0 },
+    { id: 17167, name: 'Colorful Tales Rack',                 stock: 3,  defected: 0 },
+    { id: 17170, name: 'The Teepee Hanger',                   stock: 1,  defected: 0 },
+    { id: 17171, name: 'The Rotary Library',                  stock: 0,  defected: 0 },
+    { id: 17173, name: 'The Lean Hanger',                     stock: 1,  defected: 0 },
+    { id: 17174, name: 'The Modern Trestle',                  stock: 1,  defected: 0 },
+    { id: 17159, name: 'Elevated Towel Stand',                stock: 0,  defected: 0 },
+    { id: 17160, name: 'Nordic Paper Stand',                  stock: 0,  defected: 1 },
+    { id: 17161, name: 'Natural Nook Stand',                  stock: 0,  defected: 0 },
+    { id: 17163, name: 'Minimalist Clothes Stand',            stock: 1,  defected: 0 },
+    { id: 17164, name: 'Sofa Side Saver',                     stock: 3,  defected: 0 },
+    { id: 17155, name: 'Mini World Organizer',                stock: 0,  defected: 0 },
+    { id: 17094, name: 'Dreamland Storage',                   stock: 0,  defected: 0 },
+    { id: 17056, name: 'The Wave Hook',                       stock: 0,  defected: 0 },
+    { id: 17034, name: 'The Lean Hook Rack',                  stock: 0,  defected: 1 },
+    { id: 17026, name: 'All-in-One Reflection',               stock: 1,  defected: 2 },
+    { id: 17020, name: 'The Cozy Slipper Stand',              stock: 1,  defected: 0 },
+    { id: 17028, name: 'Minimalist Bedside',                  stock: 2,  defected: 0 },
+    { id: 17024, name: 'Minimalist Shoe Shelf',               stock: 0,  defected: 0 },
+    { id: 17022, name: 'SpaceSaver Shoe Shelf',               stock: 0,  defected: 0 },
+    { id: 17012, name: 'Daily Footwear Rack',                 stock: 0,  defected: 0 },
+    { id: 17006, name: 'Shoe Lounge Bench',                   stock: 0,  defected: 0 },
+    { id: 17004, name: 'Kids Story House',                    stock: 1,  defected: 0 },
+    { id: 16893, name: 'Active Play Wall',                    stock: 0,  defected: 0 },
+    { id: 16889, name: 'Kiddie Wardrobe Hub',                 stock: 0,  defected: 0 },
+    { id: 16601, name: 'Growing Strong Pikler Set',           stock: 0,  defected: 0 },
+    { id: 16548, name: 'Golden Branch Bracelet Holder',       stock: 6,  defected: 0 },
+    { id: 16544, name: 'Modern Sunglass Stand',               stock: 2,  defected: 0 },
+    { id: 16538, name: 'Active Climber Cube',                 stock: 1,  defected: 0 },
+    { id: 16535, name: 'Eco-Luxe Clothing Organizer',         stock: 0,  defected: 2 },
+    { id: 16526, name: 'Cube Charm Organizer',                stock: 0,  defected: 0 },
+    { id: 16515, name: 'Rotating Moon Shelf - 6 Levels',      stock: 0,  defected: 0 },
+    { id: 16518, name: 'Rotating Moon Shelf - 5 Levels',      stock: 0,  defected: 0 },
+    { id: 16498, name: 'Storyland Organizer',                 stock: 1,  defected: 0 },
+    { id: 16491, name: 'Jewelry Haven Tree',                  stock: 1,  defected: 0 },
+    { id: 16488, name: 'Modern Towel Rack',                   stock: 2,  defected: 0 },
+    { id: 16485, name: 'Smart Clothes Hanger',                stock: 0,  defected: 0 },
+    { id: 16478, name: 'Scandinavian Cane Chair',             stock: 0,  defected: 0 },
+    { id: 16316, name: 'Future Scholar Set',                  stock: 1,  defected: 0 },
+    { id: 16306, name: 'Gentle Child Seat',                   stock: 1,  defected: 0 },
+    { id: 16308, name: 'Cozy Mug Shelf',                      stock: 1,  defected: 0 },
+    { id: 16273, name: 'Ergonomic Toilet Footrest',           stock: 1,  defected: 0 },
+    { id: 16271, name: 'Luxe Beauty Tower',                   stock: 2,  defected: 1 },
+    { id: 16263, name: 'My Little Library',                   stock: 1,  defected: 0 },
+    { id: 16257, name: 'The All-in-One Desk Keeper',          stock: 0,  defected: 0 },
+    { id: 16244, name: "The Fashionista's Organizer",         stock: 0,  defected: 0 },
+    { id: 16238, name: 'The Tea & Coffee Stash Box',          stock: 2,  defected: 0 },
+    { id: 16248, name: 'The Elegant Entry Seat',              stock: 2,  defected: 0 },
+    { id: 16246, name: 'Rest & Store Bench',                  stock: 0,  defected: 4 },
+    { id: 16240, name: 'The Productivity Hub',                stock: 0,  defected: 0 },
+    { id: 16219, name: 'Junior Jungle Gym',                   stock: 1,  defected: 0 },
+    { id: 16215, name: 'Makeup & Brushes Keeper',             stock: 0,  defected: 0 },
+    { id: 16213, name: 'Femme Beauty Stand',                  stock: 4,  defected: 0 },
+    { id: 16204, name: 'WorkSmart Riser',                     stock: 0,  defected: 0 },
+    { id: 16158, name: 'Montessori Wall Art Station',         stock: 13, defected: 0 },
+    { id: 16156, name: 'Kiddy Story Nook',                    stock: 0,  defected: 1 },
+    { id: 16152, name: 'Montessori Learning Shelf',           stock: 0,  defected: 0 },
+    { id: 16154, name: 'Dreamy Reads Organizer',              stock: 10, defected: 4 },
+    { id: 16148, name: 'Drawer & Shoe Bench',                 stock: 0,  defected: 0 },
+    { id: 16150, name: 'Shoe Storage Box',                    stock: 0,  defected: 1 },
+    { id: 16146, name: 'Electro-meter Cover Shelf',           stock: 3,  defected: 1 },
+    { id: 16142, name: 'Cozy Mug Organizer',                  stock: 0,  defected: 1 },
+    { id: 16144, name: 'Entryway Shoe Bench',                 stock: 0,  defected: 0 },
+    { id: 16140, name: 'Fruit Twin Rack',                     stock: 3,  defected: 1 },
+    { id: 16136, name: 'Adjustable DuoStyle Organizer',       stock: 0,  defected: 0 },
+    { id: 16132, name: 'Beauty Bliss Organizer',              stock: 2,  defected: 0 },
+    { id: 16126, name: 'Eye Glasses Stand',                   stock: 0,  defected: 0 },
+    { id: 16130, name: 'Circle Harmony Shelf',                stock: 2,  defected: 0 },
+    { id: 16120, name: 'Bella Bloom Shelf',                   stock: 0,  defected: 0 },
+    { id: 16118, name: 'Cup and Spice Organizer',             stock: 2,  defected: 0 },
+    { id: 16112, name: 'Gentle Line Shelf',                   stock: 0,  defected: 4 },
+    { id: 16099, name: 'The Book Holder',                     stock: 0,  defected: 0 },
+    { id: 16095, name: 'Whisper Vault Floating Shelf',        stock: 0,  defected: 0 },
+    { id: 16080, name: 'Timbered relaxation Lounger',         stock: 0,  defected: 0 },
+    { id: 15707, name: 'Pikler Triangle with slider',         stock: 0,  defected: 1 },
+    { id: 15671, name: 'Pikler Arch',                         stock: 3,  defected: 0 },
+  ];
+
+  function log(msg, cls = '') {
+    const el = document.getElementById('log');
+    el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function run() {
+    const btn = document.getElementById('btn');
+    btn.disabled = true;
+    document.getElementById('log').innerHTML = '';
+    log(`Starting migration — ${PRODUCTS.length} products…`, 'info');
+
+    const now = new Date().toISOString();
+    let ok = 0, fail = 0;
+
+    for (const p of PRODUCTS) {
+      try {
+        const res = await fetch(`${FS_BASE}/warehouse/${p.id}?key=${FS_KEY}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {
+            product_id: { integerValue: String(p.id) },
+            name:       { stringValue: p.name },
+            stock:      { integerValue: String(p.stock) },
+            defected:   { integerValue: String(p.defected) },
+            updated_at: { stringValue: now },
+          }})
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error?.message || res.status);
+        log(`✓ ${p.id}  ${p.name}  (stock: ${p.stock}, defected: ${p.defected})`, 'ok');
+        ok++;
+      } catch (e) {
+        log(`✗ ${p.id}  ${p.name}  — ${e.message}`, 'err');
+        fail++;
+      }
+    }
+
+    log(`\nDone — ${ok} written, ${fail} failed.`, 'info');
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>

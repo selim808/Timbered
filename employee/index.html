@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timbered — Employee</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f0eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .logo { height: 48px; margin-bottom: 32px; }
+    .title { font-size: 18px; font-weight: 700; color: #7A4610; margin-bottom: 8px; }
+    .sub { font-size: 13px; color: #aaa; margin-bottom: 40px; }
+    .cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
+    .card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 140px; height: 140px; background: #fff; border-radius: 20px; border: 2px solid #e8ddd4; text-decoration: none; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+    .card:hover { border-color: #7A4610; box-shadow: 0 4px 16px rgba(122,70,16,0.12); }
+    .card .icon { font-size: 36px; }
+    .card .label { font-size: 13px; font-weight: 700; color: #7A4610; }
+  </style>
+</head>
+<body>
+  <img class="logo" src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <div class="title">Timbered</div>
+  <div class="sub">Employee Portal</div>
+  <div class="cards">
+    <a class="card" href="production.html">
+      <div class="icon">🔨</div>
+      <div class="label">Production</div>
+    </a>
+    <a class="card" href="inventory-warehouse.html">
+      <div class="icon">📦</div>
+      <div class="label">Warehouse</div>
+    </a>
+  </div>
+</body>
+</html>
