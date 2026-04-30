@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -62,10 +62,41 @@
     .item-thumb-ph { width: 30px; height: 30px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
     .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .item-qty  { font-size: 11px; color: #888; white-space: nowrap; flex-shrink: 0; }
-    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 3px 5px; color: #555; flex-shrink: 0; max-width: 120px; outline: none; cursor: pointer; }
+    .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 3px 5px; color: #555; flex-shrink: 0; max-width: 130px; outline: none; cursor: pointer; }
     .phase-sel:focus { border-color: #7A4610; }
 
     .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 13px; }
+
+    .ctrl-bar { background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 138px; z-index: 97; }
+    .ctrl-row { display: flex; align-items: center; gap: 6px; padding: 5px 12px; overflow-x: auto; }
+    .ctrl-row:first-child { border-bottom: 1px solid #f0ece8; }
+    .ctrl-row::-webkit-scrollbar { display: none; }
+    .ctrl-label { font-size: 10px; font-weight: 800; color: #bbb; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; min-width: 58px; }
+    .toggle { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; background: #ddd; border-radius: 10px; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+    .toggle:checked { background: #7A4610; }
+    .toggle::after { content: ''; position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .toggle:checked::after { left: 16px; }
+    .bulk-sel { font-size: 11px; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 3px 6px; color: #333; outline: none; background: #fafaf8; flex-shrink: 0; max-width: 130px; }
+    .bulk-sel:disabled { opacity: 0.35; }
+    .ctrl-btn { font-size: 11px; font-weight: 700; border-radius: 8px; padding: 3px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; border: 1.5px solid transparent; line-height: 1.5; }
+    .ctrl-apply { background: #fef3e2; color: #7A4610; border-color: #f0c488; }
+    .ctrl-apply:disabled { opacity: 0.35; cursor: default; }
+    .ctrl-notes { background: #f5f5f5; color: #666; border-color: #ddd; }
+    .ctrl-notes.on { background: #fef3e2; color: #7A4610; border-color: #7A4610; }
+    .grp-btn { font-size: 11px; font-weight: 700; border-radius: 14px; padding: 3px 11px; cursor: pointer; white-space: nowrap; flex-shrink: 0; border: 1.5px solid #e8ddd4; background: #fff; color: #999; }
+    .grp-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
+    .ctrl-sort { font-size: 13px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; flex-shrink: 0; margin-left: auto; }
+    .ctrl-x     { background: #fff0f0; color: #e74c3c; border-color: #f5c6c6; padding: 3px 9px; }
+    .ctrl-check { background: #f0fff4; color: #27ae60; border-color: #c6ecd4; padding: 3px 9px; }
+    .order-note { font-size: 11px; color: #888; padding: 4px 10px 6px; font-style: italic; }
+    .phase-section { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+    .phase-section-hdr { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; background: #fdf8f4; }
+    .phase-section-hdr:hover { background: #f9f2ec; }
+    .phase-section-name { font-size: 13px; font-weight: 700; color: #7A4610; flex: 1; }
+    .phase-section-cnt  { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 1px 8px; font-weight: 700; }
+    .phase-section-items { border-top: 1px solid #f5f0eb; }
+    .phase-section.collapsed .phase-section-items { display: none; }
+    .bulk-cb { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; accent-color: #7A4610; margin: 0; }
 
     .photo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
     .photo-overlay.open { display: flex; }
@@ -86,8 +117,26 @@
 <div class="sub-nav" id="subNav"></div>
 
 <div class="toolbar">
-  <button class="sort-btn" id="sortBtn" onclick="toggleSort()">↓</button>
   <input id="searchInput" type="search" placeholder="Search order, name, phone…">
+</div>
+
+<div class="ctrl-bar">
+  <div class="ctrl-row">
+    <span class="ctrl-label">Bulk</span>
+    <input type="checkbox" class="toggle" id="bulkToggle">
+    <select class="bulk-sel" id="bulkPhase" disabled></select>
+    <button class="ctrl-btn ctrl-apply" id="applyBtn" disabled onclick="applyBulk()">Apply</button>
+    <button class="ctrl-btn ctrl-notes" id="notesBtn" onclick="toggleNotes()">📋 Notes</button>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Group By</span>
+    <button class="grp-btn active" data-grp="order"   onclick="setGroupBy('order')">Order</button>
+    <button class="grp-btn"        data-grp="phase"   onclick="setGroupBy('phase')">Phase</button>
+    <button class="grp-btn"        data-grp="product" onclick="setGroupBy('product')">Product</button>
+    <button class="ctrl-sort" id="sortBtn" onclick="toggleSort()">↓</button>
+    <button class="ctrl-btn ctrl-x"     onclick="resetControls()">✕</button>
+    <button class="ctrl-btn ctrl-check" onclick="applyBulk()">✓</button>
+  </div>
 </div>
 
 <div id="state">Loading orders…</div>
@@ -100,8 +149,8 @@
   </div>
 </div>
 
-<script src="phase-loader.js"></script>
-<script src="phase-utils.js"></script>
+<script src="../phase-loader.js"></script>
+<script src="../phase-utils.js"></script>
 <script>
   const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
@@ -133,9 +182,13 @@
     "25":"Sharqia","26":"Sharkia","27":"Sohag","28":"South Sinai","29":"Suez","30":"Tanta"
   };
 
-  let allOrders = [];
-  let activeTab = '';
-  let sortAsc   = false;
+  let allOrders     = [];
+  let activeTab     = '';
+  let sortAsc       = false;
+  let groupBy       = 'order'; // 'order' | 'phase' | 'product'
+  let showNotes     = false;
+  let bulkEnabled   = false;
+  let selectedItems = new Set(); // "orderId_itemId"
 
   async function loadPhaseGroups() {
     try {
@@ -171,6 +224,13 @@
          ${p} <span class="tab-count" id="cnt-${p.replace(/"/g,'&quot;')}">0</span>
        </button>`
     ).join('');
+    const sel = document.getElementById('bulkPhase');
+    sel.innerHTML = PHASE_GROUPS.length
+      ? PHASE_GROUPS.map(g =>
+          `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
+            g.phases.map(p => `<option value="${p}">${p}</option>`).join('')
+          }</optgroup>`).join('')
+      : REVIEW_PHASES.map(p => `<option value="${p}">${p}</option>`).join('');
   }
 
   function resolvePhase(orderId, item) {
@@ -238,10 +298,19 @@
       const count = allOrders.reduce((acc, o) =>
         acc + o.line_items.filter(i => resolvePhase(o.id, i) === phase).length, 0);
       const el = document.getElementById('cnt-' + phase);
-      if (el) el.textContent = count;
+      if (el) {
+        el.textContent = count;
+        el.closest('.tab-btn').style.display = count > 0 ? '' : 'none';
+      }
       total += count;
     });
     document.getElementById('totalBadge').textContent = total + ' items';
+    // if active tab is now empty, switch to first visible
+    const activeEl = document.querySelector('.tab-btn.active');
+    if (activeEl && activeEl.style.display === 'none') {
+      const first = document.querySelector('.tab-btn[style=""]') || document.querySelector('.tab-btn:not([style*="none"])');
+      if (first) switchTab(first.dataset.phase);
+    }
   }
 
   // ── Render ───────────────────────────────────────────────────────
@@ -255,64 +324,110 @@
     });
   }
 
+  function searchQuery() { return (document.getElementById('searchInput')?.value || '').trim().toLowerCase(); }
+
+  function orderMatchesSearch(o, q) {
+    if (!q) return true;
+    const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+    const phone = (o.billing.phone || '').toLowerCase();
+    return String(o.id).includes(q) || name.includes(q) || phone.includes(q)
+        || o.line_items.some(i => i.name.toLowerCase().includes(q));
+  }
+
+  function phaseSelHtml(phase, orderId, itemId, productId) {
+    const groups = PHASE_GROUPS.length
+      ? PHASE_GROUPS
+      : [{ label: 'All', phases: ALL_PHASES }];
+    const opts = groups.map(g =>
+      `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
+        g.phases.map(p => `<option value="${p}"${p === phase ? ' selected' : ''}>${p}</option>`).join('')
+      }</optgroup>`
+    ).join('');
+    return `<select class="phase-sel" onclick="event.stopPropagation()"
+      onchange="savePhase(${orderId}, ${itemId}, ${productId || 0}, this.value)">${opts}</select>`;
+  }
+
   function render() {
-    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
     const wasOpen = getOpenGroups();
+    if (groupBy === 'phase')   { renderByPhase(wasOpen);   return; }
+    if (groupBy === 'product') { renderByProduct(wasOpen); return; }
+    renderByOrder(wasOpen);
+  }
 
-    let orders = allOrders.filter(o => {
-      const hasPhase = o.line_items.some(i => resolvePhase(o.id, i) === activeTab);
-      if (!hasPhase) return false;
-      if (!q) return true;
-      const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
-      const phone = (o.billing.phone || '').toLowerCase();
-      return String(o.id).includes(q) || name.includes(q) || phone.includes(q)
-          || o.line_items.some(i => i.name.toLowerCase().includes(q));
-    });
-
-    orders = [...orders].sort((a, b) => {
+  function sortedOrders(orders) {
+    return [...orders].sort((a, b) => {
       const da = daysSince(a.date_created), db = daysSince(b.date_created);
       return sortAsc ? da - db : db - da;
     });
+  }
 
+  // ── Checkbox helpers ─────────────────────────────────────────────
+  function toggleItem(key, checked) {
+    if (checked) selectedItems.add(key); else selectedItems.delete(key);
+    updateGroupCheckboxes();
+  }
+  function toggleGroup(keys, checked) {
+    keys.forEach(k => checked ? selectedItems.add(k) : selectedItems.delete(k));
+    keys.forEach(k => {
+      const cb = document.querySelector(`.item-cb[data-key="${k}"]`);
+      if (cb) cb.checked = checked;
+    });
+    updateGroupCheckboxes();
+  }
+  function updateGroupCheckboxes() {
+    document.querySelectorAll('.group-cb').forEach(cb => {
+      const keys = JSON.parse(cb.dataset.keys);
+      const n = keys.filter(k => selectedItems.has(k)).length;
+      cb.checked = n > 0 && n === keys.length;
+      cb.indeterminate = n > 0 && n < keys.length;
+    });
+  }
+  function itemCbHtml(key) {
+    return `<input type="checkbox" class="bulk-cb item-cb" data-key="${key}"
+      ${selectedItems.has(key) ? 'checked' : ''}
+      onclick="event.stopPropagation()"
+      onchange="toggleItem('${key}', this.checked)">`;
+  }
+  function groupCbHtml(keys) {
+    return `<input type="checkbox" class="bulk-cb group-cb" data-keys='${JSON.stringify(keys)}'
+      onclick="event.stopPropagation()"
+      onchange="toggleGroup(JSON.parse(this.dataset.keys), this.checked)">`;
+  }
+
+  function renderByOrder(wasOpen) {
+    const q = searchQuery();
+    const orders = sortedOrders(allOrders.filter(o =>
+      o.line_items.some(i => resolvePhase(o.id, i) === activeTab) && orderMatchesSearch(o, q)
+    ));
     if (!orders.length) {
-      document.getElementById('content').innerHTML =
-        `<div class="empty-msg">No orders in "${activeTab}"</div>`;
+      document.getElementById('content').innerHTML = `<div class="empty-msg">No orders in "${activeTab}"</div>`;
       restoreOpenGroups(wasOpen);
       return;
     }
-
     document.getElementById('content').innerHTML = orders.map(o => {
-      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
-      const state = EG_STATES[o.billing.state] || o.billing.state || '';
-      const addr  = [o.billing.address_1, o.billing.address_2].filter(Boolean).join(', ');
-      const days  = daysSince(o.date_created);
-      const phaseItems = o.line_items.filter(i => resolvePhase(o.id, i) === activeTab);
-
-      const itemsHtml = phaseItems.map(item => {
+      const name      = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const state     = EG_STATES[o.billing.state] || o.billing.state || '';
+      const addr      = [o.billing.address_1, o.billing.address_2].filter(Boolean).join(', ');
+      const days      = daysSince(o.date_created);
+      const tabItems  = o.line_items.filter(i => resolvePhase(o.id, i) === activeTab);
+      const groupKeys = tabItems.map(item => `${o.id}_${item.id}`);
+      const itemsHtml = tabItems.map(item => {
         _photoItems[item.id] = item;
+        const key   = `${o.id}_${item.id}`;
         const thumb = item.image?.src
           ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
           : `<span class="item-thumb-ph"></span>`;
-        const phase = resolvePhase(o.id, item);
-        const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
-          onchange="savePhase(${o.id}, ${item.id}, ${item.product_id || 0}, this.value)">
-          ${PHASE_GROUPS.length
-            ? PHASE_GROUPS.map(g =>
-                `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
-                  g.phases.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')
-                }</optgroup>`).join('')
-            : ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
-        </select>`;
         return `<div class="item-row">
+          ${bulkEnabled ? itemCbHtml(key) : ''}
           ${thumb}
           <span class="item-name">${item.name}</span>
           <span class="item-qty">×${item.quantity}</span>
-          ${sel}
+          ${phaseSelHtml(resolvePhase(o.id, item), o.id, item.id, item.product_id)}
         </div>`;
       }).join('');
-
       return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          ${bulkEnabled ? groupCbHtml(groupKeys) : ''}
           <span class="d-badge ${dc(days)}">${days}d</span>
           <span class="order-id">#${o.id}</span>
           <span class="order-name">${name}</span>
@@ -324,16 +439,150 @@
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${addr}</span>
           ${state ? `<span class="state">${state}</span>` : ''}
         </div>` : ''}
+        ${showNotes && o.customer_note ? `<div class="order-note">${o.customer_note}</div>` : ''}
         <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
       </div>`;
     }).join('');
-
     restoreOpenGroups(wasOpen);
+    updateGroupCheckboxes();
   }
+
+  function renderByPhase(wasOpen) {
+    const q = searchQuery();
+    const html = REVIEW_PHASES.map(phase => {
+      const entries = [];
+      sortedOrders(allOrders.filter(o => orderMatchesSearch(o, q))).forEach(o => {
+        o.line_items.filter(i => resolvePhase(o.id, i) === phase).forEach(item => {
+          _photoItems[item.id] = item;
+          const key   = `${o.id}_${item.id}`;
+          const thumb = item.image?.src
+            ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
+            : `<span class="item-thumb-ph"></span>`;
+          entries.push({ key, html: `<div class="item-row">
+            ${bulkEnabled ? itemCbHtml(key) : ''}
+            ${thumb}
+            <span class="item-name">${item.name}</span>
+            <span class="order-id" style="flex-shrink:0;">#${o.id}</span>
+            <span class="item-qty">×${item.quantity}</span>
+            ${phaseSelHtml(phase, o.id, item.id, item.product_id)}
+          </div>` });
+        });
+      });
+      if (!entries.length) return '';
+      const groupKeys = entries.map(e => e.key);
+      return `<div class="phase-section" data-group-key="phase-${phase}">
+        <div class="phase-section-hdr" onclick="this.closest('.phase-section').classList.toggle('collapsed')">
+          ${bulkEnabled ? groupCbHtml(groupKeys) : ''}
+          <span class="phase-section-name">${phase}</span>
+          <span class="phase-section-cnt">${entries.length}</span>
+        </div>
+        <div class="phase-section-items">${entries.map(e => e.html).join('')}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('content').innerHTML = html || `<div class="empty-msg">No items</div>`;
+    restoreOpenGroups(wasOpen);
+    updateGroupCheckboxes();
+  }
+
+  function renderByProduct(wasOpen) {
+    const q = searchQuery();
+    const map = new Map();
+    sortedOrders(allOrders.filter(o =>
+      o.line_items.some(i => resolvePhase(o.id, i) === activeTab) && orderMatchesSearch(o, q)
+    )).forEach(o => {
+      o.line_items.filter(i => resolvePhase(o.id, i) === activeTab).forEach(item => {
+        const mapKey = item.product_id || item.name;
+        if (!map.has(mapKey)) map.set(mapKey, { name: item.name, entries: [] });
+        _photoItems[item.id] = item;
+        const key   = `${o.id}_${item.id}`;
+        const thumb = item.image?.src
+          ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
+          : `<span class="item-thumb-ph"></span>`;
+        map.get(mapKey).entries.push({ key, html: `<div class="item-row">
+          ${bulkEnabled ? itemCbHtml(key) : ''}
+          ${thumb}
+          <span class="item-name" style="color:#aaa;font-weight:500;">#${o.id} ${[o.billing.first_name,o.billing.last_name].join(' ')}</span>
+          <span class="item-qty">×${item.quantity}</span>
+          ${phaseSelHtml(resolvePhase(o.id, item), o.id, item.id, item.product_id)}
+        </div>` });
+      });
+    });
+    if (!map.size) {
+      document.getElementById('content').innerHTML = `<div class="empty-msg">No orders in "${activeTab}"</div>`;
+      return;
+    }
+    document.getElementById('content').innerHTML = [...map.values()]
+      .sort((a, b) => b.entries.length - a.entries.length)
+      .map(({ name, entries }) => {
+        const groupKeys = entries.map(e => e.key);
+        return `<div class="phase-section" data-group-key="prod-${name}">
+          <div class="phase-section-hdr" onclick="this.closest('.phase-section').classList.toggle('collapsed')">
+            ${bulkEnabled ? groupCbHtml(groupKeys) : ''}
+            <span class="phase-section-name">${name}</span>
+            <span class="phase-section-cnt">${entries.length}</span>
+          </div>
+          <div class="phase-section-items">${entries.map(e => e.html).join('')}</div>
+        </div>`;
+      }).join('');
+    restoreOpenGroups(wasOpen);
+    updateGroupCheckboxes();
+  }
+
+  // ── Controls ─────────────────────────────────────────────────────
+  function applyBulk() {
+    if (!bulkEnabled) return;
+    const phase = document.getElementById('bulkPhase').value;
+    if (!phase) return;
+    const useSelection = selectedItems.size > 0;
+    const q = searchQuery();
+    allOrders.filter(o => orderMatchesSearch(o, q)).forEach(o => {
+      o.line_items.filter(i => {
+        const inScope = groupBy === 'phase'
+          ? REVIEW_PHASES.includes(resolvePhase(o.id, i))
+          : resolvePhase(o.id, i) === activeTab;
+        if (!inScope) return false;
+        return useSelection ? selectedItems.has(`${o.id}_${i.id}`) : true;
+      }).forEach(item => savePhase(o.id, item.id, item.product_id || 0, phase));
+    });
+  }
+
+  function toggleNotes() {
+    showNotes = !showNotes;
+    document.getElementById('notesBtn').classList.toggle('on', showNotes);
+    render();
+  }
+
+  function setGroupBy(mode) {
+    groupBy = mode;
+    selectedItems.clear();
+    document.querySelectorAll('.grp-btn').forEach(b => b.classList.toggle('active', b.dataset.grp === mode));
+    render();
+  }
+
+  function resetControls() {
+    document.getElementById('searchInput').value = '';
+    setGroupBy('order');
+    if (bulkEnabled) {
+      bulkEnabled = false;
+      document.getElementById('bulkToggle').checked = false;
+      document.getElementById('bulkPhase').disabled = true;
+      document.getElementById('applyBtn').disabled = true;
+    }
+    render();
+  }
+
+  document.getElementById('bulkToggle').addEventListener('change', function () {
+    bulkEnabled = this.checked;
+    document.getElementById('bulkPhase').disabled = !bulkEnabled;
+    document.getElementById('applyBtn').disabled  = !bulkEnabled;
+    if (!bulkEnabled) selectedItems.clear();
+    render();
+  });
 
   // ── Tab switch ───────────────────────────────────────────────────
   function switchTab(phase) {
     activeTab = phase;
+    selectedItems.clear();
     document.querySelectorAll('.tab-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.phase === phase));
     render();

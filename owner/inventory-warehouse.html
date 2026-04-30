@@ -124,8 +124,11 @@
   const WC_KEY    = "ck_dbdad7d7e7e2993164087fd562caf37f14dca362";
   const WC_SECRET = "cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_BASE   = `https://timberedgroup.com/wp-json/wc/v3/products?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}&per_page=100&orderby=title&order=asc`;
-  const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/products/${id}?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
 
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  // ── WooCommerce ──────────────────────────────────────────────────
   async function fetchAllProducts() {
     const first      = await fetch(WC_BASE + '&page=1');
     const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
@@ -137,130 +140,149 @@
     return [firstData, ...rest].flat();
   }
 
-  function getTgStock(p) {
-    const meta = (p.meta_data || []).find(m => m.key === 'tg_stock');
-    return meta ? parseInt(meta.value) || 0 : 0;
+  // ── Firebase warehouse ───────────────────────────────────────────
+  // Collection: warehouse / doc ID: product_id
+  // Fields: product_id (integer), stock (integer), defected (integer), updated_at (string)
+
+  let stockData = {}; // productId (string) → { stock, defected }
+
+  async function loadStock() {
+    try {
+      const res  = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'warehouse' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f  = r.document.fields || {};
+        const id = f.product_id?.integerValue || f.product_id?.stringValue || '';
+        if (!id) return;
+        stockData[String(id)] = {
+          stock:    parseInt(f.stock?.integerValue    || 0),
+          defected: parseInt(f.defected?.integerValue || 0),
+        };
+      });
+    } catch (_) {}
   }
 
-  function getTgDefected(p) {
-    const meta = (p.meta_data || []).find(m => m.key === 'tg_repair');
-    return meta ? parseInt(meta.value) || 0 : 0;
-  }
-
-  async function updateMeta(productId, key, value) {
-    await fetch(WC_PUT(productId), {
-      method: 'PUT',
+  function writeStock(productId, stock, defected) {
+    return fetch(`${FS_BASE}/warehouse/${productId}?key=${FS_KEY}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meta_data: [{ key, value: String(value) }] })
-    });
+      body: JSON.stringify({ fields: {
+        product_id: { integerValue: String(productId) },
+        stock:      { integerValue: String(stock) },
+        defected:   { integerValue: String(defected) },
+        updated_at: { stringValue: new Date().toISOString() },
+      }})
+    }).catch(() => {});
   }
 
+  function getStock(productId)    { return stockData[String(productId)]?.stock    ?? 0; }
+  function getDefected(productId) { return stockData[String(productId)]?.defected ?? 0; }
+  function setLocalStock(productId, stock, defected) {
+    stockData[String(productId)] = { stock, defected };
+  }
+
+  // ── State & render ───────────────────────────────────────────────
   let allProducts  = [];
   let activeFilter = 'all';
 
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
-      if (activeFilter === 'instock'    && getTgStock(p) === 0 && getTgDefected(p) === 0)  return false;
-      if (activeFilter === 'outofstock' && getTgStock(p) > 0)   return false;
-      if (activeFilter === 'repair'     && getTgDefected(p) === 0) return false;
+      const s = getStock(p.id), d = getDefected(p.id);
+      if (activeFilter === 'instock'    && s === 0)  return false;
+      if (activeFilter === 'outofstock' && s > 0)    return false;
+      if (activeFilter === 'repair'     && d === 0)  return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
       return true;
     });
 
     document.getElementById('tbody').innerHTML = filtered.map(p => {
-      const img   = p.images && p.images[0]
+      const img    = p.images?.[0]
         ? `<img src="${p.images[0].src}" alt="" onclick="openPopup(${p.id})">`
         : `<div class="no-img" onclick="openPopup(${p.id})">📦</div>`;
-      const qty    = getTgStock(p);
-      const repair = getTgDefected(p);
+      const stock    = getStock(p.id);
+      const defected = getDefected(p.id);
       return `<tr>
         <td class="td-img">${img}</td>
         <td class="td-name">${p.name}</td>
         <td class="td-stock">
           <div class="stock-row">
             <button class="qty-btn" onclick="changeQty(${p.id},+1)">+</button>
-            <span class="stock-val" id="stock-${p.id}">${qty}</span>
+            <span class="stock-val" id="stock-${p.id}">${stock}</span>
             <button class="qty-btn" onclick="changeQty(${p.id},-1)">−</button>
           </div>
         </td>
         <td class="td-stock">
           <div class="stock-row">
             <button class="qty-btn" onclick="changeDefected(${p.id},+1)">+</button>
-            <span class="stock-val" id="repair-${p.id}">${repair}</span>
+            <span class="stock-val" id="repair-${p.id}">${defected}</span>
             <button class="qty-btn" onclick="changeDefected(${p.id},-1)">−</button>
           </div>
         </td>
       </tr>`;
     }).join('');
 
-    document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getTgStock(p), 0);
-    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getTgDefected(p), 0);
+    document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getStock(p.id), 0);
+    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getDefected(p.id), 0);
   }
 
-  function setLocalMeta(p, key, value) {
-    const meta = p.meta_data || (p.meta_data = []);
-    const entry = meta.find(m => m.key === key);
-    if (entry) entry.value = String(value);
-    else meta.push({ key, value: String(value) });
-  }
-
-  async function changeQty(productId, delta) {
-    const p = allProducts.find(x => x.id === productId);
-    if (!p) return;
-    const newQty = Math.max(0, getTgStock(p) + delta);
-    setLocalMeta(p, 'tg_stock', newQty);
+  function changeQty(productId, delta) {
+    const stock    = getStock(productId);
+    const defected = getDefected(productId);
+    const newStock    = Math.max(0, stock + delta);
+    const newDefected = Math.min(defected, newStock);
+    setLocalStock(productId, newStock, newDefected);
     const el = document.getElementById('stock-' + productId);
-    if (el) el.textContent = newQty;
-    // Cap defected at new stock value
-    const curRepair = getTgDefected(p);
-    if (curRepair > newQty) {
-      setLocalMeta(p, 'tg_repair', newQty);
-      const rel = document.getElementById('repair-' + productId);
-      if (rel) rel.textContent = newQty;
-      updateMeta(productId, 'tg_repair', newQty);
+    if (el) el.textContent = newStock;
+    if (newDefected !== defected) {
+      const dl = document.getElementById('repair-' + productId);
+      if (dl) dl.textContent = newDefected;
     }
-    updateMeta(productId, 'tg_stock', newQty);
+    writeStock(productId, newStock, newDefected);
   }
 
-  async function changeDefected(productId, delta) {
-    const p = allProducts.find(x => x.id === productId);
-    if (!p) return;
-    const newVal = Math.min(getTgStock(p), Math.max(0, getTgDefected(p) + delta));
-    setLocalMeta(p, 'tg_repair', newVal);
+  function changeDefected(productId, delta) {
+    const stock      = getStock(productId);
+    const defected   = getDefected(productId);
+    const newDefected = Math.min(stock, Math.max(0, defected + delta));
+    setLocalStock(productId, stock, newDefected);
     const el = document.getElementById('repair-' + productId);
-    if (el) el.textContent = newVal;
-    updateMeta(productId, 'tg_repair', newVal);
+    if (el) el.textContent = newDefected;
+    writeStock(productId, stock, newDefected);
   }
 
-  async function openPopup(productId) {
+  // ── Popup ────────────────────────────────────────────────────────
+  function openPopup(productId) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
     const wrap = document.getElementById('popup-img-wrap');
-    wrap.innerHTML = p.images && p.images[0]
+    wrap.innerHTML = p.images?.[0]
       ? `<img id="popup-img" src="${p.images[0].src}" alt="">`
       : `<div id="popup-img" class="no-img-popup">📦</div>`;
-    document.getElementById('popup-name').textContent        = p.name;
-    document.getElementById('pstat-qty').textContent         = getTgStock(p);
-    document.getElementById('pstat-repair').textContent      = getTgDefected(p);
+    document.getElementById('popup-name').textContent   = p.name;
+    document.getElementById('pstat-qty').textContent    = getStock(p.id);
+    document.getElementById('pstat-repair').textContent = getDefected(p.id);
     document.getElementById('popup-overlay').classList.add('open');
   }
 
-  function closePopup() {
-    document.getElementById('popup-overlay').classList.remove('open');
-  }
+  function closePopup() { document.getElementById('popup-overlay').classList.remove('open'); }
 
   document.getElementById('popup-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('popup-overlay')) closePopup();
   });
 
+  // ── Layout ───────────────────────────────────────────────────────
   function updateTheadTop() {
     const container = document.getElementById('topFixed');
     if (!container) return;
-    const theadTop = container.offsetHeight;
+    const theadTop  = container.offsetHeight;
     const headerRow = document.querySelector('thead tr:first-child');
-    const headerH = headerRow ? headerRow.offsetHeight : 38;
-    document.documentElement.style.setProperty('--thead-top', theadTop + 'px');
+    const headerH   = headerRow ? headerRow.offsetHeight : 38;
+    document.documentElement.style.setProperty('--thead-top',   theadTop + 'px');
     document.documentElement.style.setProperty('--totals-top', (theadTop + headerH) + 'px');
   }
   window.addEventListener('resize', updateTheadTop);
@@ -276,7 +298,8 @@
     });
   });
 
-  fetchAllProducts().then(products => {
+  // ── Init ─────────────────────────────────────────────────────────
+  Promise.all([fetchAllProducts(), loadStock()]).then(([products]) => {
     allProducts = products;
     document.getElementById('state').style.display = 'none';
     document.getElementById('tblWrap').style.display = 'block';

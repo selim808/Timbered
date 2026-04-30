@@ -2133,7 +2133,7 @@ async function loadGoals() {
 
   const workflowSection = groups.length ? `
     <div style="grid-column:1/-1; display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
-      ${groups.map((g, i) => {
+      ${groups.filter(g => !['repair','dispatch'].includes(g.id)).map((g, i) => {
         const url = g.id.replace(/_/g, '-') + '.html';
         const hex = g.color || '#7A4610';
         return `<a href="${url}" style="${A} background:${hex};color:#fff;padding:10px 20px 10px 10px;clip-path:${clip};font-size:12px;font-weight:700;">${g.label}</a>`;

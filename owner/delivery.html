@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Delivery — Timbered</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
-  <script src="phase-loader.js"></script>
-  <script src="phase-utils.js"></script>
+  <script src="../phase-loader.js"></script>
+  <script src="../phase-utils.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -88,13 +88,7 @@
 </div>
 
 <div class="toolbar">
-  <button class="filter-btn active" data-phase="WH-Ready">WH-Ready</button>
-  <button class="filter-btn active" data-phase="WH-No_Response">No Response</button>
-  <button class="filter-btn active" data-phase="DLV-Bareed-Cairo">Bareed Cairo</button>
-  <button class="filter-btn active" data-phase="DLV-Bareed-Tanta">Bareed Tanta</button>
-  <button class="filter-btn active" data-phase="DLV-Bosta">Bosta</button>
-  <button class="filter-btn active" data-phase="DLV-Private">Private</button>
-  <button class="filter-btn active" data-phase="Delivered Partially">Partial Dlv</button>
+  <div id="filterBtns" style="display:contents;"></div>
   <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
   <input id="searchInput" type="search" placeholder="Search order, client, phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
@@ -120,12 +114,6 @@
 
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
-  const DELIVERY_PHASES = [
-    "WH-Ready", "WH-No_Response",
-    "DLV-Bareed-Cairo", "DLV-Bareed-Tanta", "DLV-Bosta", "DLV-Private",
-    "Delivered Partially"
-  ];
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -159,7 +147,7 @@
 
   function phaseSelHtml(phase, orderId, itemId) {
     return `<select class="phase-sel" data-order="${orderId}" data-item="${itemId}" onclick="event.stopPropagation()">
-      ${ALL_PHASES.map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+      ${(window.DLV_PHASES || []).map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
     </select>`;
   }
 
@@ -283,7 +271,7 @@
   // ── State ─────────────────────────────────────────────────────────
   let allOrders    = [];
   let sortAsc      = true; // oldest first by default
-  let activeFilters = new Set(DELIVERY_PHASES);
+  let activeFilters = new Set();
 
   function searchQuery() { return (document.getElementById('searchInput')?.value || '').trim().toLowerCase(); }
   function orderMatches(o, q) {
@@ -342,18 +330,26 @@
     document.getElementById('orderCount').textContent = count + ' orders · ' + itemCount + ' items';
   }
 
-  // Filter buttons
-  document.querySelectorAll('.filter-btn[data-phase]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const phase = btn.dataset.phase;
-      if (activeFilters.has(phase)) {
-        if (activeFilters.size > 1) { activeFilters.delete(phase); btn.classList.remove('active'); }
-      } else {
-        activeFilters.add(phase); btn.classList.add('active');
-      }
-      render();
-    });
+  // Filter buttons (delegated — buttons are built dynamically)
+  document.getElementById('filterBtns').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn[data-phase]');
+    if (!btn) return;
+    const phase = btn.dataset.phase;
+    if (activeFilters.has(phase)) {
+      if (activeFilters.size > 1) { activeFilters.delete(phase); btn.classList.remove('active'); }
+    } else {
+      activeFilters.add(phase); btn.classList.add('active');
+    }
+    render();
   });
+
+  function buildFilterButtons() {
+    const phases = window.DLV_PHASES || [];
+    document.getElementById('filterBtns').innerHTML = phases.map(p =>
+      `<button class="filter-btn active" data-phase="${p}">${p}</button>`
+    ).join('');
+    activeFilters = new Set(phases);
+  }
 
   // Sort
   document.getElementById('sortBtn').addEventListener('click', () => {
@@ -367,9 +363,10 @@
 
   // Load
   Promise.all([fetchProcessingOrders(), loadPhasesFS(), window.phasesLoaded]).then(([orders]) => {
+    buildFilterButtons();
     // Keep only orders with at least one item in a delivery phase
     allOrders = orders.filter(o =>
-      o.line_items.some(item => DELIVERY_PHASES.includes(resolvePhase(o, item)))
+      o.line_items.some(item => (window.DLV_PHASES || []).includes(resolvePhase(o, item)))
     );
     document.getElementById('state').style.display = 'none';
     document.getElementById('content').style.display = 'block';
