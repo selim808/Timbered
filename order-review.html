@@ -182,12 +182,8 @@
 
   function savePhase(orderId, item, phase) {
     writePhaseFS(orderId, item.id, item.product_id, phase);
-    if (REVIEW_PHASES.includes(phase)) {
-      switchTab(phase);
-    } else {
-      updateCounts();
-      render();
-    }
+    updateCounts();
+    render();
   }
 
   // ── WooCommerce ──────────────────────────────────────────────────
