@@ -17,14 +17,25 @@
         const oid = f.order_id?.stringValue || '';
         const lid = f.line_item_id?.stringValue || '';
         if (!oid || !lid) return;
-        const key     = `${oid}_${lid}`;
-        const phase   = f.phase?.stringValue || '';
-        const history = (f.history?.arrayValue?.values || []).map(v => ({
-          phase: v.mapValue?.fields?.phase?.stringValue || '',
-          at:    v.mapValue?.fields?.at?.stringValue    || null
-        }));
+        const key       = `${oid}_${lid}`;
+        const phase     = f.phase?.stringValue || '';
+        const enteredAt = f.entered_at?.stringValue || null;
+        // Support both old {phase,at} and new {phase,entered_at,exited_at,duration_min} formats
+        const history = (f.history?.arrayValue?.values || []).map(v => {
+          const hf = v.mapValue?.fields || {};
+          return {
+            phase:        hf.phase?.stringValue        || '',
+            entered_at:   hf.entered_at?.stringValue   || hf.at?.stringValue || null,
+            exited_at:    hf.exited_at?.stringValue     || null,
+            duration_min: hf.duration_min?.doubleValue  != null
+                            ? hf.duration_min.doubleValue
+                            : (hf.duration_min?.integerValue != null
+                                ? Number(hf.duration_min.integerValue)
+                                : null),
+          };
+        });
         _phasesFS[key]    = phase;
-        _phaseDocsFS[key] = { phase, wc_status: f.wc_status?.stringValue || '', history };
+        _phaseDocsFS[key] = { phase, entered_at: enteredAt, wc_status: f.wc_status?.stringValue || '', history };
       });
     } catch (_) {}
   };
@@ -32,16 +43,39 @@
   // Returns the fetch promise so callers can await it (e.g. wcSetPhaseForCards).
   window.writePhaseFS = function (orderId, itemId, productId, phase) {
     const key = `${orderId}_${itemId}`;
+    const now = new Date().toISOString();
+
+    if (!_phaseDocsFS[key]) {
+      // First time we see this item — record initial phase entry with no prior history
+      _phaseDocsFS[key] = { phase, entered_at: now, wc_status: '', history: [] };
+    } else {
+      const prev       = _phaseDocsFS[key];
+      const enteredAt  = prev.entered_at || now;
+      const durationMin = Math.round((Date.now() - new Date(enteredAt).getTime()) / 60000 * 10) / 10;
+
+      // Close out the previous phase entry and push to history
+      prev.history.push({
+        phase:        prev.phase,
+        entered_at:   enteredAt,
+        exited_at:    now,
+        duration_min: durationMin,
+      });
+      prev.phase      = phase;
+      prev.entered_at = now;
+    }
+
     _phasesFS[key] = phase;
-    if (!_phaseDocsFS[key]) _phaseDocsFS[key] = { phase, wc_status: '', history: [] };
-    _phaseDocsFS[key].phase = phase;
-    _phaseDocsFS[key].history.push({ phase, at: new Date().toISOString() });
-    const histValues = _phaseDocsFS[key].history.map(h => ({
+
+    const doc = _phaseDocsFS[key];
+    const histValues = doc.history.map(h => ({
       mapValue: { fields: {
-        phase: { stringValue: h.phase },
-        at:    h.at ? { stringValue: h.at } : { nullValue: null }
+        phase:        { stringValue: h.phase },
+        entered_at:   h.entered_at  ? { stringValue: h.entered_at  } : { nullValue: null },
+        exited_at:    h.exited_at   ? { stringValue: h.exited_at   } : { nullValue: null },
+        duration_min: h.duration_min != null ? { doubleValue: h.duration_min } : { nullValue: null },
       }}
     }));
+
     return fetch(`${FS_BASE}/order_phases/${orderId}_${itemId}?key=${FS_KEY}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -50,8 +84,9 @@
         line_item_id: { stringValue: String(itemId) },
         product_id:   { integerValue: String(productId || 0) },
         phase:        { stringValue: phase },
-        wc_status:    { stringValue: _phaseDocsFS[key].wc_status || '' },
-        history:      { arrayValue: { values: histValues } }
+        entered_at:   { stringValue: doc.entered_at },
+        wc_status:    { stringValue: doc.wc_status || '' },
+        history:      { arrayValue: { values: histValues } },
       }})
     }).catch(() => {});
   };
