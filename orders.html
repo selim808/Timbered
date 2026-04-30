@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="phase-loader.js"></script>
   <script src="phase-utils.js"></script>
+  <script src="legacy-sync.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -1114,6 +1115,9 @@
     updatePhaseFilterSel();
     render();
     updateProductCountLbl();
+
+    // Background sync: save completed orders to legacy collection
+    syncCompletedToLegacy();
   }).catch(e => {
     document.getElementById('state').textContent = 'Error: ' + e.message;
   });
