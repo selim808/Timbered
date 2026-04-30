@@ -126,8 +126,8 @@
         || '';
   }
 
-  function savePhase(orderId, item, phase) {
-    writePhaseFS(orderId, item.id, item.product_id, phase);
+  function savePhase(orderId, itemId, productId, phase) {
+    writePhaseFS(orderId, itemId, productId, phase);
     updateCounts();
     render();
   }
@@ -248,7 +248,7 @@
         const phase = resolvePhase(o.id, item);
         const allGroups = window.PHASE_GROUPS || [];
         const sel = `<select class="phase-sel" onclick="event.stopPropagation()"
-          onchange="savePhase(${o.id}, ${JSON.stringify(item)}, this.value)">
+          onchange="savePhase(${o.id}, ${item.id}, ${item.product_id || 0}, this.value)">
           ${allGroups.length
             ? allGroups.map(g =>
                 `<optgroup label="${g.label.replace(/"/g,'&quot;')}">${
