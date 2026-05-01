@@ -304,6 +304,9 @@
       </div>
     </div>
   </div>
+  <div style="display:flex; gap:6px; flex-basis:100%; align-items:center;">
+    <button class="filter-btn" id="inStockFilterBtn" title="Show orders with at least one item in stock">📦 In Stock</button>
+  </div>
   <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
 </div>
@@ -779,12 +782,17 @@
     const phone = (o.billing.phone || '').toLowerCase();
     return String(o.id).includes(q) || phone.includes(q) || name.includes(q);
   }
+  function hasItemInStock(o) {
+    return o.line_items.some(i => (_stockcountFS[i.product_id]?.stock || 0) > 0);
+  }
   function filteredItems() {
     const q = searchQuery();
     let items = allItems;
     if (q) items = items.filter(({ order, item }) =>
       item.name.toLowerCase().includes(q) || orderMatches(order, q));
-    if (noteFilterOn) items = items.filter(({ order }) => order.customer_note);
+    if (noteFilterOn)    items = items.filter(({ order }) => order.customer_note);
+    if (inStockFilterOn) items = items.filter(({ order, item }) =>
+      (_stockcountFS[item.product_id]?.stock || 0) > 0);
     return items;
   }
   function filteredOrders() {
@@ -792,7 +800,8 @@
     let orders = allOrders;
     if (q) orders = orders.filter(o =>
       orderMatches(o, q) || o.line_items.some(item => item.name.toLowerCase().includes(q)));
-    if (noteFilterOn) orders = orders.filter(o => o.customer_note);
+    if (noteFilterOn)    orders = orders.filter(o => o.customer_note);
+    if (inStockFilterOn) orders = orders.filter(o => hasItemInStock(o));
     return orders;
   }
 
@@ -994,7 +1003,8 @@
   const phaseFilterSel  = document.getElementById('phaseFilterSel');
   let productSort = 'qty'; // 'qty' | 'value'
   let phaseFilterVal = ''; // '' = all
-  let noteFilterOn = false;
+  let noteFilterOn    = false;
+  let inStockFilterOn = false;
 
   function buildPhaseFilterSel() {
     phaseFilterSel.innerHTML = '<option value="">All phases</option>'
@@ -1015,6 +1025,13 @@
   noteFilterBtn.addEventListener('click', () => {
     noteFilterOn = !noteFilterOn;
     noteFilterBtn.classList.toggle('active', noteFilterOn);
+    render();
+  });
+
+  const inStockFilterBtn = document.getElementById('inStockFilterBtn');
+  inStockFilterBtn.addEventListener('click', () => {
+    inStockFilterOn = !inStockFilterOn;
+    inStockFilterBtn.classList.toggle('active', inStockFilterOn);
     render();
   });
 
