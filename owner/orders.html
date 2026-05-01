@@ -375,7 +375,7 @@
   const WC_BASE = "https://timberedgroup.com/wp-json/wc/v3/orders"
                + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
-               + "&status=any&orderby=date&order=desc&per_page=100";
+               + "&status=processing&orderby=date&order=desc&per_page=100";
 
   const WC_PUT = id => "https://timberedgroup.com/wp-json/wc/v3/orders/" + id
                + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
@@ -631,11 +631,12 @@
   }
 
   function renderProductView(items) {
-    const phases = activePhases();
+    const phases   = activePhases();
+    const filterOn = activeGroups.size < Object.keys(PHASE_GROUPS).length;
     const groups = {};
     items.forEach(({ order, item, idx, days }) => {
       const phase = getItemPhase(order.id, item.id);
-      if (!phases.includes(phase)) return;
+      if (filterOn && !phases.includes(phase)) return;
       if (!groups[item.name]) groups[item.name] = [];
       groups[item.name].push({ order, item, idx, days });
     });
@@ -667,14 +668,17 @@
   }
 
   function renderOrderView(orders_raw) {
-    const phases = activePhases();
+    const phases    = activePhases();
+    const filterOn  = activeGroups.size < Object.keys(PHASE_GROUPS).length;
     return orders_raw.map(o => {
       const days = daysSince(o.date_created);
       const name = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
       const addr1 = o.billing.address_1 || '';
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
-      const visibleItems = o.line_items.filter((item, idx) => phases.includes(getItemPhase(o.id, item.id)));
+      const visibleItems = filterOn
+        ? o.line_items.filter((item, idx) => phases.includes(getItemPhase(o.id, item.id)))
+        : o.line_items;
       if (o.line_items.length > 0 && !visibleItems.length) return '';
       const itemsHtml = visibleItems.length
         ? visibleItems.map((item, idx) => itemRowHtml(o, item, idx, days)).join('')
