@@ -60,6 +60,7 @@
 
 <div class="toolbar">
   <input type="search" id="searchInput" placeholder="Search order, name, phone…">
+  <button id="loadAllBtn" onclick="loadAll()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:14px;border:1.5px solid #7A4610;background:#fff;color:#7A4610;cursor:pointer;white-space:nowrap;flex-shrink:0;">Load All</button>
   <span class="count-badge" id="countBadge">—</span>
 </div>
 
@@ -74,8 +75,14 @@
   const WA_MSG = "مساء الخير يا فندم\nحابين نعرف رأي حضرتك في المنتج و الخدمة";
 
   let allOrders = [];
+  let allLoaded = false;
 
-  async function fetchCompleted() {
+  async function fetchCompleted(perPage = 30) {
+    const r = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=completed&per_page=${perPage}&orderby=date&order=desc&page=1`);
+    return r.json();
+  }
+
+  async function fetchAll() {
     let page = 1, result = [];
     while (true) {
       const r = await fetch(`${WC_BASE}/orders?${WC_CREDS}&status=completed&per_page=100&orderby=date&order=desc&page=${page}`);
@@ -86,6 +93,24 @@
       page++;
     }
     return result;
+  }
+
+  async function loadAll() {
+    if (allLoaded) return;
+    const btn = document.getElementById('loadAllBtn');
+    btn.textContent = 'Loading…';
+    btn.disabled = true;
+    try {
+      allOrders = await fetchAll();
+      allLoaded = true;
+      btn.textContent = 'All Loaded';
+      btn.style.color = '#27ae60';
+      btn.style.borderColor = '#27ae60';
+      render();
+    } catch(e) {
+      btn.textContent = 'Load All';
+      btn.disabled = false;
+    }
   }
 
   function waUrl(phone) {
@@ -155,7 +180,7 @@
 
   document.getElementById('searchInput').addEventListener('input', render);
 
-  fetchCompleted().then(orders => {
+  fetchCompleted(30).then(orders => {
     allOrders = orders;
     document.getElementById('state').style.display = 'none';
     document.getElementById('list').style.display = 'flex';
