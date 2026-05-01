@@ -705,7 +705,8 @@
     phases.forEach(p => groups[p] = []);
     items.forEach(({ order, item, idx, days }) => {
       const phase = getItemPhase(order.id, item.id);
-      if (groups[phase]) groups[phase].push({ order, item, idx, days });
+      if (!groups[phase]) { groups[phase] = []; phases.push(phase); }
+      groups[phase].push({ order, item, idx, days });
     });
 
     return phases.map(phase => {
@@ -1302,19 +1303,41 @@
       });
     });
 
-    // Collect items per phase
+    // Collect items per phase — create columns on-the-fly for unrecognized phases
     const phaseItems = {};
     allOrders.forEach(order => {
       order.line_items.forEach((item, idx) => {
         const phase = getItemPhase(order.id, item.id);
-        if (!colMap[phase]) return;
+        if (!colMap[phase]) {
+          const col = document.createElement('div');
+          col.className = 'kb-col';
+          col.dataset.kbGroup = 'order-review';
+          col.innerHTML = `<div class="kb-col-header"><div class="kb-col-title">${phase}</div><div class="kb-col-count" id="kbcnt-${encodeKbPhase(phase)}">0</div></div><div class="kb-col-body" data-phase="${phase}"></div>`;
+          board.appendChild(col);
+          const body = col.querySelector('.kb-col-body');
+          colMap[phase] = body;
+          body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
+          body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+          body.addEventListener('drop', e => {
+            e.preventDefault(); body.classList.remove('drag-over');
+            const { orderId, itemId } = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const card = document.querySelector(`.kb-card[data-order-id="${orderId}"][data-item-id="${itemId}"]`);
+            if (!card) return;
+            const oldPhase = card.dataset.phase; const newPhase = body.dataset.phase;
+            if (oldPhase === newPhase) return;
+            setItemPhase(orderId, itemId, newPhase);
+            body.appendChild(card); card.dataset.phase = newPhase;
+            updateKbCount(oldPhase); updateKbCount(newPhase);
+          });
+        }
         if (!phaseItems[phase]) phaseItems[phase] = [];
         phaseItems[phase].push({ order, item, idx });
       });
     });
 
     // Sort each phase: group by product name, highest total QTY first, then highest total value
-    ALL_PHASES.forEach(phase => {
+    const allKbPhases = [...ALL_PHASES, ...Object.keys(colMap).filter(p => !ALL_PHASES.includes(p))];
+    allKbPhases.forEach(phase => {
       const items = phaseItems[phase] || [];
       const productQty = {};
       const productVal = {};
