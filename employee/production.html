@@ -619,7 +619,7 @@
     if (_currentTab === 'production') {
       const queueCount = queueJos.length + wcReleased.length;
       html += `<div class="k-col">
-        <div class="k-col-hdr">Queue <span class="k-col-count">${queueCount}</span></div>
+        <div class="k-col-hdr">JO Released <span class="k-col-count">${queueCount}</span></div>
         <div class="k-col-body">`;
 
       if (!queueJos.length && !wcReleased.length) {
@@ -641,6 +641,7 @@
           <div class="q-jo-ref">${jo.ref || '—'}</div>
           <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
           <div class="q-jo-items">${itemRows}</div>
+          <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
         </div>`;
       });
 
@@ -659,6 +660,7 @@
           <div class="q-jo-ref">#${order.id} · ${customer}</div>
           <div class="q-jo-meta">${relItems.length} product${relItems.length!==1?'s':''}</div>
           <div class="q-jo-items">${itemRows}</div>
+          <button class="start-btn" onclick="startProductionFromWC(${order.id},this)">▶ Start Production</button>
         </div>`;
       });
 
@@ -685,6 +687,7 @@
     });
 
     scroll.innerHTML = html;
+    initDrag();
   }
 
   function cardHTML(card) {
@@ -753,7 +756,7 @@
     ];
     const phaseOptions = otherPhases.map(p => `<option value="${p}">${p}</option>`).join('');
 
-    return `<div class="prod-card" id="pcard-${card._id}" data-card-id="${card._id}">
+    return `<div class="prod-card" id="pcard-${card._id}" draggable="true" data-card-id="${card._id}">
       <div class="pc-summary" onclick="toggleCard('${card._id}')">
         <div class="pc-summary-main">
           <span class="pc-jo-ref">${card.jo_ref || '—'}</span>
@@ -765,6 +768,17 @@
       <div class="pc-body" id="pcbody-${card._id}" style="display:none">
         <div class="pc-items">${itemRows}</div>
       </div>
+      <div class="pc-actions" id="pcact-${card._id}" style="display:none;flex-direction:column;padding:8px 10px;border-top:1px solid #f5f0eb;">
+        <select class="pc-phase-select" style="width:100%;" onchange="moveCard('${card._id}',this.value,this)">
+          <option value="">→ Move to…</option>
+          ${phaseOptions}
+        </select>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="pc-btn pc-btn-split" style="flex:1;" onclick="openSplit('${card._id}')">⚡ Split</button>
+          <button class="pc-btn pc-btn-merge" style="flex:1;" onclick="openMerge('${card._id}')">⇌ Merge</button>
+        </div>
+        ${isLastProdPhase ? `<button class="dispatch-btn" onclick="dispatchCard('${card._id}',this)">▶ Dispatch to Packaging</button>` : ''}
+      </div>
     </div>`;
   }
 
@@ -772,8 +786,10 @@
     const card = document.getElementById(`pcard-${cardId}`);
     if (!card) return;
     const open = card.classList.toggle('expanded');
-    const body = document.getElementById(`pcbody-${cardId}`);
-    if (body) body.style.display = open ? 'block' : 'none';
+    const body    = document.getElementById(`pcbody-${cardId}`);
+    const actions = document.getElementById(`pcact-${cardId}`);
+    if (body)    body.style.display    = open ? 'block' : 'none';
+    if (actions) actions.style.display = open ? 'flex'  : 'none';
     const chev = card.querySelector('.pc-chev');
     if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
   }
@@ -900,8 +916,9 @@
     const card = _cards.find(c => c._id === cardId);
     if (!card) return;
     try {
-      await fsUpdate('production_cards', cardId, { phase: 'Packaging' });
-      card.phase = 'Packaging';
+      const dispatchPhase = DISPATCH_PHASES[0] || 'Packaging';
+      await fsUpdate('production_cards', cardId, { phase: dispatchPhase });
+      card.phase = dispatchPhase;
       renderKanban();
       if (_currentTab === 'status') renderStatus();
     } catch(e) {
