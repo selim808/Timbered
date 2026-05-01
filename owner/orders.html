@@ -1113,16 +1113,10 @@
   }
 
   // Fetch & build
-  Promise.all([fetchAllOrders(), loadPhasesFS(), loadProductsFS(), loadStockcountFS(), window.phasesLoaded]).then(([orders]) => {
-    PROD_WH_PHASES      = window.INTERFACE_PHASES;
-    DELIVERY_KB_PHASES  = window.DLV_PHASES.filter(p => !p.startsWith('Delivered'));
-    DELIVERED_KB_PHASES = window.DLV_PHASES.filter(p => p.startsWith('Delivered'));
-    document.getElementById('state').style.display = 'none';
-    document.getElementById('content').style.display = 'block';
-
+  function initOrders(orders) {
     allOrders = orders;
-    // Orders with no line_items (custom-amount / fee-only): inject a synthetic item
-    allOrders.forEach(order => {
+    allItems  = [];
+    orders.forEach(order => {
       if (!order.line_items.length) {
         const feeName = (order.fee_lines || []).length
           ? order.fee_lines.map(f => f.name).join(' + ')
@@ -1139,7 +1133,6 @@
         allItems.push({ order, item, idx, days });
       });
     });
-
     grandTotal = 0; grandQty = 0;
     allOrders.forEach(o => o.line_items.forEach(i => {
       grandTotal += parseFloat(i.total || 0);
@@ -1149,16 +1142,37 @@
       grandQty + ' items · ' + orders.length + ' orders';
     document.getElementById('totalValue').textContent =
       Math.round(grandTotal).toLocaleString() + ' EGP';
-
     buildPhaseFilterSel();
     updatePhaseFilterSel();
     render();
     updateProductCountLbl();
+  }
 
-    // Background sync: save completed orders to legacy collection
-    syncCompletedToLegacy();
-  }).catch(e => {
-    document.getElementById('state').textContent = 'Error: ' + e.message;
+  // Phase groups are cached in sessionStorage — resolve them first (usually instant)
+  // then show orders immediately; Firestore collections load in background and re-render.
+  window.phasesLoaded.then(async () => {
+    PROD_WH_PHASES      = window.INTERFACE_PHASES;
+    DELIVERY_KB_PHASES  = window.DLV_PHASES.filter(p => !p.startsWith('Delivered'));
+    DELIVERED_KB_PHASES = window.DLV_PHASES.filter(p => p.startsWith('Delivered'));
+
+    // Fetch orders and show immediately
+    let orders;
+    try {
+      orders = await fetchAllOrders();
+    } catch (e) {
+      document.getElementById('state').textContent = 'Error: ' + e.message;
+      return;
+    }
+    document.getElementById('state').style.display   = 'none';
+    document.getElementById('content').style.display = 'block';
+    initOrders(orders);
+
+    // Load Firestore data in background — re-render when done
+    Promise.all([loadPhasesFS(), loadProductsFS(), loadStockcountFS()]).then(() => {
+      render();
+      updateProductCountLbl();
+      syncCompletedToLegacy();
+    });
   });
 
   // ── Kanban board ──────────────────────────────────────────────────
