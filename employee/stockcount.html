@@ -28,14 +28,16 @@
     td, thead th { width: 1px; white-space: nowrap; }
     thead th { background: #fef3e2; color: #7A4610; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: center; border-bottom: 1px solid #e8ddd4; position: sticky; top: var(--thead-top, 0px); z-index: 10; }
     thead th.th-num { width: 28px; text-align: center; padding: 8px 6px; }
+    thead th.th-img { width: 44px; padding: 8px 4px; text-align: center; }
+    td.td-img { padding: 6px 4px; }
     .totals-row th { background: #fef3e2; font-size: 12px; font-weight: 800; color: #7A4610; padding: 5px 6px; border-bottom: 2px solid #e8ddd4; text-align: center; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
     tbody tr { border-bottom: 1px solid #f5f0eb; transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fdf8f4; }
     td { padding: 8px 12px; vertical-align: middle; }
 
-    .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; cursor: pointer; }
-    .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; cursor: pointer; }
+    .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; cursor: pointer; margin: 0 auto; }
+    .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; cursor: pointer; margin: 0 auto; }
     .td-name { font-size: 12px; font-weight: 600; color: #333; width: 90px; max-width: 90px; white-space: normal; word-break: break-word; line-height: 1.3; }
     .td-stock { white-space: nowrap; width: 28px; text-align: center; padding: 8px 12px; }
     .stock-val { font-size: 15px; font-weight: 700; min-width: 36px; text-align: center; display: block; }
@@ -60,7 +62,7 @@
 <div class="top-fixed" id="topFixed">
   <div class="site-header">
     <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
-    <span class="title">Warehouse</span>
+    <span class="title">Stockcount</span>
     <a href="index.html" class="back">← Back</a>
   </div>
   <div class="toolbar">
@@ -81,7 +83,7 @@
   <table>
     <thead>
       <tr>
-        <th rowspan="2">Img</th>
+        <th class="th-img" rowspan="2">Img</th>
         <th rowspan="2">Name</th>
         <th class="th-num">Stock</th>
         <th class="th-num">Defected</th>
@@ -135,7 +137,7 @@
       const res  = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'warehouse' }] } })
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'stockcount' }] } })
       });
       const rows = await res.json();
       rows.filter(r => r.document).forEach(r => {

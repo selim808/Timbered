@@ -148,7 +148,7 @@
 
     for (const p of PRODUCTS) {
       try {
-        const res = await fetch(`${FS_BASE}/warehouse/${p.id}?key=${FS_KEY}`, {
+        const res = await fetch(`${FS_BASE}/stockcount/${p.id}?key=${FS_KEY}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fields: {

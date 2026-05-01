@@ -615,60 +615,70 @@
     const wcReleased = _currentTab === 'production' ? _wcReleasedOrders : [];
     let html = '';
 
-    // Phase columns
+    // ── Always-visible Queue column (production tab only) ────────────
+    if (_currentTab === 'production') {
+      const queueCount = queueJos.length + wcReleased.length;
+      html += `<div class="k-col">
+        <div class="k-col-hdr">JO Released <span class="k-col-count">${queueCount}</span></div>
+        <div class="k-col-body">`;
+
+      if (!queueJos.length && !wcReleased.length) {
+        html += `<div class="k-col-empty">Empty</div>`;
+      }
+
+      queueJos.forEach(jo => {
+        const items = jo.items || [];
+        const itemRows = items.slice(0, 4).map(it => {
+          const n = it.name || it.product_name || '—';
+          const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
+          return `<div class="q-jo-item-row">
+            <div class="q-jo-item-dot"></div>
+            <span class="q-jo-item-name">${n}</span>
+            <span class="q-jo-item-qty">×${q}</span>
+          </div>`;
+        }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
+        html += `<div class="q-jo-card">
+          <div class="q-jo-ref">${jo.ref || '—'}</div>
+          <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
+          <div class="q-jo-items">${itemRows}</div>
+          <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
+        </div>`;
+      });
+
+      wcReleased.forEach(order => {
+        const relItems = order.line_items.filter(i => (_phasesFS[`${order.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
+        const b = order.billing;
+        const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
+        const itemRows = relItems.slice(0, 4).map(it =>
+          `<div class="q-jo-item-row">
+            <div class="q-jo-item-dot"></div>
+            <span class="q-jo-item-name">${it.name}</span>
+            <span class="q-jo-item-qty">×${it.quantity}</span>
+          </div>`
+        ).join('') + (relItems.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${relItems.length-4} more</div>` : '');
+        html += `<div class="q-jo-card">
+          <div class="q-jo-ref">#${order.id} · ${customer}</div>
+          <div class="q-jo-meta">${relItems.length} product${relItems.length!==1?'s':''}</div>
+          <div class="q-jo-items">${itemRows}</div>
+          <button class="start-btn" onclick="startProductionFromWC(${order.id},this)">▶ Start Production</button>
+        </div>`;
+      });
+
+      html += '</div></div>';
+    }
+
+    // ── Phase columns ────────────────────────────────────────────────
     phases.forEach(phase => {
+      if (phase === 'JO released') return; // already shown in Queue col
       const activeCards = _cards
         .filter(c => c.phase === phase && !c.shipped)
         .sort((a, b) => (a.sort_order ?? Date.parse(a.created_at) ?? 0) - (b.sort_order ?? Date.parse(b.created_at) ?? 0));
       const colId = 'col_' + phase.replace(/[^a-z0-9]/gi, '_');
-      const isJoReleased = phase === 'JO released';
-      const colCount = isJoReleased ? queueJos.length + wcReleased.length + activeCards.length : activeCards.length;
       html += `<div class="k-col">
-        <div class="k-col-hdr">${phase} <span class="k-col-count">${colCount}</span></div>
+        <div class="k-col-hdr">${phase} <span class="k-col-count">${activeCards.length}</span></div>
         <div class="k-col-body" id="${colId}" data-phase="${phase}">`;
 
-      // Pending JOs at the top of "JO released" column
-      if (isJoReleased) {
-        if (!queueJos.length && !wcReleased.length && !activeCards.length) {
-          html += `<div class="k-col-empty">Empty</div>`;
-        }
-        queueJos.forEach(jo => {
-          const items = jo.items || [];
-          const itemRows = items.slice(0, 4).map(it => {
-            const n = it.name || it.product_name || '—';
-            const q = (it.mto_qty ?? it.mto?.qty ?? 0) + (it.mts_qty ?? it.mts?.qty ?? 0);
-            return `<div class="q-jo-item-row">
-              <div class="q-jo-item-dot"></div>
-              <span class="q-jo-item-name">${n}</span>
-              <span class="q-jo-item-qty">×${q}</span>
-            </div>`;
-          }).join('') + (items.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${items.length-4} more</div>` : '');
-          html += `<div class="q-jo-card">
-            <div class="q-jo-ref">${jo.ref || '—'}</div>
-            <div class="q-jo-meta">${fmtDate(jo.created_at)} · ${items.length} product${items.length!==1?'s':''}</div>
-            <div class="q-jo-items">${itemRows}</div>
-            <button class="start-btn" onclick="startProduction('${jo._id}',this)">▶ Start Production</button>
-          </div>`;
-        });
-        wcReleased.forEach(order => {
-          const relItems = order.line_items.filter(i => (_phasesFS[`${order.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
-          const b = order.billing;
-          const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
-          const itemRows = relItems.slice(0, 4).map(it =>
-            `<div class="q-jo-item-row">
-              <div class="q-jo-item-dot"></div>
-              <span class="q-jo-item-name">${it.name}</span>
-              <span class="q-jo-item-qty">×${it.quantity}</span>
-            </div>`
-          ).join('') + (relItems.length > 4 ? `<div style="font-size:9px;color:#bbb;padding-left:10px;">+${relItems.length-4} more</div>` : '');
-          html += `<div class="q-jo-card">
-            <div class="q-jo-ref">#${order.id} · ${customer}</div>
-            <div class="q-jo-meta">${relItems.length} product${relItems.length!==1?'s':''}</div>
-            <div class="q-jo-items">${itemRows}</div>
-            <button class="start-btn" onclick="startProductionFromWC(${order.id},this)">▶ Start Production</button>
-          </div>`;
-        });
-      } else if (!activeCards.length) {
+      if (!activeCards.length) {
         html += `<div class="k-col-empty">Empty</div>`;
       }
 
@@ -906,8 +916,9 @@
     const card = _cards.find(c => c._id === cardId);
     if (!card) return;
     try {
-      await fsUpdate('production_cards', cardId, { phase: 'Packaging' });
-      card.phase = 'Packaging';
+      const dispatchPhase = DISPATCH_PHASES[0] || 'Packaging';
+      await fsUpdate('production_cards', cardId, { phase: dispatchPhase });
+      card.phase = dispatchPhase;
       renderKanban();
       if (_currentTab === 'status') renderStatus();
     } catch(e) {
