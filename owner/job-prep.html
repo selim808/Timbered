@@ -34,6 +34,10 @@
     .prod-info { flex: 1; min-width: 0; }
     .prod-name { font-size: 12px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .prod-id { font-size: 10px; color: #aaa; margin-top: 1px; }
+    .prod-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; font-size: 10px; color: #777; }
+    .prod-meta span { white-space: nowrap; }
+    .prod-meta strong { color: #333; font-weight: 800; }
+    .ordered-link { appearance: none; border: none; background: none; padding: 0; color: #7A4610; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
     .dwg-icon { font-size: 9px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 3px; padding: 1px 4px; text-decoration: none; flex-shrink: 0; line-height: 1.4; white-space: nowrap; }
     .dwg-icon:hover { background: #7A4610; color: #fff; }
     .qty-col { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; min-width: 42px; }
@@ -123,6 +127,8 @@
     .sr-info { flex: 1; min-width: 0; }
     .sr-name { font-size: 12px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .sr-mat { font-size: 10px; color: #999; margin-top: 1px; }
+    .sr-stats { font-size: 10px; color: #777; margin-top: 1px; }
+    .sr-stats strong { color: #333; }
     .sr-add { font-size: 11px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 2px 10px; background: none; cursor: pointer; flex-shrink: 0; }
     .sr-add:hover { background: #7A4610; color: #fff; }
     .sr-add:disabled { border-color: #ccc; color: #ccc; cursor: default; }
@@ -332,6 +338,54 @@
     return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }
 
+  let _stockcountFS = {}; // product_id -> { stock, defected }
+  let _orderedQtyMap = {}; // product_id -> qty across loaded processing orders
+
+  async function loadStockcountFS() {
+    try {
+      const rows = await fsGetAll('stockcount');
+      _stockcountFS = {};
+      rows.forEach(doc => {
+        const id = parseInt(doc.product_id || doc._id);
+        if (!id) return;
+        _stockcountFS[id] = {
+          stock: parseInt(doc.stock || 0),
+          defected: parseInt(doc.defected || 0),
+        };
+      });
+    } catch (_) {
+      _stockcountFS = {};
+    }
+  }
+
+  function buildOrderedQtyMap(orders) {
+    _orderedQtyMap = {};
+    orders.forEach(order => (order.line_items || []).forEach(item => {
+      if (!item.product_id) return;
+      _orderedQtyMap[item.product_id] = (_orderedQtyMap[item.product_id] || 0) + (item.quantity || 0);
+    }));
+  }
+
+  function productStockQty(productId) {
+    return _stockcountFS[productId]?.stock || 0;
+  }
+
+  function productOrderedQty(productId) {
+    return _orderedQtyMap[productId] || 0;
+  }
+
+  function orderedQtyLink(productId) {
+    const qty = productOrderedQty(productId);
+    return `<button class="ordered-link" onclick="event.stopPropagation();showProductOrderedDetails(${productId})">${qty}</button>`;
+  }
+
+  function productStatsHtml(productId) {
+    return `<div class="prod-meta">
+      <span>Stock <strong>${productStockQty(productId)}</strong></span>
+      <span>Ordered ${orderedQtyLink(productId)}</span>
+    </div>`;
+  }
+
   async function fetchAllOrders() {
     let page = 1, all = [];
     while (true) {
@@ -395,6 +449,7 @@
             <div class="prod-info">
               <div class="prod-name">${p.name}</div>
               <div class="prod-id">#${p.product_id}</div>
+              ${productStatsHtml(p.product_id)}
             </div>
             ${dwg ? `<a class="dwg-icon" href="${dwg}" target="_blank" onclick="event.stopPropagation()">DWG</a>` : ''}
             <div class="qty-col">
@@ -553,6 +608,7 @@
         <div class="sr-info">
           <div class="sr-name">${p.name}</div>
           ${p.material ? `<div class="sr-mat">${p.material}</div>` : ''}
+          <div class="sr-stats">Stock <strong>${productStockQty(p.product_id)}</strong> · Ordered ${orderedQtyLink(p.product_id)}</div>
         </div>
         <button class="sr-add" ${already ? 'disabled' : ''} onclick="addMtsProduct(${p.product_id},'${p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.image}')">
           ${already ? 'Added' : '+ Add'}
@@ -591,6 +647,7 @@
           <div class="prod-info">
             <div class="prod-name">${p.name}</div>
             <div class="prod-id">#${p.product_id}</div>
+            ${productStatsHtml(p.product_id)}
           </div>
           ${dwg ? `<a class="dwg-icon" href="${dwg}" target="_blank">DWG</a>` : ''}
           <span class="mts-only-badge">MTS only</span>
@@ -630,6 +687,8 @@
         product_name: card.querySelector('.prod-name').textContent,
         image: card.querySelector('.prod-thumb')?.src || '',
         dwg_url: card.dataset.dwg || '',
+        stock_qty: productStockQty(pid),
+        total_ordered_qty: productOrderedQty(pid),
         mto: { qty: mtoQty, orders: mtoOrders },
         mts: { qty: mtsQty },
         total_qty: mtoQty + mtsQty
@@ -642,6 +701,8 @@
         product_id: p.product_id,
         product_name: p.name,
         image: p.image || '',
+        stock_qty: productStockQty(p.product_id),
+        total_ordered_qty: productOrderedQty(p.product_id),
         mto: { qty: 0, orders: [] },
         mts: { qty: parseInt(p.qty) || 1 },
         total_qty: parseInt(p.qty) || 1
@@ -795,10 +856,14 @@
       const rows = items.map(item => {
         const unitPrice = priceMap[item.product_id] || 0;
         const value = unitPrice * (item.total_qty || 0);
+        const stockQty = item.stock_qty ?? productStockQty(item.product_id);
+        const orderedQty = item.total_ordered_qty ?? productOrderedQty(item.product_id);
         grandTotal += value;
         const mtoOrders = (item.mto?.orders || []).map(o => `#${o.order_id}(×${o.qty})`).join(', ');
         return `<tr>
           <td>${item.product_name}</td>
+          <td class="num">${stockQty}</td>
+          <td class="num">${orderedQty}</td>
           <td class="num">${item.mto?.qty || 0}${mtoOrders ? `<br><small style="color:#888">${mtoOrders}</small>` : ''}</td>
           <td class="num">${item.mts?.qty || 0}</td>
           <td class="num"><strong>${item.total_qty || 0}</strong></td>
@@ -843,6 +908,8 @@
         <table>
           <thead><tr>
             <th>Product</th>
+            <th class="num">Stock</th>
+            <th class="num">Ordered</th>
             <th class="num">MTO</th>
             <th class="num">MTS</th>
             <th class="num">Total Qty</th>
@@ -851,7 +918,7 @@
           </tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr class="total-row">
-            <td colspan="5" style="text-align:right;">Total JO Value</td>
+            <td colspan="7" style="text-align:right;">Total JO Value</td>
             <td class="num">${grandTotal.toLocaleString()} EGP</td>
           </tr></tfoot>
         </table>
@@ -902,6 +969,8 @@
           const thumb = item.image
             ? `<img class="jo-item-thumb" src="${item.image}" alt="">`
             : `<div class="jo-item-thumb-ph"></div>`;
+          const stockQty = item.stock_qty ?? productStockQty(item.product_id);
+          const orderedQty = item.total_ordered_qty ?? productOrderedQty(item.product_id);
           const ordersHtml = (item.mto?.orders || []).map(o =>
             `<span class="jo-order-pill">#${o.order_id} · ${o.customer} · ×${o.qty}</span>`
           ).join('');
@@ -912,6 +981,8 @@
                 <span class="jo-item-name">${item.product_name}</span>
               </div>
               <div class="jo-qty-row">
+                <span class="jo-qty-chip">Stock <span>${stockQty}</span></span>
+                <span class="jo-qty-chip">Ordered <span><button class="ordered-link" onclick="event.stopPropagation();showProductOrderedDetails(${item.product_id})">${orderedQty}</button></span></span>
                 <span class="jo-qty-chip">MTO <span>${item.mto?.qty || 0}</span></span>
                 <span class="jo-qty-chip mts">MTS <span>${item.mts?.qty || 0}</span></span>
                 <span class="jo-qty-chip total">Total <span>${item.total_qty || 0}</span></span>
@@ -949,6 +1020,52 @@
 
   // ── Order detail popup ────────────────────────────────────────────
   let _allOrders = [];
+
+  function showProductOrderedDetails(productId) {
+    const rows = [];
+    _allOrders.forEach(order => {
+      (order.line_items || [])
+        .filter(item => item.product_id === productId)
+        .forEach(item => rows.push({ order, item }));
+    });
+
+    const productName = rows[0]?.item?.name
+      || _wcProducts.find(p => p.product_id === productId)?.name
+      || _fsProducts.find(p => p.product_id === productId)?.name
+      || `Product #${productId}`;
+    const totalQty = rows.reduce((sum, row) => sum + (row.item.quantity || 0), 0);
+
+    const rowsHtml = rows.length ? rows.map(({ order, item }) => {
+      const b = order.billing || {};
+      const customer = [b.first_name, b.last_name].filter(Boolean).join(' ') || '—';
+      const date = (order.date_created || '').replace('T', ' ').slice(0, 10);
+      const phase = getPhase(order.id, item);
+      return `<div class="od-item-row">
+        <span class="mto-order-id mto-order-id-link" onclick="showOrderDetail(${order.id})">#${order.id}</span>
+        <span class="od-item-name">${customer}</span>
+        <span class="od-meta" style="margin-top:0;flex-shrink:0;">${date}</span>
+        <span class="od-item-qty">×${item.quantity || 0}</span>
+        <span class="od-item-phase">${phase}</span>
+      </div>`;
+    }).join('') : '<div class="od-meta">No loaded processing orders for this product.</div>';
+
+    document.getElementById('odTitle').textContent = `Ordered · ${productName}`;
+    document.getElementById('odBody').innerHTML = `
+      <div class="od-section">
+        <div class="od-section-lbl">Product</div>
+        <div class="od-customer-name">${productName}</div>
+        <div class="od-meta">Product #${productId}</div>
+      </div>
+      <div class="od-total-row">
+        <span class="od-total-lbl">Total Ordered</span>
+        <span class="od-total-val">${totalQty}</span>
+      </div>
+      <div class="od-section">
+        <div class="od-section-lbl">Orders</div>
+        ${rowsHtml}
+      </div>`;
+    document.getElementById('odOverlay').classList.add('open');
+  }
 
   function showOrderDetail(orderId) {
     const order = _allOrders.find(o => o.id === orderId);
@@ -1020,8 +1137,9 @@
     stateEl.style.display = 'block';
     document.getElementById('newWrap').style.display = 'none';
     try {
-      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS()]);
+      const [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS(), loadStockcountFS()]);
       _allOrders = orders;
+      buildOrderedQtyMap(orders);
       _excludedPids   = new Set();
       _excludedOrders = {};
       orders.forEach(o => (o.line_items || []).forEach(i => {
