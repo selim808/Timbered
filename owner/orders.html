@@ -304,8 +304,9 @@
       </div>
     </div>
   </div>
-  <div style="display:flex; gap:6px; flex-basis:100%; align-items:center;">
+  <div style="display:flex; gap:8px; flex-basis:100%; align-items:center;">
     <button class="filter-btn" id="inStockFilterBtn" title="Show orders with at least one item in stock">📦 In Stock</button>
+    <span id="inStockStats" style="font-size:11px; color:#aaa;">—</span>
   </div>
   <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
@@ -785,6 +786,20 @@
   function hasItemInStock(o) {
     return o.line_items.some(i => (_stockcountFS[i.product_id]?.stock || 0) > 0);
   }
+
+  function updateInStockStats() {
+    let qty = 0, value = 0;
+    allOrders.forEach(o => o.line_items.forEach(i => {
+      if ((_stockcountFS[i.product_id]?.stock || 0) > 0) {
+        qty   += i.quantity || 1;
+        value += parseFloat(i.total || 0);
+      }
+    }));
+    const el = document.getElementById('inStockStats');
+    if (el) el.textContent = qty
+      ? `${qty} item${qty !== 1 ? 's' : ''} · ${Math.round(value).toLocaleString()} EGP`
+      : 'none in stock';
+  }
   function filteredItems() {
     const q = searchQuery();
     let items = allItems;
@@ -1188,6 +1203,7 @@
     Promise.all([loadPhasesFS(), loadProductsFS(), loadStockcountFS()]).then(() => {
       render();
       updateProductCountLbl();
+      updateInStockStats();
       syncCompletedToLegacy();
     });
   });
