@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receiving WH</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
+
+    .site-header { background: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .site-header img { height: 26px; }
+    .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
+    .site-header .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
+
+    .tab-bar { background: #fff; border-bottom: 1px solid #e8ddd4; display: flex; padding: 0 12px; gap: 4px; position: sticky; top: 51px; z-index: 90; }
+    .tab-btn { font-size: 11px; font-weight: 700; color: #aaa; padding: 10px 12px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; letter-spacing: 0.4px; }
+    .tab-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .tab-badge { background: #7A4610; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 9px; margin-left: 4px; }
+
+    #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
+    .list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* shipment card */
+    .ship-card { background: #fff; border-radius: 10px; border: 1px solid #e8ddd4; overflow: hidden; }
+    .ship-hdr { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; user-select: none; }
+    .ship-hdr:hover { background: #fdf8f4; }
+    .ship-ref { font-size: 13px; font-weight: 800; color: #7A4610; flex: 1; }
+    .ship-meta { font-size: 10px; color: #aaa; }
+    .ship-progress { font-size: 10px; font-weight: 700; color: #7A4610; background: #fef3e2; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+    .ship-progress.done { background: #eafaf1; color: #27ae60; }
+    .ship-chev { font-size: 12px; color: #ccc; transition: transform 0.2s; }
+    .ship-card.open .ship-chev { transform: rotate(180deg); }
+    .ship-body { display: none; border-top: 1px solid #f5f0eb; }
+    .ship-card.open .ship-body { display: block; }
+
+    /* prod-card section */
+    .pc-section { border-bottom: 1px solid #f5f0eb; padding: 10px 14px; }
+    .pc-section:last-of-type { border-bottom: none; }
+    .pc-label { font-size: 10px; font-weight: 700; color: #7A4610; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* item row */
+    .item-wrap { border-bottom: 1px solid #f9f5f2; }
+    .item-wrap:last-child { border-bottom: none; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+    .item-chk { width: 20px; height: 20px; border: 2px solid #d0c4ba; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+    .item-chk.checked { background: #27ae60; border-color: #27ae60; }
+    .item-chk.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 800; line-height: 1; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; }
+    .item-chips { display: flex; gap: 4px; flex-shrink: 0; }
+    .chip { font-size: 10px; font-weight: 700; border-radius: 5px; padding: 2px 6px; white-space: nowrap; }
+    .chip-mto { background: #fef3e2; color: #7A4610; }
+    .chip-mts { background: #eafaf1; color: #27ae60; }
+
+    /* MTO order block */
+    .mto-block { margin: 0 0 6px 30px; background: #fdf8f4; border-radius: 6px; padding: 6px 8px; border: 1px solid #f0e8e0; }
+    .mto-order-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 10px; color: #666; }
+    .mto-order-id { font-weight: 700; color: #7A4610; flex-shrink: 0; }
+    .mto-order-customer { flex: 1; color: #888; }
+    .mto-order-qty { font-weight: 600; color: #333; flex-shrink: 0; }
+    .mto-phase-select { width: 100%; margin-top: 6px; border-top: 1px solid #f0e8e0; padding-top: 6px; display: block; font-size: 11px; font-weight: 600; color: #333; border: 1.5px solid #e8ddd4; border-radius: 6px; padding: 5px 8px; background: #fff; cursor: pointer; outline: none; }
+    .mto-phase-select:disabled { background: #f5f0eb; color: #bbb; cursor: not-allowed; }
+
+    /* MTS stock block */
+    .mts-block { margin: 0 0 6px 30px; display: flex; gap: 6px; }
+    .mts-btn { flex: 1; padding: 5px 8px; border: none; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; color: #fff; transition: opacity 0.15s; }
+    .mts-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mts-btn.btn-stock { background: #27ae60; }
+    .mts-btn.btn-prod  { background: #7A4610; }
+    .mts-btn.done { opacity: 0.7; cursor: default; }
+
+    /* progress bar */
+    .prog-bar-wrap { height: 3px; background: #f0e8e0; }
+    .prog-bar { height: 3px; background: #27ae60; transition: width 0.3s; }
+
+    /* confirm panel */
+    .confirm-panel { padding: 12px 14px; background: #fef3e2; border-top: 1px solid #e8ddd4; display: none; }
+    .confirm-panel.visible { display: block; }
+    .confirm-label { font-size: 11px; font-weight: 700; color: #7A4610; margin-bottom: 8px; }
+    .confirm-btn { width: 100%; padding: 10px 8px; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; background: #7A4610; color: #fff; }
+    .confirm-btn:active { opacity: 0.8; }
+    .confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* received history */
+    .hist-card { background: #fff; border-radius: 10px; border: 1px solid #e8ddd4; padding: 12px 14px; }
+    .hist-ref  { font-size: 12px; font-weight: 800; color: #7A4610; }
+    .hist-meta { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .hist-phase { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700; border-radius: 8px; padding: 2px 8px; }
+    .hist-phase.wh       { background: #fef3e2; color: #7A4610; }
+    .hist-phase.delivery { background: #eafaf1; color: #27ae60; }
+
+    .empty { text-align: center; color: #bbb; padding: 40px 20px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
+  <span class="title">Receiving WH</span>
+  <a href="index.html" class="back">← Back</a>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('shipments')" id="tab-shipments">
+    Shipments <span class="tab-badge" id="badge-shipments">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('sent')" id="tab-sent">
+    Sent → <span class="tab-badge" id="badge-sent">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('received')" id="tab-received">
+    Received <span class="tab-badge" id="badge-received">0</span>
+  </button>
+</div>
+
+<div id="state">Loading shipments…</div>
+<div id="shipments-list" class="list" style="display:none;"></div>
+<div id="sent-list"      class="list" style="display:none;"></div>
+<div id="received-list"  class="list" style="display:none;"></div>
+
+<script src="../phase-loader.js"></script>
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  // ── Firestore helpers ────────────────────────────────────────────────
+  function parseValue(v) {
+    if (!v) return null;
+    if (v.stringValue  !== undefined) return v.stringValue;
+    if (v.integerValue !== undefined) return parseInt(v.integerValue);
+    if (v.doubleValue  !== undefined) return parseFloat(v.doubleValue);
+    if (v.booleanValue !== undefined) return v.booleanValue;
+    if (v.nullValue    !== undefined) return null;
+    if (v.arrayValue)  return (v.arrayValue.values || []).map(parseValue);
+    if (v.mapValue)    return parseFields(v.mapValue.fields || {});
+    return null;
+  }
+  function parseFields(fields) {
+    const obj = {};
+    for (const [k, v] of Object.entries(fields)) obj[k] = parseValue(v);
+    return obj;
+  }
+  function fromDoc(doc) {
+    if (!doc?.fields) return null;
+    const obj = parseFields(doc.fields);
+    obj._id = doc.name.split('/').pop();
+    return obj;
+  }
+  async function fsQuery(collectionId, filters = []) {
+    const where = filters.length === 1
+      ? { fieldFilter: filters[0] }
+      : { compositeFilter: { op: 'AND', filters: filters.map(f => ({ fieldFilter: f })) } };
+    const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId }], where } })
+    });
+    return (await res.json()).filter(r => r.document).map(r => fromDoc(r.document));
+  }
+  async function fsUpdate(col, id, data) {
+    const toV = v => typeof v === 'string' ? { stringValue: v } : typeof v === 'boolean' ? { booleanValue: v } : { integerValue: String(v) };
+    const fields = {};
+    for (const [k, v] of Object.entries(data)) fields[k] = toV(v);
+    const mask = Object.keys(data).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+    await fetch(`${FS_BASE}/${col}/${id}?key=${FS_KEY}&${mask}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+  }
+
+  // ── State ────────────────────────────────────────────────────────────
+  let _shipments    = {};  // ref → [cards]
+  let _received     = {};  // ref → [cards]
+  let _sent         = [];  // production_supply records
+  let _checked      = {};  // ref → Set<itemKey>
+  let _itemPhases   = {};  // ref → { itemKey: phase }
+  let _phaseOptions = [];  // populated after phasesLoaded
+  let _currentTab   = 'shipments';
+
+  function itemKey(cardId, idx) { return `${cardId}-${idx}`; }
+
+  function itemsOf(cards) {
+    const rows = [];
+    cards.forEach(card =>
+      (card.items || []).forEach((item, idx) =>
+        rows.push({ cardId: card._id, idx, mto: item.mto_qty || 0, mts: item.mts_qty || 0 })
+      )
+    );
+    return rows;
+  }
+
+  function allReady(ref) {
+    const items  = itemsOf(_shipments[ref] || []);
+    const set    = _checked[ref]    || new Set();
+    const phases = _itemPhases[ref] || {};
+    return items.length > 0
+      && items.every(i => set.has(itemKey(i.cardId, i.idx)))
+      && items.filter(i => i.mto > 0).every(i => phases[itemKey(i.cardId, i.idx)]);
+  }
+
+  function checkedCount(ref) { return (_checked[ref] || new Set()).size; }
+
+  // ── Render shipments ─────────────────────────────────────────────────
+  function renderShipments() {
+    const el   = document.getElementById('shipments-list');
+    const refs = Object.keys(_shipments);
+    document.getElementById('badge-shipments').textContent = refs.length;
+
+    if (!refs.length) { el.innerHTML = '<div class="empty">No pending shipments</div>'; return; }
+
+    el.innerHTML = refs.map(ref => {
+      const cards   = _shipments[ref];
+      const items   = itemsOf(cards);
+      const total   = items.length;
+      const done    = checkedCount(ref);
+      const pct     = total ? Math.round(done / total * 100) : 0;
+      const ready   = allReady(ref);
+      const dateStr = cards[0]?.created_at
+        ? new Date(cards[0].created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' }) : '—';
+
+      const sections = cards.map(card => {
+        const cardItems = card.items || [];
+        if (!cardItems.length) return '';
+        const rows = cardItems.map((item, idx) => {
+          const key     = itemKey(card._id, idx);
+          const isChk   = (_checked[ref] || new Set()).has(key);
+          const name    = item.product_name || item.name || '—';
+          const mto     = item.mto_qty || 0;
+          const mts     = item.mts_qty || 0;
+          const selPhase = (_itemPhases[ref] || {})[key] || '';
+
+          const chips = [
+            mto ? `<span class="chip chip-mto">MTO ${mto}</span>` : '',
+            mts ? `<span class="chip chip-mts">MTS ${mts}</span>` : '',
+          ].join('');
+
+          // Deduplicated mto_orders
+          const ordersMap = {};
+          (item.mto_orders || []).forEach(o => { if (!ordersMap[o.order_id]) ordersMap[o.order_id] = o; });
+          const orders = Object.values(ordersMap);
+
+          const orderRows = orders.map(o =>
+            `<div class="mto-order-row">
+              <span class="mto-order-id">#${o.order_id}</span>
+              <span class="mto-order-customer">${o.customer || ''}</span>
+              <span class="mto-order-qty">× ${o.qty}</span>
+            </div>`
+          ).join('');
+
+          const phaseOpts = _phaseOptions.map(g =>
+            `<optgroup label="${g.label}">${
+              g.phases.map(p => `<option value="${p}" ${selPhase===p?'selected':''}>${p}</option>`).join('')
+            }</optgroup>`
+          ).join('');
+          const productId = item.product_id || '';
+
+          const mtoBlock = mto > 0 ? `
+            <div class="mto-block">
+              ${orderRows}
+              <select class="mto-phase-select" id="sel-${key}" ${isChk?'':'disabled'}
+                onchange="selectItemPhase('${ref}','${card._id}',${idx},this.value)">
+                <option value="">— Select phase —</option>
+                ${phaseOpts}
+              </select>
+            </div>` : '';
+
+          const mtsBlock = mts > 0 ? `
+            <div class="mts-block">
+              <button class="mts-btn btn-stock" id="addstock-${key}" ${isChk?'':'disabled'}
+                onclick="addToStock('${key}',${productId},${mts})">+ Add to Stock</button>
+              <button class="mts-btn btn-prod" id="sendprod-${key}" ${isChk?'':'disabled'}
+                onclick="sentToProduction('${key}',${productId},${mts})">↩ Sent to Prod</button>
+            </div>` : '';
+
+          return `<div class="item-wrap">
+            <div class="item-row">
+              <div class="item-chk ${isChk?'checked':''}" onclick="toggleCheck('${ref}','${card._id}',${idx})"></div>
+              <span class="item-name">${name}</span>
+              <div class="item-chips">${chips}</div>
+            </div>
+            ${mtoBlock}${mtsBlock}
+          </div>`;
+        }).join('');
+
+        const label = card.jo_ref || card._id;
+        const split = card.split_label ? ` · ${card.split_label}` : '';
+        return `<div class="pc-section"><div class="pc-label">${label}${split}</div>${rows}</div>`;
+      }).join('');
+
+      return `<div class="ship-card" id="sc-${ref}">
+        <div class="ship-hdr" onclick="toggleShip('${ref}')">
+          <span class="ship-ref">${ref}</span>
+          <span class="ship-meta">${dateStr} · ${cards.length} card${cards.length!==1?'s':''}</span>
+          <span class="ship-progress ${ready?'done':''}" id="prog-${ref}">${done}/${total}</span>
+          <span class="ship-chev">▼</span>
+        </div>
+        <div class="prog-bar-wrap"><div class="prog-bar" id="bar-${ref}" style="width:${pct}%"></div></div>
+        <div class="ship-body">
+          ${sections}
+          <div class="confirm-panel ${ready?'visible':''}" id="cp-${ref}">
+            <div class="confirm-label">All items inspected — confirm receipt:</div>
+            <button class="confirm-btn" onclick="confirmReceipt('${ref}')">✓ Confirm Receipt</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Render received ──────────────────────────────────────────────────
+  function renderReceived() {
+    const el   = document.getElementById('received-list');
+    const refs = Object.keys(_received);
+    document.getElementById('badge-received').textContent = refs.length;
+
+    if (!refs.length) { el.innerHTML = '<div class="empty">No received shipments yet</div>'; return; }
+
+    el.innerHTML = refs.map(ref => {
+      const cards      = _received[ref];
+      const phases     = [...new Set(cards.map(c => c.phase).filter(Boolean))];
+      const dateStr    = cards[0]?.received_at
+        ? new Date(cards[0].received_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' })
+        : '—';
+      const totalItems = itemsOf(cards).length;
+      const phaseBadges = phases.map(p =>
+        `<span class="hist-phase ${p==='WH'?'wh':'delivery'}">${p}</span>`
+      ).join(' ');
+      return `<div class="hist-card">
+        <div class="hist-ref">${ref}</div>
+        <div class="hist-meta">${dateStr} · ${cards.length} card${cards.length!==1?'s':''} · ${totalItems} item${totalItems!==1?'s':''}</div>
+        <div style="margin-top:4px;">${phaseBadges}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Render sent ──────────────────────────────────────────────────────
+  function renderSent() {
+    const el = document.getElementById('sent-list');
+    document.getElementById('badge-sent').textContent = _sent.length;
+    if (!_sent.length) { el.innerHTML = '<div class="empty">Nothing sent to production yet</div>'; return; }
+    el.innerHTML = _sent.map(r => {
+      const dateStr = r.created_at
+        ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' }) : '—';
+      return `<div class="hist-card">
+        <div class="hist-ref">Product #${r.product_id}</div>
+        <div class="hist-meta">${dateStr} · Qty: ${r.qty}</div>
+        <span class="hist-phase delivery">→ Production</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Interactions ─────────────────────────────────────────────────────
+  function toggleShip(ref) {
+    document.getElementById('sc-' + ref)?.classList.toggle('open');
+  }
+
+  function toggleCheck(ref, cardId, idx) {
+    if (!_checked[ref]) _checked[ref] = new Set();
+    const key     = itemKey(cardId, idx);
+    const checked = !_checked[ref].has(key);
+    checked ? _checked[ref].add(key) : _checked[ref].delete(key);
+
+    const chk = document.querySelector(`[onclick="toggleCheck('${ref}','${cardId}',${idx})"]`);
+    if (chk) chk.classList.toggle('checked', checked);
+
+    // enable/disable MTO phase select
+    const sel = document.getElementById('sel-' + key);
+    if (sel) {
+      sel.disabled = !checked;
+      if (!checked) { sel.value = ''; delete (_itemPhases[ref] || {})[key]; }
+    }
+
+    // enable/disable MTS buttons (only if not already actioned)
+    const addBtn  = document.getElementById('addstock-' + key);
+    if (addBtn  && !addBtn.classList.contains('done'))  addBtn.disabled  = !checked;
+    const prodBtn = document.getElementById('sendprod-' + key);
+    if (prodBtn && !prodBtn.classList.contains('done')) prodBtn.disabled = !checked;
+
+    updateProgress(ref);
+  }
+
+  async function addToStock(key, productId, qty) {
+    const btn = document.getElementById('addstock-' + key);
+    if (!productId) { alert('No product ID on this item.'); return; }
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`${FS_BASE}/stockcount/${productId}?key=${FS_KEY}`);
+      let currentStock = 0;
+      if (res.ok) {
+        const doc = await res.json();
+        currentStock = parseInt(doc.fields?.stock?.integerValue || 0);
+      }
+      await fsUpdate('stockcount', productId, {
+        product_id: productId,
+        stock:      currentStock + qty,
+        updated_at: new Date().toISOString(),
+      });
+      if (btn) { btn.textContent = `✓ Added`; btn.classList.add('done'); }
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function sentToProduction(key, productId, qty) {
+    const btn = document.getElementById('sendprod-' + key);
+    if (!productId) { alert('No product ID on this item.'); return; }
+    if (btn) btn.disabled = true;
+    try {
+      const now = new Date().toISOString();
+      await fsUpdate('production_supply', `${productId}_${Date.now()}`, {
+        product_id: productId, qty, source: 'receiving', created_at: now,
+      });
+      _sent.unshift({ product_id: productId, qty, created_at: now });
+      renderSent();
+      if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('done'); }
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      alert('Error: ' + e.message);
+    }
+  }
+
+  function selectItemPhase(ref, cardId, idx, phase) {
+    if (!_itemPhases[ref]) _itemPhases[ref] = {};
+    if (phase) _itemPhases[ref][itemKey(cardId, idx)] = phase;
+    else delete _itemPhases[ref][itemKey(cardId, idx)];
+    updateProgress(ref);
+  }
+
+  function updateProgress(ref) {
+    const items = itemsOf(_shipments[ref] || []);
+    const done  = checkedCount(ref);
+    const total = items.length;
+    const pct   = total ? Math.round(done / total * 100) : 0;
+    const ready = allReady(ref);
+
+    const bar = document.getElementById('bar-' + ref);
+    if (bar) bar.style.width = pct + '%';
+    const prog = document.getElementById('prog-' + ref);
+    if (prog) { prog.textContent = `${done}/${total}`; prog.className = 'ship-progress' + (ready ? ' done' : ''); }
+    const cp = document.getElementById('cp-' + ref);
+    if (cp) cp.className = 'confirm-panel' + (ready ? ' visible' : '');
+  }
+
+  async function confirmReceipt(ref) {
+    const cards = _shipments[ref];
+    if (!cards) return;
+    const btn = document.querySelector(`#cp-${ref} .confirm-btn`);
+    if (btn) btn.disabled = true;
+
+    const phases = _itemPhases[ref] || {};
+    const now    = new Date().toISOString();
+
+    try {
+      await Promise.all(cards.map(c => {
+        let cardPhase = 'WH';
+        (c.items || []).forEach((it, i) => {
+          if ((it.mto_qty || 0) > 0) {
+            const p = phases[itemKey(c._id, i)];
+            if (p) cardPhase = p;
+          }
+        });
+        return fsUpdate('production_cards', c._id, { phase: cardPhase, received: true, received_at: now });
+      }));
+
+      cards.forEach(c => {
+        let cardPhase = 'WH';
+        (c.items || []).forEach((it, i) => {
+          if ((it.mto_qty || 0) > 0) { const p = phases[itemKey(c._id, i)]; if (p) cardPhase = p; }
+        });
+        c.phase = cardPhase; c.received = true; c.received_at = now;
+      });
+
+      _received[ref] = cards;
+      delete _shipments[ref];
+      delete _checked[ref];
+      delete _itemPhases[ref];
+      renderShipments();
+      renderReceived();
+      if (_currentTab === 'shipments') showTab('shipments');
+    } catch (e) {
+      alert('Error: ' + e.message);
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────
+  function switchTab(tab) {
+    _currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    showTab(tab);
+  }
+  function showTab(tab) {
+    document.getElementById('shipments-list').style.display = tab === 'shipments' ? 'flex' : 'none';
+    document.getElementById('sent-list').style.display      = tab === 'sent'      ? 'flex' : 'none';
+    document.getElementById('received-list').style.display  = tab === 'received'  ? 'flex' : 'none';
+  }
+
+  function groupByRef(cards) {
+    const map = {};
+    cards.forEach(c => { const r = c.shipment_ref || c._id; if (!map[r]) map[r] = []; map[r].push(c); });
+    return map;
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  (async () => {
+    try {
+      await window.phasesLoaded;
+      _phaseOptions = (window.PHASE_GROUPS || [])
+        .filter(g => g.id === 'interface' || g.id === 'warehouse')
+        .map(g => ({ label: g.label, phases: g.phases }));
+
+      const [shipments, received, sentRows] = await Promise.all([
+        fsQuery('production_cards', [{ field: { fieldPath: 'phase' }, op: 'EQUAL', value: { stringValue: 'Sent to WH' } }]),
+        fsQuery('production_cards', [{ field: { fieldPath: 'received' }, op: 'EQUAL', value: { booleanValue: true } }]),
+        fsQuery('production_supply'),
+      ]);
+      _shipments = groupByRef(shipments);
+      _received  = groupByRef(received);
+      _sent      = sentRows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+      document.getElementById('state').style.display          = 'none';
+      document.getElementById('shipments-list').style.display = 'flex';
+      document.getElementById('sent-list').style.display      = 'none';
+      document.getElementById('received-list').style.display  = 'none';
+      renderShipments();
+      renderSent();
+      renderReceived();
+    } catch (e) {
+      document.getElementById('state').textContent = 'Error: ' + e.message;
+    }
+  })();
+</script>
+</body>
+</html>
