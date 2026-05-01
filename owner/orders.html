@@ -458,25 +458,43 @@
 
   // ── Phase helpers ────────────────────────────────────────────────
   function getItemPhase(orderId, itemId) {
-    if (_phasesFS[`${orderId}_${itemId}`]) return _phasesFS[`${orderId}_${itemId}`];
-    const order = (allOrders || []).find(o => String(o.id) === String(orderId));
-    if (!order) return 'Created';
-    const item = order.line_items.find(i => String(i.id) === String(itemId));
-    return (item?.meta_data || []).find(m => m.key === 'tg_phase')?.value || 'Created';
+    return _phasesFS[`${orderId}_${itemId}`] || ALL_PHASES[0] || 'Created';
   }
   function setItemPhase(orderId, itemId, phase) {
-    // Update in-memory
     const order = (allOrders || []).find(o => String(o.id) === String(orderId));
-    if (order) {
-      const item = order.line_items.find(i => String(i.id) === String(itemId));
-      if (item) {
-        const existing = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        if (existing) existing.value = phase;
-        else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
-      }
-    }
     const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
     writePhaseFS(orderId, itemId, productId, phase);
+  }
+
+  function normalizeOrderLineItems(orders) {
+    orders.forEach(order => {
+      if (!order.line_items.length) {
+        const feeName = (order.fee_lines || []).length
+          ? order.fee_lines.map(f => f.name).join(' + ')
+          : 'Custom Amount';
+        order.line_items = [{
+          id: 0, name: feeName, total: order.total,
+          quantity: 1, product_id: 0, meta_data: [], image: null, _synthetic: true
+        }];
+      }
+    });
+  }
+
+  async function ensureFirebasePhases(orders) {
+    const firstPhase = ALL_PHASES[0] || 'Created';
+    const writes = [];
+    orders.forEach(order => {
+      order.line_items.forEach(item => {
+        const key = `${order.id}_${item.id}`;
+        if (!_phasesFS[key]) {
+          writes.push(() => writePhaseFS(order.id, item.id, item.product_id || 0, firstPhase));
+        }
+      });
+    });
+
+    for (let i = 0; i < writes.length; i += 25) {
+      await Promise.all(writes.slice(i, i + 25).map(write => write()));
+    }
   }
 
   // ── Fetch ─────────────────────────────────────────────────────────
@@ -1173,17 +1191,7 @@
   function initOrders(orders) {
     allOrders = orders;
     allItems  = [];
-    orders.forEach(order => {
-      if (!order.line_items.length) {
-        const feeName = (order.fee_lines || []).length
-          ? order.fee_lines.map(f => f.name).join(' + ')
-          : 'Custom Amount';
-        order.line_items = [{
-          id: 0, name: feeName, total: order.total,
-          quantity: 1, product_id: 0, meta_data: [], image: null, _synthetic: true
-        }];
-      }
-    });
+    normalizeOrderLineItems(orders);
     orders.forEach(order => {
       const days = daysSince(order.date_created);
       order.line_items.forEach((item, idx) => {
@@ -1225,10 +1233,12 @@
     activeGroups = new Set(Object.keys(PHASE_GROUPS));
     bulkSel.innerHTML = phaseOptgroups();
 
-    // Fetch orders and show immediately
+    // Fetch orders and Firestore phases before first render.
     let orders;
     try {
-      orders = await fetchAllOrders();
+      [orders] = await Promise.all([fetchAllOrders(), loadPhasesFS()]);
+      normalizeOrderLineItems(orders);
+      await ensureFirebasePhases(orders);
     } catch (e) {
       document.getElementById('state').textContent = 'Error: ' + e.message;
       return;
@@ -1237,8 +1247,8 @@
     document.getElementById('content').style.display = 'block';
     initOrders(orders);
 
-    // Load Firestore data in background — re-render when done
-    Promise.all([loadPhasesFS(), loadProductsFS(), loadStockcountFS()]).then(() => {
+    // Load supplemental data in background, then refresh derived product/stock stats.
+    Promise.all([loadProductsFS(), loadStockcountFS()]).then(() => {
       render();
       updateProductCountLbl();
       updateInStockStats();
