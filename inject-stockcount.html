@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inject Stockcount</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f5f0eb; }
+    #log { background: #fff; border-radius: 8px; padding: 16px; max-height: 80vh; overflow-y: auto; font-size: 12px; line-height: 1.6; }
+    button { margin-bottom: 12px; padding: 10px 24px; background: #7A4610; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <button onclick="run()">Inject Data</button>
+  <div id="log">Press the button to start…</div>
+<script>
+  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
+  const PROJECT = 'timbered-dashboard';
+  const FS_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+  const data = [
+    {id:19347,stock:0,defected:0},{id:19319,stock:1,defected:0},{id:19203,stock:8,defected:1},
+    {id:18999,stock:0,defected:0},{id:18920,stock:0,defected:0},{id:18906,stock:0,defected:0},
+    {id:18847,stock:0,defected:0},{id:18785,stock:0,defected:0},{id:17541,stock:1,defected:0},
+    {id:17485,stock:2,defected:1},{id:17477,stock:0,defected:0},{id:17478,stock:0,defected:0},
+    {id:17481,stock:0,defected:0},{id:17475,stock:0,defected:0},{id:17416,stock:0,defected:0},
+    {id:17408,stock:0,defected:0},{id:17402,stock:0,defected:0},{id:17397,stock:0,defected:0},
+    {id:17389,stock:0,defected:0},{id:17381,stock:2,defected:0},{id:17377,stock:5,defected:2},
+    {id:17175,stock:3,defected:2},{id:17176,stock:2,defected:2},{id:17177,stock:1,defected:1},
+    {id:17179,stock:0,defected:0},{id:17167,stock:3,defected:0},{id:17170,stock:1,defected:0},
+    {id:17171,stock:0,defected:0},{id:17173,stock:1,defected:0},{id:17174,stock:1,defected:0},
+    {id:17159,stock:0,defected:0},{id:17160,stock:1,defected:1},{id:17161,stock:0,defected:0},
+    {id:17163,stock:1,defected:0},{id:17164,stock:3,defected:0},{id:17155,stock:0,defected:0},
+    {id:17094,stock:0,defected:0},{id:17056,stock:0,defected:0},{id:17034,stock:1,defected:1},
+    {id:17026,stock:3,defected:2},{id:17020,stock:1,defected:0},{id:17028,stock:2,defected:0},
+    {id:17024,stock:0,defected:0},{id:17022,stock:0,defected:0},{id:17012,stock:0,defected:0},
+    {id:17006,stock:0,defected:0},{id:17004,stock:1,defected:0},{id:16893,stock:0,defected:0},
+    {id:16889,stock:0,defected:0},{id:16601,stock:0,defected:0},{id:16548,stock:6,defected:0},
+    {id:16544,stock:2,defected:0},{id:16538,stock:1,defected:0},{id:16535,stock:2,defected:2},
+    {id:16526,stock:0,defected:0},{id:16515,stock:0,defected:0},{id:16518,stock:0,defected:0},
+    {id:16498,stock:1,defected:0},{id:16491,stock:1,defected:0},{id:16488,stock:2,defected:0},
+    {id:16485,stock:0,defected:0},{id:16478,stock:0,defected:0},{id:16316,stock:1,defected:0},
+    {id:16306,stock:1,defected:0},{id:16308,stock:1,defected:0},{id:16273,stock:1,defected:0},
+    {id:16271,stock:3,defected:1},{id:16263,stock:1,defected:0},{id:16257,stock:0,defected:0},
+    {id:16244,stock:0,defected:0},{id:16238,stock:2,defected:0},{id:16248,stock:2,defected:0},
+    {id:16246,stock:4,defected:4},{id:16240,stock:0,defected:0},{id:16219,stock:1,defected:0},
+    {id:16215,stock:0,defected:0},{id:16213,stock:4,defected:0},{id:16204,stock:0,defected:0},
+    {id:16158,stock:13,defected:0},{id:16156,stock:1,defected:1},{id:16152,stock:0,defected:0},
+    {id:16154,stock:14,defected:4},{id:16148,stock:0,defected:0},{id:16150,stock:1,defected:1},
+    {id:16146,stock:4,defected:1},{id:16142,stock:1,defected:1},{id:16144,stock:0,defected:0},
+    {id:16140,stock:4,defected:1},{id:16136,stock:0,defected:0},{id:16132,stock:2,defected:0},
+    {id:16126,stock:0,defected:0},{id:16130,stock:2,defected:0},{id:16120,stock:0,defected:0},
+    {id:16118,stock:2,defected:0},{id:16112,stock:4,defected:4},{id:16099,stock:0,defected:0},
+    {id:16095,stock:0,defected:0},{id:16080,stock:0,defected:0},{id:15707,stock:1,defected:1},
+    {id:15671,stock:3,defected:0},
+  ];
+
+  const log = document.getElementById('log');
+  function print(msg) { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; }
+
+  async function run() {
+    log.innerHTML = '';
+    const now = new Date().toISOString();
+
+    print(`Writing ${data.length} records…`);
+    let ok = 0, fail = 0;
+    for (const r of data) {
+      try {
+        const res = await fetch(`${FS_BASE}/stockcount/${r.id}?key=${FS_KEY}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {
+            product_id: { integerValue: String(r.id) },
+            stock:      { integerValue: String(r.stock) },
+            defected:   { integerValue: String(r.defected) },
+            updated_at: { stringValue: now },
+          }})
+        });
+        if (res.ok) { ok++; print(`✅ ${r.id}`); }
+        else { fail++; const j = await res.json(); print(`❌ ${r.id} — ${j.error?.message}`); }
+      } catch (e) {
+        fail++;
+        print(`❌ ${r.id} — ${e.message}`);
+      }
+    }
+    print(`<br><b>Done: ${ok} written, ${fail} failed.</b>`);
+  }
+</script>
+</body>
+</html>

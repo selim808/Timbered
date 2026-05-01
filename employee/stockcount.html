@@ -3,45 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Warehouse — Timbered</title>
+  <title>Stockcount</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
 
+    /* STICKY TOP CONTAINER */
     .top-fixed { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #e8ddd4; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
+    /* HEADER */
     .site-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e8ddd4; }
     .site-header img { height: 26px; }
     .site-header .title { font-size: 14px; font-weight: 700; color: #7A4610; }
+    .site-header .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
     .site-header .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
+    /* TOOLBAR */
     .toolbar { padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
     .toolbar-row { display: flex; gap: 6px; align-items: center; }
     #searchInput { flex: 1; font-size: 12px; padding: 5px 10px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
     .sf-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
     .sf-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
 
+    /* STATE */
     #state { text-align: center; color: #aaa; padding: 60px 20px; font-size: 14px; }
 
+    /* TABLE */
     .tbl-wrap { padding: 0; }
     table { width: 100%; border-collapse: collapse; background: #fff; table-layout: auto; }
     td, thead th { width: 1px; white-space: nowrap; }
     thead th { background: #fef3e2; color: #7A4610; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 12px; text-align: center; border-bottom: 1px solid #e8ddd4; position: sticky; top: var(--thead-top, 0px); z-index: 10; }
     thead th.th-num { width: 28px; text-align: center; padding: 8px 6px; }
-    thead th.th-img { width: 44px; padding: 8px 4px; text-align: center; }
-    td.td-img { padding: 6px 4px; }
+    thead th.th-img { padding: 2px; text-align: center; }
+    td.td-img { padding: 2px; }
     .totals-row th { background: #fef3e2; font-size: 12px; font-weight: 800; color: #7A4610; padding: 5px 6px; border-bottom: 2px solid #e8ddd4; text-align: center; position: sticky; top: var(--totals-top, 40px); z-index: 10; }
     tbody tr { border-bottom: 1px solid #f5f0eb; transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fdf8f4; }
     td { padding: 8px 12px; vertical-align: middle; }
 
-    .td-img img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; cursor: pointer; margin: 0 auto; }
-    .td-img .no-img { width: 44px; height: 44px; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; cursor: pointer; margin: 0 auto; }
+    /* COLUMNS */
+    .td-img img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid #e8ddd4; display: block; cursor: pointer; }
+    .td-img .no-img { width: 100%; aspect-ratio: 1; background: #f0e8e0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; cursor: pointer; }
     .td-name { font-size: 12px; font-weight: 600; color: #333; width: 90px; max-width: 90px; white-space: normal; word-break: break-word; line-height: 1.3; }
-    .td-stock { white-space: nowrap; width: 28px; text-align: center; padding: 8px 12px; }
-    .stock-val { font-size: 15px; font-weight: 700; min-width: 36px; text-align: center; display: block; }
+    .td-stock { white-space: nowrap; width: 28px; text-align: left; padding-left: 4px; padding-right: 4px; }
+    .stock-row { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .stock-val { font-size: 12px; font-weight: 700; min-width: 36px; text-align: center; }
+    .qty-btn { width: 26px; height: 26px; border: 1.5px solid #e8ddd4; border-radius: 7px; background: #fff; font-size: 15px; font-weight: 700; color: #7A4610; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
+    .qty-btn:active { background: #fef3e2; }
 
+    /* POPUP */
     #popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
     #popup-overlay.open { display: flex; }
     #popup-box { background: #fff; border-radius: 16px; width: 100%; max-width: 320px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
@@ -60,10 +71,9 @@
 <body>
 
 <div class="top-fixed" id="topFixed">
-  <div class="site-header">
+  <div class="site-header" style="justify-content:center;">
     <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
     <span class="title">Stockcount</span>
-    <a href="index.html" class="back">← Back</a>
   </div>
   <div class="toolbar">
     <div class="toolbar-row">
@@ -84,9 +94,10 @@
     <thead>
       <tr>
         <th class="th-img" rowspan="2">Img</th>
+        <th class="th-num" rowspan="2">ID</th>
         <th rowspan="2">Name</th>
-        <th class="th-num">Stock</th>
-        <th class="th-num">Defected</th>
+        <th class="th-num">Stock<br><span id="count-stock" style="font-size:9px;font-weight:500;color:#a07040;"></span></th>
+        <th class="th-num">Defected<br><span id="count-repair" style="font-size:9px;font-weight:500;color:#a07040;"></span></th>
       </tr>
       <tr class="totals-row" id="totals-row">
         <th id="total-stock">—</th>
@@ -97,6 +108,7 @@
   </table>
 </div>
 
+<!-- PRODUCT POPUP -->
 <div id="popup-overlay">
   <div id="popup-box">
     <div id="popup-img-wrap"></div>
@@ -119,6 +131,7 @@
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
+  // ── WooCommerce ──────────────────────────────────────────────────
   async function fetchAllProducts() {
     const first      = await fetch(WC_BASE + '&page=1');
     const totalPages = parseInt(first.headers.get('X-WP-TotalPages') || '1');
@@ -130,7 +143,11 @@
     return [firstData, ...rest].flat();
   }
 
-  let stockData = {};
+  // ── Firebase warehouse ───────────────────────────────────────────
+  // Collection: warehouse / doc ID: product_id
+  // Fields: product_id (integer), stock (integer), defected (integer), updated_at (string)
+
+  let stockData = {}; // productId (string) → { stock, defected }
 
   async function loadStock() {
     try {
@@ -152,9 +169,26 @@
     } catch (_) {}
   }
 
+  function writeStock(productId, stock, defected) {
+    return fetch(`${FS_BASE}/stockcount/${productId}?key=${FS_KEY}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: {
+        product_id: { integerValue: String(productId) },
+        stock:      { integerValue: String(stock) },
+        defected:   { integerValue: String(defected) },
+        updated_at: { stringValue: new Date().toISOString() },
+      }})
+    }).catch(() => {});
+  }
+
   function getStock(productId)    { return stockData[String(productId)]?.stock    ?? 0; }
   function getDefected(productId) { return stockData[String(productId)]?.defected ?? 0; }
+  function setLocalStock(productId, stock, defected) {
+    stockData[String(productId)] = { stock, defected };
+  }
 
+  // ── State & render ───────────────────────────────────────────────
   let allProducts  = [];
   let activeFilter = 'all';
 
@@ -162,29 +196,72 @@
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     const filtered = allProducts.filter(p => {
       const s = getStock(p.id), d = getDefected(p.id);
-      if (activeFilter === 'instock'    && s === 0) return false;
-      if (activeFilter === 'outofstock' && s > 0)   return false;
-      if (activeFilter === 'repair'     && d === 0) return false;
+      if (activeFilter === 'instock'    && s === 0)  return false;
+      if (activeFilter === 'outofstock' && s > 0)    return false;
+      if (activeFilter === 'repair'     && d === 0)  return false;
       if (q && !p.name.toLowerCase().includes(q) && !String(p.id).includes(q)) return false;
       return true;
     });
 
     document.getElementById('tbody').innerHTML = filtered.map(p => {
-      const img = p.images?.[0]
+      const img    = p.images?.[0]
         ? `<img src="${p.images[0].src}" alt="" onclick="openPopup(${p.id})">`
         : `<div class="no-img" onclick="openPopup(${p.id})">📦</div>`;
+      const stock    = getStock(p.id);
+      const defected = getDefected(p.id);
       return `<tr>
         <td class="td-img">${img}</td>
+        <td class="td-stock" style="font-size:12px;font-weight:600;color:#333;text-align:center;">${p.id}</td>
         <td class="td-name">${p.name}</td>
-        <td class="td-stock"><span class="stock-val">${getStock(p.id)}</span></td>
-        <td class="td-stock"><span class="stock-val">${getDefected(p.id)}</span></td>
+        <td class="td-stock">
+          <div class="stock-row">
+            <button class="qty-btn" onclick="changeQty(${p.id},+1)">+</button>
+            <span class="stock-val" id="stock-${p.id}">${stock}</span>
+            <button class="qty-btn" onclick="changeQty(${p.id},-1)">−</button>
+          </div>
+        </td>
+        <td class="td-stock">
+          <div class="stock-row">
+            <button class="qty-btn" onclick="changeDefected(${p.id},+1)">+</button>
+            <span class="stock-val" id="repair-${p.id}">${defected}</span>
+            <button class="qty-btn" onclick="changeDefected(${p.id},-1)">−</button>
+          </div>
+        </td>
       </tr>`;
     }).join('');
 
     document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getStock(p.id), 0);
     document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getDefected(p.id), 0);
+    document.getElementById('count-stock').textContent  = '(' + filtered.filter(p => getStock(p.id) > 0).length + ')';
+    document.getElementById('count-repair').textContent = '(' + filtered.filter(p => getDefected(p.id) > 0).length + ')';
   }
 
+  function changeQty(productId, delta) {
+    const stock    = getStock(productId);
+    const defected = getDefected(productId);
+    const newStock    = Math.max(0, stock + delta);
+    const newDefected = Math.min(defected, newStock);
+    setLocalStock(productId, newStock, newDefected);
+    const el = document.getElementById('stock-' + productId);
+    if (el) el.textContent = newStock;
+    if (newDefected !== defected) {
+      const dl = document.getElementById('repair-' + productId);
+      if (dl) dl.textContent = newDefected;
+    }
+    writeStock(productId, newStock, newDefected);
+  }
+
+  function changeDefected(productId, delta) {
+    const stock      = getStock(productId);
+    const defected   = getDefected(productId);
+    const newDefected = Math.min(stock, Math.max(0, defected + delta));
+    setLocalStock(productId, stock, newDefected);
+    const el = document.getElementById('repair-' + productId);
+    if (el) el.textContent = newDefected;
+    writeStock(productId, stock, newDefected);
+  }
+
+  // ── Popup ────────────────────────────────────────────────────────
   function openPopup(productId) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
@@ -204,6 +281,7 @@
     if (e.target === document.getElementById('popup-overlay')) closePopup();
   });
 
+  // ── Layout ───────────────────────────────────────────────────────
   function updateTheadTop() {
     const container = document.getElementById('topFixed');
     if (!container) return;
@@ -214,6 +292,7 @@
     document.documentElement.style.setProperty('--totals-top', (theadTop + headerH) + 'px');
   }
   window.addEventListener('resize', updateTheadTop);
+  if (window !== window.parent) document.querySelector('.site-header').style.display = 'none';
 
   document.getElementById('searchInput').addEventListener('input', render);
   document.querySelectorAll('.sf-btn[data-filter]').forEach(btn => {
@@ -225,6 +304,7 @@
     });
   });
 
+  // ── Init ─────────────────────────────────────────────────────────
   Promise.all([fetchAllProducts(), loadStock()]).then(([products]) => {
     allProducts = products;
     document.getElementById('state').style.display = 'none';
