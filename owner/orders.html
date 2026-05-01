@@ -811,18 +811,8 @@
   // ── Init ──────────────────────────────────────────────────────────
   let currentView = 'order';
   let sortAsc = true;
-  const PHASE_GROUPS = {
-    'order-review': ORDER_REVIEW_PHASES,
-    'planning':     PLANNING_PHASES,
-    'production':   FAB_PHASES,
-    'repair':       REPAIR_PHASES,
-    'dispatch':     DISPATCH_PHASES,
-    'prod-wh':      PROD_WH_PHASES,
-    'wh':           WH_PHASES,
-    'in-delivery':  DELIVERY_KB_PHASES,
-    'delivered':    DELIVERED_KB_PHASES,
-  };
-  const activeGroups = new Set(Object.keys(PHASE_GROUPS));
+  let PHASE_GROUPS = {};
+  let activeGroups = new Set();
   let allItems = [], allOrders = [];
   let grandTotal = 0, grandQty = 0;
   const selectedOrderIds = new Set();
@@ -1238,6 +1228,18 @@
     PROD_WH_PHASES      = window.INTERFACE_PHASES;
     DELIVERY_KB_PHASES  = window.DLV_PHASES.filter(p => !p.startsWith('Delivered'));
     DELIVERED_KB_PHASES = window.DLV_PHASES.filter(p => p.startsWith('Delivered'));
+    PHASE_GROUPS = {
+      'order-review': window.ORDER_REVIEW_PHASES,
+      'planning':     window.PLANNING_PHASES,
+      'production':   window.FAB_PHASES,
+      'repair':       window.REPAIR_PHASES,
+      'dispatch':     window.DISPATCH_PHASES,
+      'prod-wh':      PROD_WH_PHASES,
+      'wh':           window.WH_PHASES,
+      'in-delivery':  DELIVERY_KB_PHASES,
+      'delivered':    DELIVERED_KB_PHASES,
+    };
+    activeGroups = new Set(Object.keys(PHASE_GROUPS));
 
     // Fetch orders and show immediately
     let orders;
