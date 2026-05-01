@@ -263,17 +263,6 @@
 
 <div class="toolbar">
   <div class="tb-group">
-    <span class="tb-label">Phases</span>
-    <div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px;">
-      <button class="filter-btn active" data-phase-group="order-review">Order Review</button>
-      <button class="filter-btn active" data-phase-group="production">Production</button>
-      <button class="filter-btn active" data-phase-group="prod-wh">Prod-WH Interface</button>
-      <button class="filter-btn active" data-phase-group="in-delivery">In Delivery</button>
-      <button class="filter-btn active" data-phase-group="wh">WH</button>
-      <button class="filter-btn active" data-phase-group="delivered">Delivered</button>
-    </div>
-  </div>
-  <div class="tb-group">
     <span class="tb-label">Bulk</span>
     <label class="toggle">
       <input type="checkbox" id="bulkToggle">
@@ -881,18 +870,7 @@
   // Search
   document.getElementById('searchInput').addEventListener('input', () => render());
 
-  // Phase group filter buttons
-  document.querySelectorAll('[data-phase-group]').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const g = this.dataset.phaseGroup;
-      if (activeGroups.has(g)) activeGroups.delete(g);
-      else activeGroups.add(g);
-      this.classList.toggle('active', activeGroups.has(g));
-      render();
-    });
-  });
-
-  // ── Order action flow (Complete / Cancel) ────────────────────────
+// ── Order action flow (Complete / Cancel) ────────────────────────
   const completedBar = document.getElementById('completedBar');
   const completedBtn = document.getElementById('completedBtn');
   const cancelBtn    = document.getElementById('cancelBtn');
