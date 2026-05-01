@@ -59,7 +59,7 @@
 </header>
 
 <div class="toolbar">
-  <input type="search" id="searchInput" placeholder="Search order, name, phone…">
+  <input type="search" id="searchInput" placeholder="Search order, name, phone, product…">
   <button id="loadAllBtn" onclick="loadAll()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:14px;border:1.5px solid #7A4610;background:#fff;color:#7A4610;cursor:pointer;white-space:nowrap;flex-shrink:0;">Load All</button>
   <span class="count-badge" id="countBadge">—</span>
 </div>
@@ -126,9 +126,10 @@
 
   function matches(o, q) {
     if (!q) return true;
-    const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
-    const phone = (o.billing.phone || '').toLowerCase();
-    return String(o.id).includes(q) || name.includes(q) || phone.includes(q);
+    const name    = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+    const phone   = (o.billing.phone || '').toLowerCase();
+    const products = (o.line_items || []).map(i => i.name.toLowerCase()).join(' ');
+    return String(o.id).includes(q) || name.includes(q) || phone.includes(q) || products.includes(q);
   }
 
   function render() {
