@@ -131,7 +131,6 @@
   <div class="ctrl-row">
     <span class="ctrl-label">Group By</span>
     <button class="grp-btn active" data-grp="order"   onclick="setGroupBy('order')">Order</button>
-    <button class="grp-btn"        data-grp="phase"   onclick="setGroupBy('phase')">Phase</button>
     <button class="grp-btn"        data-grp="product" onclick="setGroupBy('product')">Product</button>
     <button class="ctrl-sort" id="sortBtn" onclick="toggleSort()">↓</button>
     <button class="ctrl-btn ctrl-x"     onclick="resetControls()">✕</button>
@@ -349,7 +348,6 @@
 
   function render() {
     const wasOpen = getOpenGroups();
-    if (groupBy === 'phase')   { renderByPhase(wasOpen);   return; }
     if (groupBy === 'product') { renderByProduct(wasOpen); return; }
     renderByOrder(wasOpen);
   }
@@ -447,42 +445,6 @@
     updateGroupCheckboxes();
   }
 
-  function renderByPhase(wasOpen) {
-    const q = searchQuery();
-    const html = REVIEW_PHASES.map(phase => {
-      const entries = [];
-      sortedOrders(allOrders.filter(o => orderMatchesSearch(o, q))).forEach(o => {
-        o.line_items.filter(i => resolvePhase(o.id, i) === phase).forEach(item => {
-          _photoItems[item.id] = item;
-          const key   = `${o.id}_${item.id}`;
-          const thumb = item.image?.src
-            ? `<img class="item-thumb" src="${item.image.src}" alt="" onclick="openPhoto(${item.id})">`
-            : `<span class="item-thumb-ph"></span>`;
-          entries.push({ key, html: `<div class="item-row">
-            ${bulkEnabled ? itemCbHtml(key) : ''}
-            ${thumb}
-            <span class="item-name">${item.name}</span>
-            <span class="order-id" style="flex-shrink:0;">#${o.id}</span>
-            <span class="item-qty">×${item.quantity}</span>
-            ${phaseSelHtml(phase, o.id, item.id, item.product_id)}
-          </div>` });
-        });
-      });
-      if (!entries.length) return '';
-      const groupKeys = entries.map(e => e.key);
-      return `<div class="phase-section" data-group-key="phase-${phase}">
-        <div class="phase-section-hdr" onclick="this.closest('.phase-section').classList.toggle('collapsed')">
-          ${bulkEnabled ? groupCbHtml(groupKeys) : ''}
-          <span class="phase-section-name">${phase}</span>
-          <span class="phase-section-cnt">${entries.length}</span>
-        </div>
-        <div class="phase-section-items">${entries.map(e => e.html).join('')}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('content').innerHTML = html || `<div class="empty-msg">No items</div>`;
-    restoreOpenGroups(wasOpen);
-    updateGroupCheckboxes();
-  }
 
   function renderByProduct(wasOpen) {
     const q = searchQuery();
@@ -537,9 +499,7 @@
     const q = searchQuery();
     allOrders.filter(o => orderMatchesSearch(o, q)).forEach(o => {
       o.line_items.filter(i => {
-        const inScope = groupBy === 'phase'
-          ? REVIEW_PHASES.includes(resolvePhase(o.id, i))
-          : resolvePhase(o.id, i) === activeTab;
+        const inScope = resolvePhase(o.id, i) === activeTab;
         if (!inScope) return false;
         return useSelection ? selectedItems.has(`${o.id}_${i.id}`) : true;
       }).forEach(item => savePhase(o.id, item.id, item.product_id || 0, phase));
