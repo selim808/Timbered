@@ -371,19 +371,23 @@
     const sx = (natural.naturalWidth - sw) / 2, sy = (natural.naturalHeight - sh) / 2;
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
-    c.getContext('2d').drawImage(natural, sx, sy, sw, sh, 0, 0, w, h);
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(natural, sx, sy, sw, sh, 0, 0, w, h);
     URL.revokeObjectURL(blobUrl);
     return c.toDataURL('image/png');
   }
 
-  const CAPTURE_SCALE = 3;
+  const CAPTURE_SCALE = 4;
+  const INLINE_IMAGE_SCALE = 2;
 
   async function inlineImages(el) {
     const imgs = [...el.querySelectorAll('img')];
     await Promise.all(imgs.map(async img => {
       try {
-        const w = (img.offsetWidth || 100) * CAPTURE_SCALE;
-        const h = (img.offsetHeight || 100) * CAPTURE_SCALE;
+        const w = (img.offsetWidth || 100) * CAPTURE_SCALE * INLINE_IMAGE_SCALE;
+        const h = (img.offsetHeight || 100) * CAPTURE_SCALE * INLINE_IMAGE_SCALE;
         img.src = await imgToDataURL(img.src, w, h);
         img.style.objectFit = 'fill';
       } catch(_) {}
@@ -422,6 +426,52 @@
     });
     document.body.removeChild(clone);
     return { canvas, breakPoints, headerHeightPx };
+  }
+
+  function buildA4ImagePages(canvas, breakPoints, headerHeightPx) {
+    const pageWmm = 210;
+    const pageHmm = 297;
+    const pageHeightPx = Math.round(canvas.width * pageHmm / pageWmm);
+    const breaksPx = breakPoints.map(y => Math.round(y * CAPTURE_SCALE));
+    const pages = [];
+
+    let srcY = 0, page = 0;
+    while (srcY < canvas.height) {
+      const headerReserve = page === 0 ? 0 : headerHeightPx;
+      const maxEndY = Math.min(srcY + pageHeightPx - headerReserve, canvas.height);
+      const candidates = breaksPx.filter(bp => bp > srcY && bp <= maxEndY);
+      const endY = candidates.length ? Math.max(...candidates) : maxEndY;
+      const slicePx = endY - srcY;
+
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeightPx;
+      const ctx = pageCanvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+      if (page === 0) {
+        ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
+      } else {
+        ctx.drawImage(canvas, 0, 0, canvas.width, headerHeightPx, 0, 0, canvas.width, headerHeightPx);
+        ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, headerHeightPx, canvas.width, slicePx);
+      }
+
+      pages.push(pageCanvas);
+      srcY = endY;
+      page++;
+    }
+
+    return pages;
+  }
+
+  function downloadCanvas(canvas, filename) {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = filename;
+    a.click();
   }
 
   async function downloadPDF() {
@@ -496,11 +546,13 @@
     btn.textContent = 'Generating…'; btn.disabled = true;
     try {
       const el = document.getElementById('cutlist-display');
-      const { canvas } = await captureFullWidth(el);
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `Cutlist-${_currentJO?.ref || 'JO'}.png`;
-      a.click();
+      const { canvas, breakPoints, headerHeightPx } = await captureFullWidth(el);
+      const pages = buildA4ImagePages(canvas, breakPoints, headerHeightPx);
+      const baseName = `Cutlist-${_currentJO?.ref || 'JO'}`;
+      pages.forEach((pageCanvas, idx) => {
+        const suffix = pages.length > 1 ? `-${String(idx + 1).padStart(2, '0')}` : '';
+        downloadCanvas(pageCanvas, `${baseName}${suffix}.png`);
+      });
     } catch (e) {
       alert('Image error: ' + e.message);
     }
