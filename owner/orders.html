@@ -384,7 +384,8 @@
   const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
   const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
-  let _productsFS = {}; // productId → { drawing_url, stock_qty, ... }
+  let _productsFS  = {}; // productId → { drawing_url, stock_qty, ... }
+  let _stockcountFS = {}; // productId → { stock, defected }
 
   async function loadProductsFS() {
     try {
@@ -401,6 +402,24 @@
           stock_qty:   parseInt(f.stock_qty?.integerValue ?? 0),
           name:        f.name?.stringValue || '',
           image_url:   f.image_url?.stringValue || ''
+        };
+      });
+    } catch(_) {}
+  }
+
+  async function loadStockcountFS() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'stockcount' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f  = r.document.fields || {};
+        const id = f.product_id?.integerValue || r.document.name.split('/').pop();
+        if (id) _stockcountFS[parseInt(id)] = {
+          stock:    parseInt(f.stock?.integerValue    || 0),
+          defected: parseInt(f.defected?.integerValue || 0),
         };
       });
     } catch(_) {}
@@ -525,8 +544,8 @@
       ].filter(Boolean).join('') || '';
 
       // Stock count from Firebase + total qty ordered across all processing orders
-      const fsData   = _productsFS[item.product_id];
-      const stockQty = fsData?.stock_qty ?? null;
+      const scData   = _stockcountFS[item.product_id];
+      const stockQty = scData != null ? scData.stock : null;
       const totalOrdered = allOrders.reduce((sum, o) =>
         sum + o.line_items.filter(i => i.product_id === item.product_id)
                           .reduce((s, i) => s + (i.quantity || 0), 0), 0);
@@ -1094,7 +1113,7 @@
   }
 
   // Fetch & build
-  Promise.all([fetchAllOrders(), loadPhasesFS(), loadProductsFS(), window.phasesLoaded]).then(([orders]) => {
+  Promise.all([fetchAllOrders(), loadPhasesFS(), loadProductsFS(), loadStockcountFS(), window.phasesLoaded]).then(([orders]) => {
     PROD_WH_PHASES      = window.INTERFACE_PHASES;
     DELIVERY_KB_PHASES  = window.DLV_PHASES.filter(p => !p.startsWith('Delivered'));
     DELIVERED_KB_PHASES = window.DLV_PHASES.filter(p => p.startsWith('Delivered'));
