@@ -506,9 +506,16 @@
   function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
 
   // ── Phase selector HTML ───────────────────────────────────────────
+  function phaseOptgroups(current = null) {
+    return window.PHASE_GROUPS.map(g =>
+      `<optgroup label="${g.label}">${g.phases.map(p =>
+        `<option value="${p}"${p === current ? ' selected' : ''}>${p}</option>`
+      ).join('')}</optgroup>`
+    ).join('');
+  }
   function phaseSelHtml(current, orderId, itemId) {
     return `<select class="phase-sel" data-order="${orderId}" data-item="${itemId}">
-      ${ALL_PHASES.map(p => `<option value="${p}"${p===current?' selected':''}>${p}</option>`).join('')}
+      ${phaseOptgroups(current)}
     </select>`;
   }
 
@@ -980,9 +987,7 @@
     render();
   });
 
-  // Populate bulk phase selector
   const bulkSel = document.getElementById('bulkPhaseSel');
-  ALL_PHASES.forEach(p => bulkSel.appendChild(new Option(p, p)));
 
   const sortBtn = document.getElementById('sortBtn');
 
@@ -1064,8 +1069,7 @@
   let inStockFilterOn = false;
 
   function buildPhaseFilterSel() {
-    phaseFilterSel.innerHTML = '<option value="">All phases</option>'
-      + ALL_PHASES.map(p => `<option value="${p}">${p}</option>`).join('');
+    phaseFilterSel.innerHTML = '<option value="">All phases</option>' + phaseOptgroups();
     phaseFilterSel.value = phaseFilterVal;
   }
   function updatePhaseFilterSel() {
@@ -1240,6 +1244,7 @@
       'delivered':    DELIVERED_KB_PHASES,
     };
     activeGroups = new Set(Object.keys(PHASE_GROUPS));
+    bulkSel.innerHTML = phaseOptgroups();
 
     // Fetch orders and show immediately
     let orders;
