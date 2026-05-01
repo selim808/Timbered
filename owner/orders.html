@@ -524,6 +524,22 @@
         material   ? `<span><strong>Material:</strong> ${material}</span>`     : '',
       ].filter(Boolean).join('') || '';
 
+      // Stock count from Firebase + total qty ordered across all processing orders
+      const fsData   = _productsFS[item.product_id];
+      const stockQty = fsData?.stock_qty ?? null;
+      const totalOrdered = allOrders.reduce((sum, o) =>
+        sum + o.line_items.filter(i => i.product_id === item.product_id)
+                          .reduce((s, i) => s + (i.quantity || 0), 0), 0);
+
+      const statsHtml = [
+        stockQty !== null ? `<span><strong>Stock:</strong> ${stockQty}</span>` : '',
+        totalOrdered      ? `<span><strong>Total ordered:</strong> ${totalOrdered}</span>` : '',
+      ].filter(Boolean).join('');
+
+      if (statsHtml) {
+        document.getElementById('photoMeta').innerHTML += statsHtml;
+      }
+
     } catch {
       document.getElementById('photoMeta').innerHTML = '';
     }
