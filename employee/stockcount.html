@@ -71,9 +71,10 @@
 <body>
 
 <div class="top-fixed" id="topFixed">
-  <div class="site-header" style="justify-content:center;">
+  <div class="site-header">
     <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
     <span class="title">Stockcount</span>
+    <a href="index.html" class="back">← Back</a>
   </div>
   <div class="toolbar">
     <div class="toolbar-row">
@@ -189,8 +190,16 @@
   }
 
   // ── State & render ───────────────────────────────────────────────
-  let allProducts  = [];
-  let activeFilter = 'all';
+  let allProducts   = [];
+  let activeFilter  = 'all';
+  let lastFiltered  = [];
+
+  function updateTotals() {
+    document.getElementById('total-stock').textContent  = lastFiltered.reduce((s, p) => s + getStock(p.id), 0);
+    document.getElementById('total-repair').textContent = lastFiltered.reduce((s, p) => s + getDefected(p.id), 0);
+    document.getElementById('count-stock').textContent  = '(' + lastFiltered.filter(p => getStock(p.id) > 0).length + ')';
+    document.getElementById('count-repair').textContent = '(' + lastFiltered.filter(p => getDefected(p.id) > 0).length + ')';
+  }
 
   function render() {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -230,10 +239,8 @@
       </tr>`;
     }).join('');
 
-    document.getElementById('total-stock').textContent  = filtered.reduce((s, p) => s + getStock(p.id), 0);
-    document.getElementById('total-repair').textContent = filtered.reduce((s, p) => s + getDefected(p.id), 0);
-    document.getElementById('count-stock').textContent  = '(' + filtered.filter(p => getStock(p.id) > 0).length + ')';
-    document.getElementById('count-repair').textContent = '(' + filtered.filter(p => getDefected(p.id) > 0).length + ')';
+    lastFiltered = filtered;
+    updateTotals();
   }
 
   function changeQty(productId, delta) {
@@ -249,6 +256,7 @@
       if (dl) dl.textContent = newDefected;
     }
     writeStock(productId, newStock, newDefected);
+    updateTotals();
   }
 
   function changeDefected(productId, delta) {
@@ -259,6 +267,7 @@
     const el = document.getElementById('repair-' + productId);
     if (el) el.textContent = newDefected;
     writeStock(productId, stock, newDefected);
+    updateTotals();
   }
 
   // ── Popup ────────────────────────────────────────────────────────
