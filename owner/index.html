@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="../js/constants.js"></script>
   <style>
 
     /* ----- RESET ----- */
@@ -506,6 +507,7 @@
           <!-- ---- Expense breakdown ---- -->
           <div class="bi-section-title" style="text-align:center; font-size:13px;">Expense breakdown</div>
           <div class="bi-card">
+            <div style="display:flex;justify-content:flex-end;padding:0 2px 4px;font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.4px;">% from orders</div>
             <ul class="bi-exp-list">
               <li class="bi-exp-item">
                 <div class="bi-exp-type-wrap"><div class="bi-color-dot" style="background:#e67e22"></div><span class="bi-exp-name">COGS</span></div>
@@ -531,19 +533,21 @@
             <div class="bi-chart-container">
               <canvas id="expenseChart" role="img" aria-label="Doughnut chart of expense breakdown by category"></canvas>
             </div>
+            <div style="font-size:11px;color:#aaa;margin-top:8px;text-align:center;">% from the expenses</div>
           </div>
 
           <!-- ---- Cash In vs Completed ---- -->
           <div class="bi-section-title" style="text-align:center; font-size:13px;">Cash In vs Completed</div>
           <div class="bi-card">
-            <table class="bi-funnel-table">
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table class="bi-funnel-table" style="min-width:340px;">
               <thead>
                 <tr>
                   <th></th>
-                  <th style="text-align:right;">Cash In</th>
-                  <th style="text-align:right;">Completed</th>
-                  <th style="text-align:right;">Difference</th>
-                  <th style="text-align:right;">Partial Dlv</th>
+                  <th style="text-align:right;white-space:nowrap;">Cash In</th>
+                  <th style="text-align:right;white-space:nowrap;">Completed</th>
+                  <th style="text-align:right;white-space:nowrap;">Difference</th>
+                  <th style="text-align:right;white-space:nowrap;">Partial Dlv</th>
                 </tr>
               </thead>
               <tbody>
@@ -559,10 +563,11 @@
                   <td id="ciCashNo" style="text-align:right;">--</td>
                   <td id="ciCompNo" style="text-align:right;">--</td>
                   <td id="ciDiffNo" style="text-align:right;font-weight:700;">--</td>
-                  <td style="text-align:right;color:#ccc;">—</td>
+                  <td id="ciPartialNo" style="text-align:right;font-weight:700;color:#2980b9;">--</td>
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
 
           <!-- ---- Orders funnel ---- -->
@@ -850,9 +855,9 @@
   // Edit targets here. salesAct/mktAct for past months are fixed;
   // current month actuals are overridden at runtime by WC + Meta APIs.
   const GOALS_DATA = [
-    { month: 'Jan',  salesTgt: 200000,    salesAct: 120710,  mktTgt: 20000,   mktAct: 17635 },
-    { month: 'Feb',  salesTgt: 300000,    salesAct: 385642,  mktTgt: 30000,   mktAct: 94029 },
-    { month: 'Mar',  salesTgt: 400000,    salesAct: 249270,  mktTgt: 40000,   mktAct: 25414 },
+    { month: 'Jan',  salesTgt: 200000,    salesAct: null,    mktTgt: 20000,   mktAct: null  },
+    { month: 'Feb',  salesTgt: 300000,    salesAct: null,    mktTgt: 30000,   mktAct: null  },
+    { month: 'Mar',  salesTgt: 400000,    salesAct: null,    mktTgt: 40000,   mktAct: null  },
     { month: 'Apr',  salesTgt: 500000,    salesAct: null,    mktTgt: 50000,   mktAct: null  },
     { month: 'May',  salesTgt: 600000,    salesAct: null,    mktTgt: 60000,   mktAct: null  },
     { month: 'Jun',  salesTgt: 700000,    salesAct: null,    mktTgt: 70000,   mktAct: null  },
@@ -910,32 +915,25 @@
     return spend;
   }
 
-  async function fetchMetaMonthSpend() {
-    const now   = new Date();
-    const year  = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day   = String(now.getDate()).padStart(2, '0');
-    const timeRange = JSON.stringify({ since: `${year}-${month}-01`, until: `${year}-${month}-${day}` });
+  async function fetchMetaMonthSpend(year, month) {
+    const mm  = String(month).padStart(2, '0');
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+    const lastDay = isCurrentMonth
+      ? String(now.getDate()).padStart(2, '0')
+      : String(new Date(year, month, 0).getDate()).padStart(2, '0');
+    const timeRange = JSON.stringify({ since: `${year}-${mm}-01`, until: `${year}-${mm}-${lastDay}` });
 
-    // Fetch spend for all known accounts in parallel
     const spends = await Promise.all(META_ACCOUNTS.map(id => fetchAccountSpend(id, timeRange)));
     const total = spends.reduce((a, b) => a + b, 0);
-    console.log(`Meta total (pre-tax): ${total}, after 1.14: ${Math.round(total * 1.14)}`);
     return Math.round(total * 1.14);
   }
 
-  // Fetch current-month actual sales from WooCommerce
-  async function fetchMonthActual() {
-    const now   = new Date();
-    const year  = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const after  = `${year}-${month}-01T00:00:00`;
-    const before = `${year}-${month}-31T23:59:59`;
-    const base = "https://timberedgroup.com/wp-json/wc/v3/orders"
-               + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
-               + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de"
-               + "&per_page=100"
-               + `&after=${after}&before=${before}`;
+  async function fetchMonthActual(year, month) {
+    const mm     = String(month).padStart(2, '0');
+    const after  = `${year}-${mm}-01T00:00:00`;
+    const before = `${year}-${mm}-31T23:59:59`;
+    const base   = `${WC_DOMAIN}/orders?${WC_CREDS}&per_page=100&after=${after}&before=${before}`;
 
     let total = 0;
     for (const status of ['pending', 'processing', 'on-hold', 'completed']) {
@@ -956,18 +954,21 @@ async function loadGoals() {
     const wrapEl  = document.getElementById('goals-wrap');
     const tbody   = document.getElementById('goals-tbody');
     try {
-      const curMonthIdx = new Date().getMonth(); // 0-based
-      const [wcActual, metaSpend] = await Promise.all([
-        fetchMonthActual(),
-        fetchMetaMonthSpend()
+      const now         = new Date();
+      const curYear     = now.getFullYear();
+      const curMonthIdx = now.getMonth(); // 0-based
+      const monthCount  = curMonthIdx + 1; // Jan..current
+
+      const [wcActuals, metaActuals] = await Promise.all([
+        Promise.all(Array.from({ length: monthCount }, (_, i) => fetchMonthActual(curYear, i + 1))),
+        Promise.all(Array.from({ length: monthCount }, (_, i) => fetchMetaMonthSpend(curYear, i + 1))),
       ]);
 
       let totalSalesTgt = 0, totalSalesAct = 0, totalMktTgt = 0, totalMktAct = 0;
 
       GOALS_DATA.forEach((r, idx) => {
-        // Override current month actuals with live data
-        if (idx === curMonthIdx) {
-          r = { ...r, salesAct: wcActual, mktAct: metaSpend };
+        if (idx < monthCount) {
+          r = { ...r, salesAct: wcActuals[idx], mktAct: metaActuals[idx] };
         }
         totalSalesTgt += r.salesTgt || 0;
         totalSalesAct += r.salesAct || 0;
@@ -979,7 +980,15 @@ async function loadGoals() {
         const tdSalesTgt = document.createElement('td'); tdSalesTgt.textContent = fmtNum(r.salesTgt);   tr.appendChild(tdSalesTgt);
         const tdSalesAct = document.createElement('td'); tdSalesAct.textContent = fmtNum(r.salesAct);   tdSalesAct.classList.add(salesClass(r.salesAct, r.salesTgt)); tr.appendChild(tdSalesAct);
         const tdMktTgt   = document.createElement('td'); tdMktTgt.textContent   = fmtNum(r.mktTgt);     tr.appendChild(tdMktTgt);
-        const tdMktAct   = document.createElement('td'); tdMktAct.textContent   = fmtNum(r.mktAct);     tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt)); tr.appendChild(tdMktAct);
+        const tdMktAct   = document.createElement('td');
+        tdMktAct.classList.add(mktClass(r.mktAct, r.mktTgt));
+        if (r.mktAct && r.salesAct) {
+          const roas = Math.round(r.salesAct / r.mktAct);
+          tdMktAct.innerHTML = `${fmtNum(r.mktAct)} <span style="font-size:10px;opacity:0.7;">(${roas}x)</span>`;
+        } else {
+          tdMktAct.textContent = fmtNum(r.mktAct);
+        }
+        tr.appendChild(tdMktAct);
         tbody.appendChild(tr);
       });
 
@@ -1372,9 +1381,11 @@ async function loadGoals() {
           document.getElementById("prodLblFab").style.opacity = fabPct > 8 ? 1 : 0;
           document.getElementById("prodLblDlv").style.opacity = dlvPct > 8 ? 1 : 0;
 
-          const partialEntry = data.find(d => d.Phases === "Delivered Partially");
-          const partialEl = document.getElementById("ciPartialVal");
-          if (partialEl) partialEl.innerText = fmt(partialEntry ? (partialEntry["WIP Value"] || 0) : 0);
+          const partialEntry = data.find(d => d.Phases === "Delivered Partially" || d.Phases === "Partial - Delivered");
+          const partialEl   = document.getElementById("ciPartialVal");
+          const partialNoEl = document.getElementById("ciPartialNo");
+          if (partialEl)   partialEl.innerText   = fmt(partialEntry ? (partialEntry["WIP Value"] || 0) : 0);
+          if (partialNoEl) partialNoEl.innerText = partialEntry ? Math.round(partialEntry["WIP No"] || 0) : 0;
 
           checkWipMatch();
           const filtered = data.filter(d => (d["WIP Value"] || 0) > 0);
@@ -2141,9 +2152,9 @@ async function loadGoals() {
     </div>` : '';
 
   document.getElementById('pageNav').innerHTML =
-    `<a href="orders.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#7A4610;border:2px solid #7A4610;background:#fef3e2;">Orders</a>` +
+    `<a href="pipeline/orders.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#7A4610;border:2px solid #7A4610;background:#fef3e2;">Orders</a>` +
     workflowSection +
-    `<a href="databases.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#1d4ed8;border:2px solid #1d4ed8;background:#eff6ff;">🗄 Firebase Databases</a>` +
+    `<a href="admin/databases.html" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#1d4ed8;border:2px solid #1d4ed8;background:#eff6ff;">🗄 Firebase Databases</a>` +
     `<button onclick="document.getElementById('allPagesPanel').style.display=document.getElementById('allPagesPanel').style.display==='none'?'grid':'none'" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#666;border:2px solid #ccc;background:#f5f5f5;cursor:pointer;">All Pages ▾</button>` +
     `<div id="allPagesPanel" style="grid-column:1/-1;display:none;grid-template-columns:repeat(3,1fr);gap:8px;">` +
     [

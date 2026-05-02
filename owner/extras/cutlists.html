@@ -119,10 +119,8 @@
   <div id="cutlist-display" style="display:none"></div>
 </div>
 
+<script src="../../js/constants.js"></script>
 <script>
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
   function fromFsVal(v) {
     if (!v) return null;
     if ('nullValue' in v) return null;

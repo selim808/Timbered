@@ -4,8 +4,6 @@
 // Uses sessionStorage cache (5 min TTL) so subsequent page loads are instant.
 
 (function () {
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
   const CACHE_KEY = 'tg_phase_groups_v1';
   const CACHE_TTL = 5 * 60 * 1000;
 

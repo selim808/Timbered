@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Production — Timbered</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
-  <script src="../phase-loader.js"></script>
-  <script src="../phase-utils.js"></script>
+  <script src="../../js/constants.js"></script>
+  <script src="../../js/phase-loader.js"></script>
+  <script src="../../js/phase-utils.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -247,7 +248,7 @@
 <header class="site-header">
   <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
   <span class="title">Production</span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
 </header>
 
 <nav class="sub-nav">
@@ -295,8 +296,6 @@
 
 <script>
   // ── Firestore REST helpers ────────────────────────────────────────────
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
   const WC_CREDS = 'consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de';
   const WC_BASE  = 'https://timberedgroup.com/wp-json/wc/v3';
 
@@ -440,7 +439,7 @@
         }
         _wcReleasedOrders = allWC.filter(o =>
           !activeOrderIds.has(String(o.id)) &&
-          o.line_items.some(i => (_phasesFS[`${o.id}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released')
+          o.line_items.some(i => _phasesFS[`${o.id}_${i.id}`] === 'JO released')
         );
       } catch(_) { _wcReleasedOrders = []; }
 
@@ -855,7 +854,7 @@
     try {
       const b = order.billing;
       const customer = [b.first_name, b.last_name].filter(Boolean).join(' ');
-      const relItems = order.line_items.filter(i => (_phasesFS[`${orderId}_${i.id}`] || (i.meta_data||[]).find(m=>m.key==='tg_phase')?.value) === 'JO released');
+      const relItems = order.line_items.filter(i => _phasesFS[`${orderId}_${i.id}`] === 'JO released');
       const items = relItems.map(it => ({
         product_id:    it.product_id,
         product_name:  it.name,

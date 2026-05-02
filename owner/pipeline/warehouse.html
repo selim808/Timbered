@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Warehouse — Timbered</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
-  <script src="../phase-loader.js"></script>
-  <script src="../phase-utils.js"></script>
+  <script src="../../js/constants.js"></script>
+  <script src="../../js/phase-loader.js"></script>
+  <script src="../../js/phase-utils.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -151,9 +152,9 @@
 <body>
 
 <div class="site-header">
-  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <a href="../index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
   <span class="title">Warehouse</span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
 </div>
 
 <div class="sub-nav">
@@ -255,8 +256,6 @@
                   + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
   const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
   let _productsFS = {}; // productId → { drawing_url, stock_qty, ... }
 
@@ -346,19 +345,10 @@
 
   // ── Phase helpers ─────────────────────────────────────────────────
   function getPhase(orderId, item) {
-    return _phasesFS[`${orderId}_${item.id}`]
-        || (item.meta_data || []).find(x => x.key === 'tg_phase')?.value
-        || 'Created';
+    return _phasesFS[`${orderId}_${item.id}`] || 'Created';
   }
   function setPhase(orderId, itemId, phase) {
     const order = allOrders.find(o => String(o.id) === String(orderId));
-    if (order) {
-      const item = order.line_items.find(i => String(i.id) === String(itemId));
-      if (item) {
-        const m = (item.meta_data || []).find(x => x.key === 'tg_phase');
-        if (m) m.value = phase; else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key:'tg_phase', value: phase }); }
-      }
-    }
     const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
     writePhaseFS(orderId, itemId, productId, phase);
   }

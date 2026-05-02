@@ -202,7 +202,7 @@
 <header class="site-header">
   <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
   <span class="title">Job Order Preparation</span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
 </header>
 
 <nav class="sub-nav">
@@ -253,12 +253,11 @@
   <button class="submit-btn" id="submitBtn" onclick="submitJO()">Submit Job Order</button>
 </div>
 
-<script src="../phase-loader.js"></script>
-<script src="../phase-utils.js"></script>
+<script src="../../js/constants.js"></script>
+<script src="../../js/phase-loader.js"></script>
+<script src="../../js/phase-utils.js"></script>
 <script>
   // ── Firestore REST API (no SDK — avoids GitHub Pages CORS issue) ──
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
   function toFsVal(v) {
     if (v === null || v === undefined) return { nullValue: null };
@@ -338,9 +337,7 @@
 
   // ── Helpers ───────────────────────────────────────────────────────
   function getPhase(orderId, item) {
-    return _phasesFS[`${orderId}_${item.id}`]
-        || (item.meta_data || []).find(x => x.key === 'tg_phase')?.value
-        || 'Created';
+    return _phasesFS[`${orderId}_${item.id}`] || 'Created';
   }
 
   function fmtDate(ts) {
@@ -352,8 +349,16 @@
   let _stockcountFS = {}; // product_id -> { stock, defected }
   let _orderedQtyMap = {}; // product_id -> qty across loaded processing orders
 
+  const SC_CACHE_KEY = 'tg_stockcount_cache';
+  const SC_CACHE_TTL = 5 * 60 * 1000;
+
   async function loadStockcountFS() {
     try {
+      const cached = sessionStorage.getItem(SC_CACHE_KEY);
+      if (cached) {
+        const { ts, data } = JSON.parse(cached);
+        if (Date.now() - ts < SC_CACHE_TTL) { _stockcountFS = data; return; }
+      }
       const rows = await fsGetAll('stockcount');
       _stockcountFS = {};
       rows.forEach(doc => {
@@ -364,6 +369,7 @@
           defected: parseInt(doc.defected || 0),
         };
       });
+      try { sessionStorage.setItem(SC_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: _stockcountFS })); } catch (_) {}
     } catch (_) {
       _stockcountFS = {};
     }
@@ -762,19 +768,6 @@
       // Firestore phase update
       fsUpdates.forEach(([orderId, lid]) => fsSetPhase(orderId, lid, 'JO released'));
 
-      // WC meta update (keep in sync for other pages that may still read WC)
-      await Promise.all(Object.entries(wcUpdates).map(([orderId, ids]) =>
-        fetch(`https://timberedgroup.com/wp-json/wc/v3/orders/${orderId}?${WC_CREDS}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            line_items: ids.map(id => ({
-              id,
-              meta_data: [{ key: 'tg_phase', value: 'JO released' }]
-            }))
-          })
-        })
-      ));
 
       btn.textContent = '✓ Submitted!';
       btn.style.background = '#27ae60';

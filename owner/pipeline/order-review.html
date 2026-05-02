@@ -108,10 +108,10 @@
 <body>
 
 <div class="site-header">
-  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <a href="../index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
   <span class="title">Order Review</span>
   <span class="badge" id="totalBadge">Loading…</span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
 </div>
 
 <div class="sub-nav" id="subNav"></div>
@@ -148,14 +148,12 @@
   </div>
 </div>
 
-<script src="../phase-loader.js"></script>
-<script src="../phase-utils.js"></script>
+<script src="../../js/constants.js"></script>
+<script src="../../js/phase-loader.js"></script>
+<script src="../../js/phase-utils.js"></script>
 <script>
   const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
-  const FS_KEY    = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE   = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
   let REVIEW_PHASES = []; // loaded from "Order Review" phase group in Firebase
   let PHASE_GROUPS  = []; // all groups — drives optgroup dropdown
   const ALL_PHASES = [
@@ -234,7 +232,6 @@
 
   function resolvePhase(orderId, item) {
     return _phasesFS[`${orderId}_${item.id}`]
-        || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
         || (window.PHASE_GROUPS?.[0]?.phases?.[0])
         || 'Created';
   }

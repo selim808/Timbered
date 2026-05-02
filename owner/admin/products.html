@@ -107,7 +107,7 @@
 <header class="site-header">
   <img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered">
   <div class="title">Products</div>
-  <a class="back" href="index.html">← Back</a>
+  <a class="back" href="../index.html">← Back</a>
 </header>
 
 <div class="toolbar">
@@ -130,10 +130,8 @@
   <img id="imgPopupSrc" src="" alt="" onclick="event.stopPropagation()">
 </div>
 
+<script src="../../js/constants.js"></script>
 <script>
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
   let _allProducts      = [];
   let _filtered         = [];
   let _expandedId       = null;

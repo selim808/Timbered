@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Delivery — Timbered</title>
+  <title>Customer Service — Timbered</title>
   <link rel="shortcut icon" type="image/png" href="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png">
-  <script src="../phase-loader.js"></script>
-  <script src="../phase-utils.js"></script>
+  <script src="../../js/constants.js"></script>
+  <script src="../../js/phase-loader.js"></script>
+  <script src="../../js/phase-utils.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -18,10 +19,14 @@
     .badge { font-size: 11px; background: #fef3e2; color: #7A4610; border-radius: 10px; padding: 2px 8px; font-weight: 600; }
     .back { margin-left: auto; font-size: 12px; color: #7A4610; text-decoration: none; border: 1px solid #7A4610; border-radius: 20px; padding: 4px 12px; }
 
+    /* SUB-NAV */
+    .sub-nav { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 100; }
+    .sub-nav-btn { font-size: 12px; font-weight: 700; color: #aaa; background: none; border: none; cursor: pointer; padding: 8px 18px; border-bottom: 2px solid transparent; }
+    .sub-nav-btn.active { color: #7A4610; border-bottom-color: #7A4610; }
+    .sub-nav-btn:hover { color: #7A4610; }
+
     /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 51px; z-index: 99; flex-wrap: wrap; }
-    .filter-btn { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1.5px solid #e8ddd4; background: #fff; color: #888; cursor: pointer; white-space: nowrap; }
-    .filter-btn.active { background: #7A4610; color: #fff; border-color: #7A4610; }
+    .toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e8ddd4; position: sticky; top: 83px; z-index: 99; flex-wrap: wrap; }
     .sort-btn { font-size: 14px; background: none; border: 1.5px solid #e8ddd4; border-radius: 8px; padding: 2px 8px; cursor: pointer; color: #7A4610; line-height: 1.4; }
 
     /* STATE */
@@ -30,11 +35,23 @@
     /* CONTENT */
     #content { padding: 10px; }
 
-    /* ORDER CARD */
+    /* ── ITEM ROW ── */
+    .item-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid #f5f0eb; }
+    .d-badge { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+    .d-badge.warn   { background: #e67e22; }
+    .d-badge.urgent { background: #e74c3c; }
+    .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
+    .item-name:hover { text-decoration: underline; color: #7A4610; }
+    .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
+    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
+    .item-thumb { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
+    .item-thumb-placeholder { width: 28px; height: 28px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
+
+    /* ── BY ORDER VIEW ── */
     .order-card { background: #fff; border: 1px solid #e8ddd4; border-radius: 8px; margin-bottom: 6px; }
     .order-top { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; }
     .order-top:hover { background: #fdf8f4; border-radius: 8px 8px 0 0; }
-    .order-id { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
     .order-name-lbl { font-size: 12px; font-weight: 700; color: #222; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .order-total-lbl { font-size: 12px; font-weight: 700; color: #7A4610; white-space: nowrap; flex-shrink: 0; }
     .order-phone-wrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
@@ -43,9 +60,6 @@
     .order-phone-lbl:hover svg { opacity: 0.75; }
     .order-phone-call { display: flex; align-items: center; text-decoration: none; }
     .order-phone-call:hover svg { opacity: 0.6; }
-    .order-days { font-size: 10px; font-weight: 700; color: #fff; background: #7A4610; border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
-    .order-days.warn   { background: #e67e22; }
-    .order-days.urgent { background: #e74c3c; }
     .order-chevron { font-size: 10px; color: #bbb; flex-shrink: 0; transition: transform 0.2s; }
     .order-card.open .order-chevron { transform: rotate(180deg); }
     .order-addr-lbl { font-size: 11px; color: #999; padding: 0 10px 6px; display: flex; gap: 6px; }
@@ -55,16 +69,8 @@
     .order-items { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
     .order-items-inner { overflow: hidden; }
     .order-card.open .order-items { grid-template-rows: 1fr; }
-
-    /* ITEM ROW */
-    .item-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid #f5f0eb; }
-    .item-id   { font-size: 10px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
-    .item-thumb { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 1px solid #e8ddd4; }
-    .item-thumb-placeholder { width: 28px; height: 28px; border-radius: 5px; background: #f0e8e0; flex-shrink: 0; }
-    .item-name { font-size: 12px; font-weight: 600; color: #333; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
-    .item-name:hover { text-decoration: underline; color: #7A4610; }
-    .item-qty  { font-size: 11px; color: #888; flex-shrink: 0; }
-    .item-price { font-size: 11px; color: #7A4610; font-weight: 600; flex-shrink: 0; }
+    .order-date-lbl { font-size: 10px; color: #27ae60; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+    .order-days-lbl { font-size: 10px; color: #e67e22; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
     .phase-sel { font-size: 11px; border: 1px solid #e8ddd4; border-radius: 6px; padding: 2px 4px; color: #555; flex-shrink: 0; max-width: 90px; }
 
     /* photo popup */
@@ -81,16 +87,20 @@
 <body>
 
 <div class="site-header">
-  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
-  <span class="title">Delivery</span>
+  <a href="../index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+  <span class="title">Customer Service</span>
   <span class="badge" id="orderCount">Loading…</span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
+</div>
+
+<div class="sub-nav">
+  <button class="sub-nav-btn active" id="tabCompleted" onclick="switchTab('completed')">Completed</button>
+  <button class="sub-nav-btn" id="tabNoResponse" onclick="switchTab('noresponse')">No Response</button>
 </div>
 
 <div class="toolbar">
-  <div id="filterBtns" style="display:contents;"></div>
-  <button class="sort-btn" id="sortBtn" title="Toggle sort">↑</button>
-  <input id="searchInput" type="search" placeholder="Search order, client, phone…"
+  <button class="sort-btn" id="sortBtn" title="Toggle sort">↓</button>
+  <input id="searchInput" type="search" placeholder="Search item, order ID, client or phone…"
     style="width:100%; font-size:12px; padding:5px 10px; border:1.5px solid #e8ddd4; border-radius:8px; outline:none; color:#333; flex-basis:100%;">
 </div>
 
@@ -112,8 +122,10 @@
   const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
   const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/orders/${id}?${WC_CREDS}`;
 
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
+
+  function resolvePhase(orderId, item) {
+    return _phasesFS[`${orderId}_${item.id}`] || 'Created';
+  }
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -125,36 +137,27 @@
   };
 
   // ── Phase helpers ────────────────────────────────────────────────
-  function resolvePhase(order, item) {
-    return _phasesFS[`${order.id}_${item.id}`]
-        || (item.meta_data || []).find(m => m.key === 'tg_phase')?.value
-        || 'Created';
-  }
   function setItemPhase(orderId, itemId, phase) {
-    // Update in-memory
-    const order = (allOrders || []).find(o => String(o.id) === String(orderId));
+    const allO = [...(completedOrders || []), ...(noResponseOrders || [])];
+    const order = allO.find(o => String(o.id) === String(orderId));
     if (order) {
       const item = order.line_items.find(i => String(i.id) === String(itemId));
-      if (item) {
-        const existing = (item.meta_data || []).find(m => m.key === 'tg_phase');
-        if (existing) existing.value = phase;
-        else { if (!item.meta_data) item.meta_data = []; item.meta_data.push({ key: 'tg_phase', value: phase }); }
-      }
     }
     const productId = order?.line_items.find(i => String(i.id) === String(itemId))?.product_id || 0;
     writePhaseFS(orderId, itemId, productId, phase);
   }
 
-  function phaseSelHtml(phase, orderId, itemId) {
+  function phaseSelHtml(current, orderId, itemId) {
     return `<select class="phase-sel" data-order="${orderId}" data-item="${itemId}" onclick="event.stopPropagation()">
-      ${(window.DLV_PHASES || []).map(p => `<option value="${p}"${p===phase?' selected':''}>${p}</option>`).join('')}
+      ${ALL_PHASES.map(p => `<option value="${p}"${p===current?' selected':''}>${p}</option>`).join('')}
     </select>`;
   }
 
-  async function fetchProcessingOrders() {
+  async function fetchOrders(status, extra = '') {
     let page = 1, all = [];
     while (true) {
-      const res   = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=asc&per_page=100&page=${page}`);
+      const res = await fetch(`${WC_ORDERS}&status=${status}&orderby=modified&order=desc&per_page=100${extra}&page=${page}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const batch = await res.json();
       if (!batch.length) break;
       all = all.concat(batch);
@@ -173,18 +176,21 @@
     const item = _photoItems[itemId];
     if (!item) return;
     document.getElementById('photoName').textContent = item.name;
-    document.getElementById('photoImg').src = item.image?.src || '';
+    document.getElementById('photoImg').src = item.image && item.image.src ? item.image.src : '';
     document.getElementById('photoMeta').innerHTML = '';
     document.getElementById('photoOverlay').classList.add('open');
     ensureProductsCached().then(() => {
       const p = _productCache[item.product_id];
       if (!p) return;
       const d = p.dimensions || {};
-      const dims = [d.length?`L:${d.length}`:'', d.width?`W:${d.width}`:'', d.height?`H:${d.height}`:''].filter(Boolean).join(' · ') || null;
-      const mat  = (p.attributes||[]).find(a => /material|خامة|wood/i.test(a.name))?.options?.join(', ') || null;
+      const dimParts = [d.length?`L: ${d.length}`:'', d.width?`W: ${d.width}`:'', d.height?`H: ${d.height}`:''].filter(Boolean);
+      const dimensions = dimParts.length ? dimParts.join(' · ') : null;
+      const material = (p.attributes || []).find(a =>
+        a.name.toLowerCase().includes('material') || a.name.toLowerCase().includes('خامة') || a.name.toLowerCase().includes('wood')
+      )?.options?.join(', ') || null;
       document.getElementById('photoMeta').innerHTML = [
-        dims ? `<span><strong>Dimensions:</strong> ${dims}</span>` : '',
-        mat  ? `<span><strong>Material:</strong> ${mat}</span>`    : '',
+        dimensions ? `<span><strong>Dimensions:</strong> ${dimensions}</span>` : '',
+        material   ? `<span><strong>Material:</strong> ${material}</span>`     : '',
       ].filter(Boolean).join('') || '';
     }).catch(() => {});
   }
@@ -192,20 +198,50 @@
 
   function ensureProductsCached() {
     if (_productsFetchPromise) return _productsFetchPromise;
-    const ids = [...new Set(allOrders.flatMap(o => o.line_items.map(i => i.product_id)).filter(Boolean))];
+    const allO = [...completedOrders, ...noResponseOrders];
+    const ids = [...new Set(allO.flatMap(o => o.line_items.map(i => i.product_id)).filter(Boolean))];
     if (!ids.length) return (_productsFetchPromise = Promise.resolve());
     const base = "https://timberedgroup.com/wp-json/wc/v3/products?" + WC_CREDS + "&per_page=100";
     const chunks = [];
     for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
     _productsFetchPromise = Promise.all(chunks.map(chunk =>
       fetch(base + `&include=${chunk.join(',')}`)
-        .then(r => r.json()).then(ps => ps.forEach(p => { _productCache[p.id] = p; })).catch(() => {})
+        .then(r => r.json())
+        .then(products => products.forEach(p => { _productCache[p.id] = p; }))
+        .catch(() => {})
     ));
     return _productsFetchPromise;
   }
 
-  function daysSince(dateStr) { return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000); }
+  function daysSince(dateStr) {
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  }
   function dc(days) { return days >= 14 ? 'urgent' : days >= 7 ? 'warn' : ''; }
+
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+  }
+
+  // Item row HTML
+  function itemRowHtml(order, item, idx, showPhase = false) {
+    const imgSrc  = item.image && item.image.src ? item.image.src : '';
+    const prodUrl = `https://timberedgroup.com/?p=${item.product_id}`;
+    _photoItems[item.id] = item;
+    const thumb = imgSrc
+      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
+      : `<span class="item-thumb-placeholder"></span>`;
+    const phase = resolvePhase(order.id, item);
+    const phaseTag = showPhase ? phaseSelHtml(phase, order.id, item.id) : '';
+    return `<div class="item-row">
+      ${thumb}
+      <span class="item-id">${order.id}.${idx+1}</span>
+      <a class="item-name" href="${prodUrl}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
+      <span class="item-qty">×${item.quantity}</span>
+      <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
+      ${phaseTag}
+    </div>`;
+  }
 
   function phoneHtml(phone) {
     if (!phone) return '<span class="order-phone-num">—</span>';
@@ -221,41 +257,23 @@
     </span>`;
   }
 
-  function itemRowHtml(order, item, idx) {
-    const imgSrc = item.image?.src || '';
-    _photoItems[item.id] = item;
-    const thumb = imgSrc
-      ? `<img class="item-thumb" src="${imgSrc}" alt="" onclick="openPhoto(${item.id})">`
-      : `<span class="item-thumb-placeholder"></span>`;
-    const phase = resolvePhase(order, item);
-    return `<div class="item-row">
-      ${thumb}
-      <span class="item-id">${order.id}.${idx+1}</span>
-      <a class="item-name" href="https://timberedgroup.com/?p=${item.product_id}" target="_blank" onclick="event.stopPropagation()">${item.name}</a>
-      <span class="item-qty">×${item.quantity}</span>
-      <span class="item-price">${Math.round(parseFloat(item.total||0)).toLocaleString()}</span>
-      ${phaseSelHtml(phase, order.id, item.id)}
-    </div>`;
-  }
-
-  function renderOrders(orders_list) {
-    if (!orders_list.length) return '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No delivery orders</div>';
+  // Render completed orders
+  function renderCompleted(orders_list) {
+    if (!orders_list.length) return '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No completed orders</div>';
     return orders_list.map(o => {
-      const visibleItems = o.line_items.filter(item => activeFilters.has(resolvePhase(o, item)));
-      if (!visibleItems.length) return '';
       const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
       const addr1 = o.billing.address_1 || '';
       const addr2 = o.billing.address_2 || '';
       const state = EG_STATES[o.billing.state] || o.billing.state || '';
-      const days  = daysSince(o.date_created);
-      const itemsHtml = visibleItems.map((item, idx) => itemRowHtml(o, item, idx)).join('');
+      const completedDate = fmtDate(o.date_modified || o.date_completed);
+      const itemsHtml = o.line_items.map((item, idx) => itemRowHtml(o, item, idx)).join('');
       return `<div class="order-card" data-group-key="order-${o.id}">
         <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
-          <span class="order-days ${dc(days)}">${days}d</span>
-          <span class="order-id">#${o.id}</span>
+          <span class="item-id">#${o.id}</span>
           <span class="order-name-lbl">${name}</span>
           <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
           ${phoneHtml(o.billing.phone)}
+          <span class="order-date-lbl">${completedDate}</span>
           <span class="order-chevron">▼</span>
         </div>
         <div class="order-addr-lbl">
@@ -265,111 +283,152 @@
         </div>
         <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
       </div>`;
-    }).filter(Boolean).join('');
+    }).join('');
+  }
+
+  // Render no-response orders (processing orders with WH-No_Response items)
+  function renderNoResponse(orders_list) {
+    if (!orders_list.length) return '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No orders in No Response</div>';
+    return orders_list.map(o => {
+      const name  = [o.billing.first_name, o.billing.last_name].filter(Boolean).join(' ');
+      const addr1 = o.billing.address_1 || '';
+      const addr2 = o.billing.address_2 || '';
+      const state = EG_STATES[o.billing.state] || o.billing.state || '';
+      const days  = daysSince(o.date_created);
+      const nrItems = o.line_items.filter(item => resolvePhase(o.id, item) === 'WH-No_Response');
+      const itemsHtml = nrItems.map((item, idx) => itemRowHtml(o, item, idx, true)).join('');
+      return `<div class="order-card" data-group-key="order-${o.id}">
+        <div class="order-top" onclick="this.closest('.order-card').classList.toggle('open')">
+          <span class="item-id">#${o.id}</span>
+          <span class="order-name-lbl">${name}</span>
+          <span class="order-total-lbl">${parseInt(o.total).toLocaleString()}</span>
+          ${phoneHtml(o.billing.phone)}
+          <span class="order-days-lbl ${dc(days)}">${days}d</span>
+          <span class="order-chevron">▼</span>
+        </div>
+        <div class="order-addr-lbl">
+          <span class="a1">${addr1}</span>
+          <span class="a2">${addr2}</span>
+          <span class="a3">${state}</span>
+        </div>
+        <div class="order-items"><div class="order-items-inner">${itemsHtml}</div></div>
+      </div>`;
+    }).join('');
   }
 
   // ── State ─────────────────────────────────────────────────────────
-  let allOrders    = [];
-  let sortAsc      = true; // oldest first by default
-  let activeFilters = new Set();
+  let activeTab = 'completed';
+  let sortAsc = false;
+  let completedOrders = [];
+  let noResponseOrders = [];
 
-  function searchQuery() { return (document.getElementById('searchInput')?.value || '').trim().toLowerCase(); }
+  function currentOrders() {
+    return activeTab === 'completed' ? completedOrders : noResponseOrders;
+  }
+
+  function searchQuery() {
+    return (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+  }
   function orderMatches(o, q) {
-    const name  = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
+    const name = [o.billing.first_name, o.billing.last_name].join(' ').toLowerCase();
     const phone = (o.billing.phone || '').toLowerCase();
     return String(o.id).includes(q) || phone.includes(q) || name.includes(q);
   }
   function filteredOrders() {
-    // Only orders that have at least one item in an active filter phase
-    const orders = allOrders.filter(o => o.line_items.some(item => activeFilters.has(resolvePhase(o, item))));
     const q = searchQuery();
+    const orders = currentOrders();
     if (!q) return orders;
-    return orders.filter(o => orderMatches(o, q) || o.line_items.some(i => i.name.toLowerCase().includes(q)));
+    return orders.filter(o =>
+      orderMatches(o, q) || o.line_items.some(item => item.name.toLowerCase().includes(q)));
   }
 
-  function getOpenGroups() { return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey); }
+  function getOpenGroups() {
+    return [...document.querySelectorAll('[data-group-key].open')].map(el => el.dataset.groupKey);
+  }
   function restoreOpenGroups(keys) {
     if (!keys.length) return;
-    document.querySelectorAll('[data-group-key]').forEach(el => { if (keys.includes(el.dataset.groupKey)) el.classList.add('open'); });
+    document.querySelectorAll('[data-group-key]').forEach(el => {
+      if (keys.includes(el.dataset.groupKey)) el.classList.add('open');
+    });
   }
 
   function render() {
+    const content = document.getElementById('content');
     const wasOpen = getOpenGroups();
-    const sorted  = [...filteredOrders()].sort((a, b) => {
-      const da = daysSince(a.date_created), db = daysSince(b.date_created);
-      return sortAsc ? db - da : da - db; // sortAsc=true → oldest first (most days)
-    });
-    const html = renderOrders(sorted);
-    document.getElementById('content').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;font-size:13px;">No delivery orders</div>';
+    const orders  = filteredOrders();
+
+    if (activeTab === 'completed') {
+      const sorted = [...orders].sort((a, b) => {
+        const ta = new Date(a.date_modified || a.date_created).getTime();
+        const tb = new Date(b.date_modified || b.date_created).getTime();
+        return sortAsc ? ta - tb : tb - ta;
+      });
+      content.innerHTML = renderCompleted(sorted);
+    } else {
+      const sorted = [...orders].sort((a, b) => {
+        const da = daysSince(a.date_created), db = daysSince(b.date_created);
+        return sortAsc ? da - db : db - da;
+      });
+      content.innerHTML = renderNoResponse(sorted);
+    }
     restoreOpenGroups(wasOpen);
     attachPhaseListeners();
-    updateBadge(sorted.length);
   }
 
   function attachPhaseListeners() {
     document.querySelectorAll('.phase-sel').forEach(sel => {
       sel.addEventListener('change', () => {
         setItemPhase(sel.dataset.order, sel.dataset.item, sel.value);
-        // update in-memory meta so filter re-evaluates correctly
-        allOrders.forEach(o => {
-          if (String(o.id) !== String(sel.dataset.order)) return;
-          const item = o.line_items.find(i => String(i.id) === String(sel.dataset.item));
-          if (item) {
-            let meta = (item.meta_data || []).find(m => m.key === 'tg_phase');
-            if (meta) meta.value = sel.value;
-            else { item.meta_data = item.meta_data || []; item.meta_data.push({ key: 'tg_phase', value: sel.value }); }
-          }
-        });
         render();
       });
     });
   }
 
-  function updateBadge(count) {
-    const itemCount = filteredOrders().reduce((s, o) => s + o.line_items.filter(i => activeFilters.has(resolvePhase(o, i))).length, 0);
-    document.getElementById('orderCount').textContent = count + ' orders · ' + itemCount + ' items';
+  function updateBadge() {
+    const orders = currentOrders();
+    const totalItems = orders.reduce((s, o) => s + o.line_items.length, 0);
+    document.getElementById('orderCount').textContent =
+      orders.length + ' orders · ' + totalItems + ' items';
   }
 
-  // Filter buttons (delegated — buttons are built dynamically)
-  document.getElementById('filterBtns').addEventListener('click', e => {
-    const btn = e.target.closest('.filter-btn[data-phase]');
-    if (!btn) return;
-    const phase = btn.dataset.phase;
-    if (activeFilters.has(phase)) {
-      if (activeFilters.size > 1) { activeFilters.delete(phase); btn.classList.remove('active'); }
-    } else {
-      activeFilters.add(phase); btn.classList.add('active');
-    }
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tabCompleted').classList.toggle('active', tab === 'completed');
+    document.getElementById('tabNoResponse').classList.toggle('active', tab === 'noresponse');
+    sortAsc = false;
+    document.getElementById('sortBtn').textContent = '↓';
+    document.getElementById('searchInput').value = '';
+    updateBadge();
     render();
-  });
-
-  function buildFilterButtons() {
-    const phases = window.DLV_PHASES || [];
-    document.getElementById('filterBtns').innerHTML = phases.map(p =>
-      `<button class="filter-btn active" data-phase="${p}">${p}</button>`
-    ).join('');
-    activeFilters = new Set(phases);
   }
 
-  // Sort
+  document.getElementById('searchInput').addEventListener('input', () => render());
+
   document.getElementById('sortBtn').addEventListener('click', () => {
     sortAsc = !sortAsc;
     document.getElementById('sortBtn').textContent = sortAsc ? '↑' : '↓';
     render();
   });
 
-  // Search
-  document.getElementById('searchInput').addEventListener('input', () => render());
+  // Load both tabs in parallel
+  document.getElementById('state').textContent = 'Loading…';
 
-  // Load
-  Promise.all([fetchProcessingOrders(), loadPhasesFS(), window.phasesLoaded]).then(([orders]) => {
-    buildFilterButtons();
-    // Keep only orders with at least one item in a delivery phase
-    allOrders = orders.filter(o =>
-      o.line_items.some(item => (window.DLV_PHASES || []).includes(resolvePhase(o, item)))
+  Promise.all([
+    fetchOrders('completed'),
+    fetchOrders('processing'),
+    loadPhasesFS(),
+    window.phasesLoaded
+  ]).then(([completed, processing]) => {
+    completedOrders = completed;
+
+    // Filter processing orders to only those with at least one WH-No_Response item
+    noResponseOrders = processing.filter(o =>
+      o.line_items.some(item => resolvePhase(o.id, item) === 'WH-No_Response')
     );
+
     document.getElementById('state').style.display = 'none';
     document.getElementById('content').style.display = 'block';
+    updateBadge();
     render();
   }).catch(e => {
     document.getElementById('state').textContent = 'Error: ' + e.message;

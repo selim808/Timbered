@@ -6,9 +6,10 @@
   <title>Fabrication — Timbered</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-  <script src="../phase-loader.js"></script>
-  <script src="../phase-utils.js"></script>
-  <script src="../legacy-sync.js"></script>
+  <script src="../../js/constants.js"></script>
+  <script src="../../js/phase-loader.js"></script>
+  <script src="../../js/phase-utils.js"></script>
+  <script src="../../js/legacy-sync.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f0eb; color: #333; }
@@ -247,11 +248,11 @@
 <body>
 
 <div class="site-header">
-  <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered" style="display:block;"></a>
+  <a href="../index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered" style="display:block;"></a>
   <span class="title">Orders</span>
   <span class="badge" id="itemCount">Loading…</span>
   <span class="badge" id="totalValue" style="background:#e8f5ee;color:#1a7a3c;border-color:#b7dfc8;"></span>
-  <a href="index.html" class="back">← Back</a>
+  <a href="../index.html" class="back">← Back</a>
 </div>
 
 <div class="sub-nav">
@@ -382,8 +383,6 @@
                + "?consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362"
                + "&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
 
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
 
   let _productsFS  = {}; // productId → { drawing_url, stock_qty, ... }
   let _stockcountFS = {}; // productId → { stock, defected }
@@ -458,7 +457,7 @@
 
   // ── Phase helpers ────────────────────────────────────────────────
   function getItemPhase(orderId, itemId) {
-    return _phasesFS[`${orderId}_${itemId}`] || ALL_PHASES[0] || 'Created';
+    return _phasesFS[`${orderId}_${itemId}`] || window.ALL_PHASES[0] || '';
   }
   function setItemPhase(orderId, itemId, phase) {
     const order = (allOrders || []).find(o => String(o.id) === String(orderId));
@@ -481,12 +480,12 @@
   }
 
   async function ensureFirebasePhases(orders) {
-    const firstPhase = ALL_PHASES[0] || 'Created';
+    const firstPhase = window.ALL_PHASES[0] || '';
     const writes = [];
     orders.forEach(order => {
       order.line_items.forEach(item => {
         const key = `${order.id}_${item.id}`;
-        if (!_phasesFS[key]) {
+        if (!_phaseDocsFS[key]) {
           writes.push(() => writePhaseFS(order.id, item.id, item.product_id || 0, firstPhase));
         }
       });

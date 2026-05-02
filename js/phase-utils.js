@@ -1,24 +1,20 @@
 (function () {
-  const FS_KEY  = 'AIzaSyBXREsAkKX25cK5t5EiCrPpGv4zSaBMOgg';
-  const FS_BASE = 'https://firestore.googleapis.com/v1/projects/timbered-dashboard/databases/(default)/documents';
-
   window._phasesFS    = {};
   window._phaseDocsFS = {};
 
-  window.loadPhasesFS = async function () {
-    try {
-      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
-      });
-      const rows = await res.json();
-      rows.filter(r => r.document).forEach(r => {
+  const CACHE_KEY = 'tg_order_phases_cache_v2';
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  function applyRows(rows) {
+    rows.filter(r => r.document).forEach(r => {
         const f   = r.document.fields || {};
         const oid = f.order_id?.stringValue || '';
         const lid = f.line_item_id?.stringValue || '';
         if (!oid || !lid) return;
         const key       = `${oid}_${lid}`;
-        const phase     = f.phase?.stringValue || '';
+        const rawPhase  = f.phase?.stringValue || '';
+        // "placed" is a WooCommerce order status that leaked into phase docs — treat as unset
+        const phase     = rawPhase === 'placed' ? '' : rawPhase;
         const enteredAt = f.entered_at?.stringValue || null;
         // Support both old {phase,at} and new {phase,entered_at,exited_at,duration_min} formats
         const history = (f.history?.arrayValue?.values || []).map(v => {
@@ -37,6 +33,22 @@
         _phasesFS[key]    = phase;
         _phaseDocsFS[key] = { phase, entered_at: enteredAt, wc_status: f.wc_status?.stringValue || '', history };
       });
+  }
+
+  window.loadPhasesFS = async function () {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { ts, rows } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) { applyRows(rows); return; }
+      }
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
+      });
+      const rows = await res.json();
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), rows })); } catch (_) {}
+      applyRows(rows);
     } catch (_) {}
   };
 
@@ -65,6 +77,7 @@
     }
 
     _phasesFS[key] = phase;
+    try { sessionStorage.removeItem(CACHE_KEY); } catch (_) {}
 
     const doc = _phaseDocsFS[key];
     const histValues = doc.history.map(h => ({

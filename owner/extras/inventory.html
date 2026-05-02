@@ -77,12 +77,12 @@
 
 <div class="top-fixed" id="topFixed">
   <div class="site-header">
-    <a href="index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
+    <a href="../index.html"><img src="https://timberedgroup.com/wp-content/uploads/2024/04/Asset-14.png" alt="Timbered"></a>
     <span class="title">Inventory</span>
     <span class="badge" id="productCount">Loading…</span>
     <div class="header-actions">
       <a href="stockcount.html" class="back">Stock Count</a>
-      <a href="index.html" class="back">← Back</a>
+      <a href="../index.html" class="back">← Back</a>
     </div>
   </div>
   <div class="toolbar">
@@ -156,11 +156,46 @@
   </div>
 </div>
 
+<script src="../../js/constants.js"></script>
 <script>
   const WC_KEY    = "ck_dbdad7d7e7e2993164087fd562caf37f14dca362";
   const WC_SECRET = "cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
   const WC_BASE   = `https://timberedgroup.com/wp-json/wc/v3/products?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}&per_page=100&orderby=title&order=asc`;
   const WC_PUT    = id => `https://timberedgroup.com/wp-json/wc/v3/products/${id}?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
+
+  let stockcountData = {}; // productId -> { stock, defected }
+
+  async function loadStockcount() {
+    try {
+      const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'stockcount' }] } })
+      });
+      const rows = await res.json();
+      rows.filter(r => r.document).forEach(r => {
+        const f  = r.document.fields || {};
+        const id = parseInt(f.product_id?.integerValue || f.product_id?.stringValue || 0);
+        if (!id) return;
+        stockcountData[id] = {
+          stock:    parseInt(f.stock?.integerValue    || 0),
+          defected: parseInt(f.defected?.integerValue || 0),
+        };
+      });
+    } catch (_) {}
+  }
+
+  function writeStockcount(productId, stock, defected) {
+    stockcountData[productId] = { stock, defected };
+    fetch(`${FS_BASE}/stockcount/${productId}?key=${FS_KEY}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: {
+        product_id: { integerValue: String(productId) },
+        stock:      { integerValue: String(stock) },
+        defected:   { integerValue: String(defected) },
+        updated_at: { stringValue: new Date().toISOString() },
+      }})
+    }).catch(() => {});
+  }
 
   async function fetchAllProducts() {
     const first      = await fetch(WC_BASE + '&page=1');
@@ -173,27 +208,8 @@
     return [firstData, ...rest].flat();
   }
 
-  function getTgStock(p) {
-    const meta = (p.meta_data || []).find(m => m.key === 'tg_stock');
-    return meta ? parseInt(meta.value) || 0 : 0;
-  }
-
-  function getTgRepair(p) {
-    const meta = (p.meta_data || []).find(m => m.key === 'tg_repair');
-    return meta ? parseInt(meta.value) || 0 : 0;
-  }
-
-  async function updateMeta(productId, key, value) {
-    await fetch(WC_PUT(productId), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meta_data: [{ key, value: String(value) }] })
-    });
-  }
-
-  async function updateStock(productId, newQty) {
-    await updateMeta(productId, 'tg_stock', newQty);
-  }
+  function getTgStock(p)  { return stockcountData[p.id]?.stock    || 0; }
+  function getTgRepair(p) { return stockcountData[p.id]?.defected || 0; }
 
   let allProducts  = [];
   let activeFilter = 'all';
@@ -327,13 +343,6 @@
       <th>${tFabQty}<span class="t-val">${fmt(tFabVal)}</span></th>`;
   }
 
-  function setLocalMeta(p, key, value) {
-    const meta = p.meta_data || (p.meta_data = []);
-    const entry = meta.find(m => m.key === key);
-    if (entry) entry.value = String(value);
-    else meta.push({ key, value: String(value) });
-  }
-
   function refreshFab(productId) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
@@ -345,34 +354,32 @@
     }
   }
 
-  async function changeQty(productId, delta) {
+  function changeQty(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
-    const newQty = Math.max(0, getTgStock(p) + delta);
-    setLocalMeta(p, 'tg_stock', newQty);
+    const prevDefected = getTgRepair(p);
+    const newStock     = Math.max(0, getTgStock(p) + delta);
+    const newDefected  = Math.min(prevDefected, newStock);
+    stockcountData[productId] = { stock: newStock, defected: newDefected };
     const el = document.getElementById('stock-' + productId);
-    if (el) el.textContent = newQty;
-    // Cap defected at new stock value
-    const curRepair = getTgRepair(p);
-    if (curRepair > newQty) {
-      setLocalMeta(p, 'tg_repair', newQty);
+    if (el) el.textContent = newStock;
+    if (newDefected !== prevDefected) {
       const rel = document.getElementById('repair-' + productId);
-      if (rel) rel.textContent = newQty;
-      updateMeta(productId, 'tg_repair', newQty);
+      if (rel) rel.textContent = newDefected;
     }
     refreshFab(productId);
-    updateMeta(productId, 'tg_stock', newQty);
+    writeStockcount(productId, newStock, newDefected);
   }
 
-  async function changeRepair(productId, delta) {
+  function changeRepair(productId, delta) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
-    const newVal = Math.min(getTgStock(p), Math.max(0, getTgRepair(p) + delta));
-    setLocalMeta(p, 'tg_repair', newVal);
+    const newDefected = Math.min(getTgStock(p), Math.max(0, getTgRepair(p) + delta));
+    stockcountData[productId] = { ...(stockcountData[productId] || {}), defected: newDefected };
     const el = document.getElementById('repair-' + productId);
-    if (el) el.textContent = newVal;
+    if (el) el.textContent = newDefected;
     refreshFab(productId);
-    updateMeta(productId, 'tg_repair', newVal);
+    writeStockcount(productId, getTgStock(p), newDefected);
   }
 
   const WC_ORDERS = `https://timberedgroup.com/wp-json/wc/v3/orders?consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}&per_page=100&status=pending,processing,on-hold`;
@@ -448,7 +455,7 @@
     });
   });
 
-  Promise.all([fetchAllProducts(), fetchAllActiveOrders()]).then(([products, oqMap]) => {
+  Promise.all([fetchAllProducts(), fetchAllActiveOrders(), loadStockcount()]).then(([products, oqMap]) => {
     allProducts  = products;
     orderedQtyMap = oqMap;
     document.getElementById('state').style.display = 'none';
