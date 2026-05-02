@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://timberedgroup.com/wp-json/wc/v3/products*)",
+      "Bash(curl -s \"https://firestore.googleapis.com/v1/projects/*)",
+      "Bash(curl -sk \"https://timberedgroup.com/*)",
+      "Bash(curl --insecure -s \"https://timberedgroup.com/*)"
+    ]
+  }
+}

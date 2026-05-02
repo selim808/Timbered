@@ -110,10 +110,15 @@
     .section-hdr-line { flex: 1; height: 1px; background: #e8ddd4; }
     .section-hdr-lbl { font-size: 11px; font-weight: 700; color: #7A4610; white-space: nowrap; }
 
-    .new-toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 7px 10px; display: none; }
+    .new-toolbar { background: #fff; border-bottom: 1px solid #e8ddd4; padding: 7px 10px; display: none; position: sticky; top: 90px; z-index: 98; align-items: center; gap: 8px; flex-wrap: wrap; }
     .load-orders-btn { font-size: 12px; font-weight: 700; color: #7A4610; border: 1.5px solid #7A4610; border-radius: 20px; padding: 5px 16px; background: none; cursor: pointer; }
     .load-orders-btn:hover { background: #7A4610; color: #fff; }
     .load-orders-btn:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
+    .jo-live-summary { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; }
+    .jo-live-chip { font-size: 10px; color: #666; background: #f5f0eb; border: 1px solid #e8ddd4; border-radius: 7px; padding: 3px 7px; white-space: nowrap; }
+    .jo-live-chip strong { color: #333; font-weight: 800; }
+    .jo-live-chip.mts { background: #fef3e2; border-color: #f5c842; color: #7A4610; }
+    .jo-live-chip.value { background: #e8f5ee; border-color: #b7dfc8; color: #1a7a3c; }
 
     .search-row { margin-bottom: 6px; }
     .prod-search { width: 100%; font-size: 12px; padding: 8px 12px; border: 1.5px solid #e8ddd4; border-radius: 8px; outline: none; color: #333; }
@@ -207,6 +212,12 @@
 
 <div class="new-toolbar" id="newToolbar">
   <button class="load-orders-btn" id="loadOrdersBtn" onclick="loadJOOrders()">↻ Load Orders in JO Prep</button>
+  <div class="jo-live-summary" id="joLiveSummary">
+    <span class="jo-live-chip">Products QTY <strong id="sumProducts">0</strong></span>
+    <span class="jo-live-chip">Units <strong id="sumUnits">0</strong></span>
+    <span class="jo-live-chip mts">MTS <strong id="sumMtsPct">0%</strong></span>
+    <span class="jo-live-chip value">JO Value <strong id="sumJoValue">0 EGP</strong></span>
+  </div>
 </div>
 
 <div id="stateMsg" class="state-msg">Loading…</div>
@@ -539,22 +550,35 @@
   function updateSubmitSummary() {
     const mtoCards = document.querySelectorAll('.prod-card[data-pid]');
     let totalItems = mtoCards.length + _mtsOnly.length;
-    let totalQty = 0, totalVal = 0;
+    let totalQty = 0, totalVal = 0, mtsVal = 0;
     mtoCards.forEach(card => {
       const inp = card.querySelector('.mts-input');
       const mto = parseInt(inp?.dataset.mto) || 0;
       const mts = parseInt(inp?.value) || 0;
+      const unitPrice = _priceMap[parseInt(card.dataset.pid)] || 0;
       const qty = mto + mts;
       totalQty += qty;
-      totalVal += qty * (_priceMap[parseInt(card.dataset.pid)] || 0);
+      totalVal += qty * unitPrice;
+      mtsVal += mts * unitPrice;
     });
     _mtsOnly.forEach(p => {
       const qty = parseInt(p.qty) || 1;
+      const unitPrice = _priceMap[p.product_id] || 0;
       totalQty += qty;
-      totalVal += qty * (_priceMap[p.product_id] || 0);
+      totalVal += qty * unitPrice;
+      mtsVal += qty * unitPrice;
     });
     const valStr = totalVal > 0 ? ` · ${fmtVal(totalVal)} EGP` : '';
-    document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units${valStr}`;
+    const mtsStr = totalVal > 0 && mtsVal > 0
+      ? ` · MTS ${fmtVal(mtsVal)} EGP (${Math.round((mtsVal / totalVal) * 100)}%)`
+      : '';
+    document.getElementById('submitSummary').textContent = `${totalItems} products · ${totalQty} units${valStr}${mtsStr}`;
+    const mtsPct = totalVal > 0 ? Math.round((mtsVal / totalVal) * 100) : 0;
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setText('sumProducts', totalItems);
+    setText('sumUnits', totalQty);
+    setText('sumMtsPct', `${mtsPct}%`);
+    setText('sumJoValue', totalVal > 0 ? `${fmtVal(totalVal)} EGP` : '0 EGP');
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) submitBtn.disabled = totalItems === 0;
   }
@@ -1118,7 +1142,7 @@
   function setTab(id) {
     document.getElementById('tabNew').classList.toggle('active', id === 'tabNew');
     document.getElementById('tabHistory').classList.toggle('active', id === 'tabHistory');
-    document.getElementById('newToolbar').style.display = id === 'tabNew' ? 'block' : 'none';
+    document.getElementById('newToolbar').style.display = id === 'tabNew' ? 'flex' : 'none';
     document.getElementById('newWrap').style.display = id === 'tabNew' ? 'block' : 'none';
     document.getElementById('histWrap').style.display = id === 'tabHistory' ? 'block' : 'none';
     document.getElementById('submitBar').style.display = id === 'tabNew' && _wcProducts.length ? 'flex' : 'none';
@@ -1159,7 +1183,7 @@
       }
       stateEl.style.display = 'none';
       document.getElementById('newWrap').style.display = 'block';
-      document.getElementById('newToolbar').style.display = 'block';
+      document.getElementById('newToolbar').style.display = 'flex';
       renderNew(_wcProducts);
     } catch(e) {
       stateEl.textContent = 'Error loading orders: ' + e.message;
