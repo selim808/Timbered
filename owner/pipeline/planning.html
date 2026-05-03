@@ -100,8 +100,7 @@
 </div>
 
 <script>
-  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
-  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const WC_ORDERS = `${WC_DOMAIN}/orders?${WC_CREDS}`;
 
   const EG_STATES = {
     "0":"Alexandria","1":"Assuit","2":"Aswan","3":"Bani Suif","4":"Behira",
@@ -133,7 +132,7 @@
   async function fetchAllOrders() {
     let page = 1, all = [];
     while (true) {
-      const res = await fetch(`${WC_ORDERS}&status=processing,on-hold&orderby=date&order=desc&per_page=100&page=${page}`);
+      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
       if (!res.ok) break;
       const batch = await res.json();
       if (!batch.length) break;

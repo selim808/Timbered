@@ -152,8 +152,7 @@
 <script src="../../js/phase-loader.js"></script>
 <script src="../../js/phase-utils.js"></script>
 <script>
-  const WC_CREDS  = "consumer_key=ck_dbdad7d7e7e2993164087fd562caf37f14dca362&consumer_secret=cs_a08685ea3cf820bb8056e2e9039abc4e9f7244de";
-  const WC_ORDERS = "https://timberedgroup.com/wp-json/wc/v3/orders?" + WC_CREDS;
+  const WC_ORDERS = `${WC_DOMAIN}/orders?${WC_CREDS}`;
   let REVIEW_PHASES = []; // loaded from "Order Review" phase group in Firebase
   let PHASE_GROUPS  = []; // all groups — drives optgroup dropdown
   const ALL_PHASES = [

@@ -2145,7 +2145,7 @@ async function loadGoals() {
   const workflowSection = groups.length ? `
     <div style="grid-column:1/-1; display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
       ${groups.filter(g => !['repair','dispatch'].includes(g.id)).map((g, i) => {
-        const url = g.id.replace(/_/g, '-') + '.html';
+        const url = 'pipeline/' + g.id.replace(/_/g, '-') + '.html';
         const hex = g.color || '#7A4610';
         return `<a href="${url}" style="${A} background:${hex};color:#fff;padding:10px 20px 10px 10px;clip-path:${clip};font-size:12px;font-weight:700;">${g.label}</a>`;
       }).join('')}
@@ -2158,12 +2158,13 @@ async function loadGoals() {
     `<button onclick="document.getElementById('allPagesPanel').style.display=document.getElementById('allPagesPanel').style.display==='none'?'grid':'none'" style="grid-column:1/-1;${A} border-radius:20px;padding:8px 20px;color:#666;border:2px solid #ccc;background:#f5f5f5;cursor:pointer;">All Pages ▾</button>` +
     `<div id="allPagesPanel" style="grid-column:1/-1;display:none;grid-template-columns:repeat(3,1fr);gap:8px;">` +
     [
-      ['orders.html','Orders'],['order-review.html','Order Review'],['planning.html','Planning'],
-      ['warehouse.html','Warehouse'],['production.html','Production'],['delivery.html','Delivery'],
-      ['customer-service.html','Customer Service'],['follow-up.html','Follow-Up'],['job-prep.html','Job Prep'],['cutlists.html','Cutlists'],
-      ['inventory.html','Inventory'],['stockcount.html','Stock Count'],['phases.html','Phase Groups'],
-      ['products.html','Products'],['product-detail.html','Product Detail'],['databases.html','Databases'],
-      ['constants.html','Constants'],['migrate.html','Migrate']
+      ['pipeline/orders.html','Orders'],['pipeline/order-review.html','Order Review'],['pipeline/planning.html','Planning'],
+      ['pipeline/warehouse.html','Warehouse'],['pipeline/production.html','Production'],['pipeline/delivery.html','Delivery'],
+      ['pipeline/follow-up.html','Follow-Up'],['pipeline/interface.html','Interface'],
+      ['extras/customer-service.html','Customer Service'],['extras/job-prep.html','Job Prep'],['extras/cutlists.html','Cutlists'],
+      ['extras/inventory.html','Inventory'],['../employee/stockcount.html','Stock Count'],['admin/phases.html','Phase Groups'],
+      ['admin/products.html','Products'],['admin/product-detail.html','Product Detail'],['admin/databases.html','Databases'],
+      ['admin/constants.html','Constants'],['admin/migrate.html','Migrate']
     ].map(([href,label])=>`<a href="${href}" style="${A} border-radius:10px;padding:8px 6px;font-size:12px;color:#555;border:1.5px solid #ddd;background:#fff;">${label}</a>`).join('') +
     `</div>`;
 })();

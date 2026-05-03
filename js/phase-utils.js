@@ -2,9 +2,6 @@
   window._phasesFS    = {};
   window._phaseDocsFS = {};
 
-  const CACHE_KEY = 'tg_order_phases_cache_v2';
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
   function applyRows(rows) {
     rows.filter(r => r.document).forEach(r => {
         const f   = r.document.fields || {};
@@ -37,17 +34,11 @@
 
   window.loadPhasesFS = async function () {
     try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { ts, rows } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) { applyRows(rows); return; }
-      }
       const res = await fetch(`${FS_BASE}:runQuery?key=${FS_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'order_phases' }] } })
       });
       const rows = await res.json();
-      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), rows })); } catch (_) {}
       applyRows(rows);
     } catch (_) {}
   };
@@ -77,7 +68,6 @@
     }
 
     _phasesFS[key] = phase;
-    try { sessionStorage.removeItem(CACHE_KEY); } catch (_) {}
 
     const doc = _phaseDocsFS[key];
     const histValues = doc.history.map(h => ({
