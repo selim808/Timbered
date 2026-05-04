@@ -152,7 +152,8 @@
 <script src="../../js/phase-loader.js"></script>
 <script src="../../js/phase-utils.js"></script>
 <script>
-  const WC_ORDERS = `${WC_DOMAIN}/orders?${WC_CREDS}`;
+  const WC_ORDER_STATUS = 'processing';
+  const WC_ORDERS = `${WC_DOMAIN}/orders?${WC_CREDS}&status=${WC_ORDER_STATUS}`;
   let REVIEW_PHASES = []; // loaded from "Order Review" phase group in Firebase
   let PHASE_GROUPS  = []; // all groups — drives optgroup dropdown
   const ALL_PHASES = [
@@ -245,11 +246,11 @@
   async function fetchAllOrders() {
     let page = 1, all = [];
     while (true) {
-      const res = await fetch(`${WC_ORDERS}&status=processing&orderby=date&order=desc&per_page=100&page=${page}`);
+      const res = await fetch(`${WC_ORDERS}&orderby=id&order=desc&per_page=100&page=${page}`);
       if (!res.ok) break;
       const batch = await res.json();
       if (!batch.length) break;
-      all = all.concat(batch);
+      all = all.concat(batch.filter(order => order.status === WC_ORDER_STATUS));
       if (batch.length < 100) break;
       page++;
     }
@@ -290,14 +291,17 @@
   function updateCounts() {
     let total = 0;
     REVIEW_PHASES.forEach(phase => {
-      const count = allOrders.reduce((acc, o) =>
+      const itemCount = allOrders.reduce((acc, o) =>
         acc + o.line_items.filter(i => resolvePhase(o.id, i) === phase).length, 0);
+      const count = phase.toLowerCase() === 'placed'
+        ? allOrders.filter(o => o.line_items.some(i => resolvePhase(o.id, i) === phase)).length
+        : itemCount;
       const el = document.getElementById('cnt-' + phase);
       if (el) {
         el.textContent = count;
         el.closest('.tab-btn').style.display = count > 0 ? '' : 'none';
       }
-      total += count;
+      total += itemCount;
     });
     document.getElementById('totalBadge').textContent = total + ' items';
     // if active tab is now empty, switch to first visible
@@ -350,8 +354,8 @@
 
   function sortedOrders(orders) {
     return [...orders].sort((a, b) => {
-      const da = daysSince(a.date_created), db = daysSince(b.date_created);
-      return sortAsc ? da - db : db - da;
+      const idA = Number(a.id) || 0, idB = Number(b.id) || 0;
+      return sortAsc ? idA - idB : idB - idA;
     });
   }
 
